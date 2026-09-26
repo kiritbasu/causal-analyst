@@ -6,4 +6,6 @@ license: Apache-2.0
 date-released: 2026-09-26
 version: 0.2.0
 authors:
-  - name: "The causal-analyst authors"
+  - family-names: "Basu"
+    given-names: "Kirit"
+repository-code: "https://github.com/kiritbasu/causal-analyst"

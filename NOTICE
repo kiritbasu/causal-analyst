@@ -1,5 +1,5 @@
 causal-analyst
-Copyright 2026 the causal-analyst authors
+Copyright 2026 Kirit Basu
 
 This project is licensed under the Apache License, Version 2.0 (see LICENSE).
 It uses DoWhy (MIT), EconML (MIT), scikit-learn (BSD-3-Clause), statsmodels (BSD-3-Clause),
