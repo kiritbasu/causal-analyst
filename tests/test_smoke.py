@@ -65,3 +65,19 @@ def test_not_identifiable(tmp_path):
     assert r["trust_tier"] == "D" and r["main_result"] is None
     b = r["diagnostics"]["bounds_no_instrument"]["mtr_mts"]
     assert b["lower"] == 0 and b["upper"] > 0.2
+
+
+def test_negative_control(tmp_path):
+    """Statin case: the injury check must fail, cap the grade and give a planning figure near the truth (-0.02)."""
+    ex = ROOT / "examples" / "statin-adherence"
+    spec = json.loads((ex / "spec.json").read_text())
+    spec.update(data=str(ex / "data.csv"), budget="quick", causalpfn_max_rows=0)
+    (tmp_path / "spec.json").write_text(json.dumps(spec))
+    ca("run", "spec.json", "--out", "results.json", cwd=tmp_path)
+    r = json.loads((tmp_path / "results.json").read_text())
+    d = r["diagnostics"]
+    assert r["trust_tier"] == "C"
+    assert not d["negative_controls"][0]["passes"]
+    cal = d["negative_control_adjusted"]
+    assert cal["ci"][0] < -0.02 < cal["ci"][1]
+    assert d["plausibility"] and not d["plausibility"]["inside"]

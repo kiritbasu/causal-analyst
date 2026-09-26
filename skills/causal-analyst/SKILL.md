@@ -80,7 +80,19 @@ say what is missing. See `references/question-types.md` for which question fits 
 
 ### Step 3: ✋ Assumptions interview
 
-Ask only what the data cannot answer. Read `references/interview.md` for exact wording.
+**First, a short domain briefing** (read `references/domain.md`). Before asking anything, write
+down in `domain_notes` what usually drives this outcome in this domain and the 2-4 traps that
+typically bias this kind of comparison (healthy-adherer effects in health data, targeting the
+already-engaged in marketing, regression to the mean after a bad period). The SME knows their
+process; you often know the literature and the classic pitfalls they haven't seen. Turn each trap
+into a question, a stand-in control, a `suspected_hidden` driver, a `negative_control_outcomes`
+check, or an alternative diagram, and write an `expected_effect` range from published evidence
+(search if you can). Do this before any results. If a negative-control check fails, the run also
+reports a rough planning figure with that bias removed; quote it as a guide next to the main
+result, never instead of it. Tag everything you contributed
+`"source": "general knowledge"`; it stays labelled that way in the report unless the SME confirms.
+
+Then ask only what the data cannot answer. Read `references/interview.md` for exact wording.
 The essentials:
 1. **Timing:** Was each candidate control recorded before the treatment? Anything "after" or
    "during" goes to `excluded` with the reason.
@@ -120,7 +132,8 @@ again until it looks right or they are unsure (then proceed and record it as an 
 - A missing factor that is in the data and was recorded before the action → add to `confounders`.
 - A missing factor that is not in the data → `hidden_confounding: "named_driver"` with their words.
 - Something that happens after the action → move to `excluded` with reason "post-treatment".
-- An arrow between two other factors (e.g. income affects past spend) → `extra_edges`.
+- An arrow between two other factors (e.g. income affects past spend) → `extra_edges`, as
+  `[from, to, source]` where source is `"sme"` or `"general knowledge"`.
 - "The action can't affect X" or "X doesn't affect the outcome" → adjust accordingly and note it.
 
 **Name the plausible alternatives.** Wherever you or the SME were unsure (a column that might be a

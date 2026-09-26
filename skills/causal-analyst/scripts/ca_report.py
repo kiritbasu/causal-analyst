@@ -450,7 +450,9 @@ def _clip(a, b, gap=3):
 EDGE_STYLE = {"assumed": ('#6b6964', '1.3', '', 'ah'), "effect": (INK, '2.4', '', 'ahb'),
               "hidden": ('#b5542c', '1.4', ' stroke-dasharray="5 4"', 'ahr'),
               "after": ('#8a8883', '1.5', ' stroke-dasharray="2 4"', 'ah'),
-              "sme": ('#4a3aa7', '1.6', '', 'ahp')}
+              "sme": ('#4a3aa7', '1.6', '', 'ahp'),
+              "knowledge": ('#4a3aa7', '1.5', ' stroke-dasharray="6 4"', 'ahp'),
+              "suspected": ('#b5542c', '1.4', ' stroke-dasharray="2 4"', 'ahr')}
 
 
 def chart_dag(dag, W=960):
@@ -560,7 +562,7 @@ def chart_bad_control(bc, f):
 
 
 ROLE_STYLE = {"action": ("#dbe8f8", BLUE), "outcome": ("#dcefe4", "#1d6b43"), "control": ("#ecebe5", GREY),
-              "nudge": ("#e7e3f6", "#4a3aa7"), "middle step": ("#e7e3f6", "#4a3aa7"), "left out": ("#fbe6dc", ORANGE), "not used": ("#f4f3ee", "#b5b3ab")}
+              "nudge": ("#e7e3f6", "#4a3aa7"), "middle step": ("#e7e3f6", "#4a3aa7"), "check": ("#fdf0d5", "#9a6a00"), "left out": ("#fbe6dc", ORANGE), "not used": ("#f4f3ee", "#b5b3ab")}
 
 
 def _cell(v):
@@ -615,7 +617,7 @@ def data_section(ov, labels, names, units, n):
         name = labels.get(c["column"], c["column"])
         sub = f'<div class="raw">{e(c["column"])}</div>' if name != c["column"] else ""
         if c.get("meaning"):
-            tag = "" if c.get("confirmed") else ' <span class="assumed">assumed</span>'
+            tag = "" if c.get("confirmed") else (' <span class="assumed">assumed from general knowledge</span>' if "general" in str(c.get("source", "")).lower() else ' <span class="assumed">assumed</span>')
             rec = f' · {e(c["recorded"])}' if c.get("recorded") and c["recorded"] not in ("the action", "the outcome", "unknown") else ""
             sub += f'<div class="meaning">{e(c["meaning"])}{rec}{tag}</div>'
         if c["n_unique"] == ov["rows"] and c["kind"] in ("number", "text/id") and c["role"] in ("left out", "not used"):
@@ -658,11 +660,17 @@ def dag_in_words(dag, labels):
             items.append(("A middle step", f'The effect of {L(T)} flows through {L(x["id"])}.'))
         if x["role"] == "after the action":
             items.append(("Left out on purpose", f'{L(x["id"])} happens after {L(T)}, so controlling for it would hide or distort the effect.'))
-        if x["role"] == "hidden":
+        if x["role"] == "check: can't be affected":
+            items.append(("A check", f'{L(T)} cannot plausibly change {L(x["id"])}, so any apparent effect on it measures hidden bias.'))
+        if x["role"] == "hidden" and x.get("suspected"):
+            items.append(("Suspected, not in the data", f'{x["label"].replace("Suspected, not in data: ", "")} may affect both {L(T)} and {L(Y)}. This comes from general knowledge of this kind of data, not from you; the checks below size it.'))
+        elif x["role"] == "hidden":
             items.append(("Not in the data", f'{x["label"].replace("Not in data: ", "")} affects both {L(T)} and {L(Y)}. Nothing recorded can stand in for it, which limits what the data can answer.'))
     for ed in dag["edges"]:
         if ed["kind"] == "sme":
-            items.append(("Added arrow", f'{L(ed["from"])} affects {L(ed["to"])}.'))
+            items.append(("Added arrow", f'{L(ed["from"])} affects {L(ed["to"])}' + (" (you told us)." if ed.get("source") in ("sme", None) else f' ({ed["source"]}).')))
+        if ed["kind"] == "knowledge":
+            items.append(("Added from general knowledge", f'{L(ed["from"])} affects {L(ed["to"])}. Not confirmed by you.'))
     return "".join(f'<div class="mrow"><strong>{e(t)}.</strong> <span>{e(d)}</span></div>' for t, d in items)
 
 
@@ -673,6 +681,10 @@ def dag_legend(dag):
         it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#b5542c" stroke-width="2" stroke-dasharray="5 4"/></svg>not in the data</span>')
     if "after" in kinds:
         it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#8a8883" stroke-width="2" stroke-dasharray="2 4"/></svg>happens after the action: not controlled for</span>')
+    if "knowledge" in kinds:
+        it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#4a3aa7" stroke-width="2" stroke-dasharray="6 4"/></svg>from general knowledge, not confirmed</span>')
+    if "suspected" in kinds:
+        it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#b5542c" stroke-width="2" stroke-dasharray="2 4"/></svg>suspected from general knowledge, not in the data</span>')
     if "sme" in kinds:
         it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#4a3aa7" stroke-width="2"/></svg>added from what you told us</span>')
     return f'<div class="legend">{"".join(it)}</div>'
@@ -782,6 +794,96 @@ def chart_sim(sim, f):
     return "".join(out)
 
 
+def chart_negctl(ncs, main_rel, main_ci_rel, labels):
+    """Relative 'effect' (% of the untreated average) on the main outcome and on outcomes the action can't change."""
+    rows = []
+    if main_rel is not None:
+        rows.append(("The outcome we care about", main_rel, main_ci_rel, True))
+    for x in ncs:
+        if x.get("relative") is None or "estimate" not in x:
+            continue
+        b = x["untreated_mean"] or 1
+        rows.append((labels.get(x["column"], x["column"]), x["relative"], [c / b for c in x["ci"]], False))
+    if not rows:
+        return ""
+    vals = [0.0] + [v for _, m, ci, _ in rows for v in (m, *(ci or []))]
+    lo, hi = min(vals), max(vals)
+    pad = (hi - lo) * 0.12 or 0.05
+    X = scale(lo - pad, hi + pad, 230, 500)
+    H = 30 + 40 * len(rows) + 30
+    out = [f'<svg width="100%" viewBox="0 0 520 {H}" role="img" aria-label="Effect on outcomes the action cannot change">',
+           f'<line x1="{X(0):.1f}" y1="10" x2="{X(0):.1f}" y2="{H - 26}" stroke="{BASE}"/>',
+           f'<text x="{X(0):.1f}" y="{H - 8}" font-size="12" fill="{MUTED}" text-anchor="middle">no effect</text>']
+    for i, (name, m, ci, is_main) in enumerate(rows):
+        y = 30 + 40 * i
+        bad = (not is_main) and ci and not (ci[0] <= 0 <= ci[1])
+        col = BLUE if is_main else (CRIT if bad else GREY)
+        out.append(f'<text x="0" y="{y + 5}" font-size="13" font-weight="{600 if is_main else 400}" fill="{INK}">{e(name if len(name) <= 30 else name[:29] + "…")}</text>')
+        if ci:
+            out.append(f'<line x1="{X(ci[0]):.1f}" y1="{y}" x2="{X(ci[1]):.1f}" y2="{y}" stroke="{col}" stroke-width="2" stroke-linecap="round"/>')
+        out.append(f'<circle cx="{X(m):.1f}" cy="{y}" r="5.5" fill="{col}" stroke="{CARD}" stroke-width="2"><title>{m:+.0%}</title></circle>')
+        tx = X(max(m, ci[1] if ci else m)) + 10
+        out.append(f'<text x="{tx:.1f}" y="{y + 5}" font-size="12" font-weight="{600 if bad else 400}" fill="{CRIT if bad else MUTED}">{m:+.0%}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def chart_plausibility(pz, main, f):
+    lo, hi, est = pz["low"], pz["high"], pz["estimate"]
+    ci = main.get("ci") or [est, est]
+    vals = [0.0, lo, hi, est, *ci]
+    a, b = min(vals), max(vals)
+    pad = (b - a) * 0.12 or 1
+    X = scale(a - pad, b + pad, 20, 500)
+    out = [f'<svg width="100%" viewBox="0 0 520 120" role="img" aria-label="Our estimate against the range expected before the run">',
+           f'<rect x="{X(lo):.1f}" y="18" width="{max(X(hi) - X(lo), 2):.1f}" height="64" fill="rgba(29,107,67,0.14)"/>',
+           f'<text x="{(X(lo) + X(hi)) / 2:.1f}" y="12" font-size="12" fill="#1d6b43" text-anchor="middle">expected before the run</text>',
+           f'<line x1="{X(0):.1f}" y1="18" x2="{X(0):.1f}" y2="82" stroke="{BASE}"/>',
+           f'<line x1="{X(ci[0]):.1f}" y1="50" x2="{X(ci[1]):.1f}" y2="50" stroke="{BLUE}" stroke-width="2.5" stroke-linecap="round"/>',
+           f'<circle cx="{X(est):.1f}" cy="50" r="6.5" fill="{BLUE}" stroke="{CARD}" stroke-width="2"/>',
+           f'<text x="{X(est):.1f}" y="36" font-size="12.5" font-weight="600" fill="{INK}" text-anchor="middle">ours {e(f(est, sign=True))}</text>']
+    for v in (lo, hi):
+        out.append(f'<text x="{X(v):.1f}" y="100" font-size="12" fill="{MUTED}" text-anchor="middle">{e(f(v, sign=True))}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+SOURCE_CHIP = {"sme": ("you told us", "#dcefe4", "#1d6b43"), "brief": ("from your brief", "#dcefe4", "#1d6b43"),
+               "data": ("the data suggests", "#dbe8f8", "#2a78d6"),
+               "general knowledge": ("general knowledge, not confirmed", "#efedf8", "#4a3aa7")}
+
+
+def source_chip(src):
+    key = str(src or "").lower()
+    key = "general knowledge" if "general" in key or "literature" in key or "published" in key else key
+    label, bg, fg = SOURCE_CHIP.get(key, (src or "", "#f4f3ee", GREY))
+    return f'<span class="chip" style="background:{bg}"><i style="background:{fg}"></i>{e(label)}</span>' if label else ""
+
+
+def domain_section(dn, spec, diag, labels):
+    """What domain knowledge said before the run, and what was done about each point."""
+    rows = []
+    for t in dn.get("known_traps", []):
+        if isinstance(t, str):
+            t = {"name": t}
+        rows.append(f'<div class="mrow"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong>{e(t.get("name", ""))}</strong>{source_chip(t.get("source", "general knowledge"))}</div>'
+                    f'<span>{e(t.get("why", ""))}</span>' + (f'<div class="small" style="margin-top:4px"><b>What we did:</b> {e(t["handled"])}</div>' if t.get("handled") else "") + '</div>')
+    for sh in spec.get("suspected_hidden", []):
+        if isinstance(sh, str):
+            sh = {"label": sh}
+        px = ", ".join(labels.get(p, p) for p in sh.get("proxies", []))
+        rows.append(f'<div class="mrow"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong>Suspected, not in the data: {e(sh.get("label", ""))}</strong>{source_chip(sh.get("source", "general knowledge"))}</div>'
+                    f'<span>{e(sh.get("why", ""))}</span>' + (f'<div class="small" style="margin-top:4px"><b>Partial stand-in used as a control:</b> {e(px)}</div>' if px else "") + '</div>')
+    for nc in spec.get("negative_control_outcomes", []):
+        col = nc["column"] if isinstance(nc, dict) else nc
+        why = nc.get("why", "") if isinstance(nc, dict) else ""
+        rows.append(f'<div class="mrow"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong>Check against {e(labels.get(col, col))}</strong>{source_chip("general knowledge")}</div><span>{e(why or "The action cannot plausibly change this, so any apparent effect on it measures hidden bias.")}</span></div>')
+    ee = spec.get("expected_effect")
+    if ee:
+        rows.append(f'<div class="mrow"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong>What to expect</strong>{source_chip(ee.get("source", "general knowledge"))}</div><span>{e(ee.get("basis", ""))}</span></div>')
+    return "".join(rows)
+
+
 def check_row(title, text, extra=""):
     icon = f'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{GOODTXT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Passed"><path d="M20 6L9 17l-5-5"/></svg>'
     return f'<div class="check">{icon}<div><div class="ctitle">{e(title)}</div><div class="small">{e(text)}</div>{extra}</div></div>'
@@ -889,7 +991,8 @@ def render(results: dict, narrative: dict) -> str:
         hero.append(card(f'<div class="eyebrow">{e(n.get("effect_label", "Effect"))}</div>'
                          f'<div class="bigrow"><span class="big">{e(f(main["estimate"], sign=True, dec=n.get("hero_decimals", sig_dec(main["estimate"] * f.k))))}</span><span class="unit">{e(n.get("unit", ""))}</span></div>'
                          + chart_hero_range(main["estimate"], lo, hi, f) +
-                         f'<div class="note">95% likely range {e(f(lo))} to {e(f(hi))}</div>'))
+                         f'<div class="note">95% likely range {e(f(lo))} to {e(f(hi))}'
+                         + (f'; about {abs(rel):.0%} {"above" if rel > 0 else "below"} the untreated average' if (rel := (diag.get("derived") or {}).get("effect_relative_to_untreated")) is not None and abs(rel) < 5 else "") + '</div>'))
     else:
         b = (diag.get("bounds_no_instrument") or {}).get("mtr_mts") or (diag.get("instrument") or {}).get("bounds_on_average_effect")
         body = f'<div class="eyebrow">{e(n.get("effect_label", "Effect"))}</div><div class="bigrow"><span class="big" style="font-size:56px">We can’t tell</span></div>'
@@ -906,7 +1009,7 @@ def render(results: dict, narrative: dict) -> str:
     real = [(i, x) for i, x in diffs if x["ci"][0] > 0 or x["ci"][1] < 0]
     if seg_ok and real:
         i_, _ = max(real, key=lambda ix: abs(ix[1]["estimate"]))
-        pair = sorted([segs[i_ - 2], segs[i_ - 1]], key=lambda x: -x["estimate"])
+        pair = sorted([segs[i_ - 2], segs[i_ - 1]], key=lambda x: -abs(x["estimate"]))
     elif seg_ok and diffs:
         lo_s, hi_s = min(x["estimate"] for x in groups), max(x["estimate"] for x in groups)
         hero.append(card(f'<div class="eyebrow">{e(n.get("segment_card_title", "Who gains most"))}</div>'
@@ -944,6 +1047,16 @@ def render(results: dict, narrative: dict) -> str:
                          card(f'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>In words</h3>{chip}</div><div class="mlist" style="border:none;padding:0">{dag_in_words(r["dag"], labels)}</div>'
                               + (f'<div class="note">{e(n["dag_note"])}</div>' if n.get("dag_note") else "") + warn) + '</div>',
                          n.get("dag_text", "The causal diagram behind the analysis: each arrow means \u201caffects\u201d. It decides what to compare and what to leave out.")))
+
+    # what domain knowledge said before the run
+    spec_ = r.get("spec") or {}
+    dn = spec_.get("domain_notes") or {}
+    if dn or spec_.get("suspected_hidden") or spec_.get("negative_control_outcomes") or spec_.get("expected_effect"):
+        rows_d = domain_section(dn, spec_, diag, labels)
+        if rows_d:
+            P.append(section(n.get("domain_title", f"What we know about {dn.get('domain', 'this kind of question')}"),
+                             card(f'<div class="mlist" style="border:none;padding:0">{rows_d}</div>'),
+                             n.get("domain_text", "Before running anything, we listed what usually goes wrong in this kind of analysis. Each point became a question for you, a check, or a control. Points marked ‘general knowledge’ were not confirmed by you.")))
 
     # decomposition of the raw gap
     m_est = main.get("estimate")
@@ -1049,9 +1162,25 @@ def render(results: dict, narrative: dict) -> str:
         tcards.append(card('<h3>How strong would a hidden factor need to be?</h3>'
                            '<p class="small">Each bar is how strongly a recorded factor drives both the action and the outcome. A hidden factor past the dashed line could erase the effect.</p>'
                            + chart_hidden(sens, labels) + (f'<div class="note">{e(n["hidden_note"])}</div>' if n.get("hidden_note") else "")))
+    ncs = [x for x in (diag.get("negative_controls") or []) if "estimate" in x]
+    if ncs and main_key and m_est is not None:
+        base = (diag.get("derived") or {}).get("outcome_mean_untreated")
+        mrel = m_est / base if base else None
+        mci = [c / base for c in main["ci"]] if base and main.get("ci") else None
+        bad = [x for x in ncs if not x["passes"]]
+        tcards.append(card(f'<h3>{"The action seems to ‘change’ something it can’t" if bad else "No effect on things it can’t change"}</h3>'
+                           '<p class="small">Changes relative to the untreated group’s average. We ran the main method on outcomes the action cannot plausibly affect. They should sit on the no-effect line.</p>'
+                           + chart_negctl(ncs, mrel, mci, labels)
+                           + (lambda c: (f'<div class="small" style="margin-top:10px"><b>Rough planning figure with that bias removed: {e(f(c["estimate"], sign=True))}</b> (range {e(f(c["ci"][0]))} to {e(f(c["ci"][1]))}). It assumes the hidden difference shifts both outcomes by the same share, so treat it as a guide, not a result.</div>') if c else "")(diag.get("negative_control_adjusted"))
+                           + (f'<div class="note">{e(n.get("negative_control_note", "An apparent effect here means the groups differ in ways the data doesn’t record. The same difference likely inflates the main answer."))}</div>' if bad else "")))
+    pz = diag.get("plausibility")
+    if pz and main_key and main:
+        tcards.append(card(f'<h3>{"In line with what was expected" if pz["inside"] else ("Far outside what was expected" if pz["far_outside"] else "Outside what was expected")}</h3>'
+                           f'<p class="small">The range written into the plan before the run: {e(pz.get("basis") or "")}</p>' + chart_plausibility(pz, main, f)
+                           + f'<div class="note">{source_chip(pz.get("source"))} This check never changes the estimate; it flags answers that need a second look.</div>'))
     sim = diag.get("simulation_check") or {}
     if sim.get("reps"):
-        good = sim["coverage"] >= 0.5 and abs(sim["bias"]) <= 0.25 * abs(sim["planted"] or 1)
+        good = (sim["reps"] < 3 or sim["coverage"] >= 0.5) and abs(sim["bias"]) <= 0.25 * abs(sim["planted"] or 1)
         tcards.append(card(f'<h3>{("Tested on your data: it finds a planted effect" if sim["coverage"] >= 0.99 else "Tested on your data: it finds a planted effect, with ranges a little narrow") if good else "Tested on your data: it struggles"}</h3>'
                            f'<p class="small">We kept your real columns and who really got the action, simulated the outcome with a known effect of {e(f(sim["planted"]))}, and reran the main method. It recovered {e(f(sim["mean_estimate"]))} on average; {sim["coverage"]:.0%} of its ranges contained the planted value. The raw gap would have said {e(f(sim["naive_mean"]))}.</p>'
                            + chart_sim(sim, f) + '<div class="note">This checks the method on your data’s structure. It can’t test for factors missing from the data.</div>'))

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 (2026-09-26)
+
+Domain knowledge, used carefully.
+
+- Domain briefing step before the interview (`references/domain.md`): the usual traps for this kind of question become questions, controls, checks or alternative diagrams. New report section "What we know about this kind of question".
+- Source tags on column readings and diagram arrows: you told us / from your brief / the data suggests / general knowledge, not confirmed.
+- `suspected_hidden`: drivers the domain suggests but the data lacks; drawn dotted, cap the grade at C unless an instrument gives an agreeing estimate.
+- `negative_control_outcomes`: outcomes the action can't change; a failed check caps the grade at C and adds a rough bias-removed planning figure.
+- `expected_effect`: a pre-registered range from published evidence, shown against the estimate.
+- `dismissed_findings` for structure-check flags the brief rules out; relative effect in the headline; simulation check fixed for yes/no outcomes near 0 or 1.
+- New example and eval: statin adherence with a healthy-adherer effect the brief never mentions.
+
 ## 0.2.0 (2026-09-26)
 
 Checks on the diagram itself.

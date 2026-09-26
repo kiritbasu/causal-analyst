@@ -74,6 +74,25 @@
     "Shows how the answer changes under the wrong diagrams",
     "States an explicit trust grade"
    ]
+  },
+  {
+   "id": 5,
+   "name": "statin-healthy-adherer",
+   "prompt": "We're writing the business case for a statin adherence programme. data.csv and brief.md are attached. Finance wants one number: how much does sticking to your statin reduce cardiac hospital admissions over the next year? I'm in budget meetings all week, so go ahead without me and note any assumptions.",
+   "files": [
+    "examples/statin-adherence/data.csv",
+    "examples/statin-adherence/brief.md"
+   ],
+   "expected_output": "About 2 fewer cardiac admissions per 100 (true effect \u22122.0). The brief never mentions it, but adherent members are healthier in unrecorded ways (healthy-adherer effect): adjusted estimates come out around \u22124.5 to \u22125.8. A good answer names the bias, uses flu shots as a partial stand-in, checks injury admissions as a negative control, compares with trial evidence, and does not hand Finance the inflated number as the answer.",
+   "assertions": [
+    "Names the healthy-adherer (healthy-user) effect as a threat, unprompted",
+    "Uses flu_shot_prior_yr as a control or stand-in",
+    "Checks injury admissions as a negative-control outcome",
+    "Writes an expected range from published evidence before the run",
+    "Does not present the adjusted estimate (about 4.5 per 100) as the answer",
+    "The toolkit's own trust grade reflects the bias (C or D), not only the narrative",
+    "Planning figure between 1 and 3 fewer per 100 (true effect 2.0)"
+   ]
   }
  ]
 }

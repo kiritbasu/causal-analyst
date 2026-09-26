@@ -387,7 +387,7 @@ def trust_tier(ident, res, diag, main_key, spec):
     cb = diag.get("codebook") or {}
     if cb.get("no_meaning") or cb.get("unconfirmed"):
         cols = (cb.get("no_meaning") or []) + (cb.get("unconfirmed") or [])
-        reasons.append(f"The meaning of {len(cols)} column(s) used was assumed, not confirmed by you: {', '.join(cols[:6])}. A misread column can put the diagram, and the answer, wrong.")
+        reasons.append(f"The meaning of {len(cols)} column(s) used was assumed, not confirmed by you: {', '.join(cols[:8])}{' and more' if len(cols) > 8 else ''}. A misread column can put the diagram, and the answer, wrong.")
     if not spec.get("randomized") and not spec.get("outcome_baseline"):
         reasons.append("No before-the-action measure of the outcome was named, so if past results drove who got the action (reverse causation), the estimate may be off.")
     alt = diag.get("alternatives") or {}
@@ -400,15 +400,35 @@ def trust_tier(ident, res, diag, main_key, spec):
                 tier = "C"
             reasons.append("Under an alternative diagram the answer moves outside the main range: " + "; ".join(f"{a['name']} gives {a['estimate']:.3g}" for a in movers[:3]) + ". The result depends on which diagram is right.")
     sc = diag.get("structure_check") or {}
-    cons = [f_["column"] for f_ in sc.get("findings", []) if f_["kind"] == "possible consequence"]
+    dismissed = spec.get("dismissed_findings", {})
+    cons = [f_["column"] for f_ in sc.get("findings", []) if f_["kind"] == "possible consequence" and f_["column"] not in dismissed]
     if cons:
         reasons.append(f"The data pattern suggests {', '.join(cons)} may be influenced by the action or the outcome (collider-like). Confirm timing; if so, it should not be a control.")
     sim = diag.get("simulation_check") or {}
     if sim.get("reps"):
         rel = abs(sim["bias"]) / abs(sim["planted"]) if sim["planted"] else 0
-        if sim["coverage"] < 0.5 or rel > 0.25:
+        if (sim["reps"] >= 3 and sim["coverage"] < 0.5) or rel > 0.25:
             tier = "C" if tier in ("A", "B") else tier
             reasons.append(f"On your data with a planted effect of {sim['planted']:.3g}, the main method recovered {sim['mean_estimate']:.3g} ({sim['coverage']:.0%} of ranges contained it). It struggles with this data's structure.")
+    ncs = [x for x in (diag.get("negative_controls") or []) if "estimate" in x and not x.get("passes")]
+    if ncs:
+        tier = "C" if tier in ("A", "B") else tier
+        reasons.append("The action shows an 'effect' on something it cannot plausibly change: " + "; ".join(f"{x['column']} {x['estimate']:+.3g}" for x in ncs)
+                       + ". That points to an unrecorded difference between the groups, which likely also inflates the main answer.")
+    iv = ((diag.get("instrument") or {}).get("complier_effect_2sls") or {})
+    iv_agrees = bool(iv.get("ci") and main.get("ci") and not (iv["ci"][1] < main["ci"][0] or iv["ci"][0] > main["ci"][1]))
+    if iv_agrees and spec.get("suspected_hidden"):
+        reasons.append(f"The random nudge gives an independent estimate ({iv['estimate']:.3g}) that agrees with the main one, which argues against a strong hidden driver.")
+    for sh in spec.get("suspected_hidden", []) if not spec.get("randomized") else []:
+        lbl = sh.get("label") if isinstance(sh, dict) else str(sh)
+        if not iv_agrees:
+            tier = "C" if tier in ("A", "B") else tier
+        reasons.append(f"Domain knowledge suggests an unrecorded driver: {lbl}. It is not in the data; see how strong it would need to be.")
+    pz = diag.get("plausibility")
+    if pz and not pz["inside"]:
+        if pz["far_outside"]:
+            tier = "C" if tier in ("A", "B") else tier
+        reasons.append(f"The estimate ({pz['estimate']:.3g}) is {'far ' if pz['far_outside'] else ''}outside the range expected before the run ({pz['low']:.3g} to {pz['high']:.3g}; {pz['basis'] or pz['source']}). Either this setting differs or something is missing from the diagram.")
     if main.get("ci") and est is not None and main["ci"][0] <= 0 <= main["ci"][1]:
         reasons.append("The 95% range includes zero: the data are consistent with no effect.")
     return tier, reasons
@@ -469,6 +489,9 @@ def cmd_run(a):
     if df[spec["treatment"]].nunique() == 2:
         tt = df[spec["treatment"]] == df[spec["treatment"]].max()
         derived["outcome_mean_treated"] = float(y_all[tt].mean()); derived["outcome_mean_untreated"] = float(y_all[~tt].mean())
+        _m = (res.get(main_key) or {}).get("estimate")
+        if _m is not None and derived["outcome_mean_untreated"]:
+            derived["effect_relative_to_untreated"] = float(_m / derived["outcome_mean_untreated"])
     diag["derived"] = derived
     # checks on the design itself
     binary_t = df[spec["treatment"]].nunique() == 2
@@ -493,6 +516,22 @@ def cmd_run(a):
             except Exception as ex:
                 diag["simulation_check"] = {"error": str(ex)[:200]}
 
+    if spec.get("negative_control_outcomes") and binary_t:
+        log("domain checks: negative-control outcomes")
+        try:
+            diag["negative_controls"] = checks.negative_controls(df, spec, int(spec.get("seed", 1729)))
+            base_m = diag.get("derived", {}).get("outcome_mean_untreated")
+            failed = [x for x in diag["negative_controls"] if "estimate" in x and not x.get("passes")]
+            if failed and (res.get(main_key) or {}).get("ci") and base_m:
+                cal = checks.calibrate_with_negative_control(res[main_key], base_m, failed[0])
+                if cal:
+                    diag["negative_control_adjusted"] = cal
+        except Exception as ex:
+            diag["negative_controls"] = [{"error": str(ex)[:200]}]
+    if spec.get("expected_effect"):
+        diag["plausibility"] = checks.plausibility(res.get(main_key), spec["expected_effect"])
+    if spec.get("domain_notes"):
+        diag["domain_notes"] = spec["domain_notes"]
     tier, reasons = trust_tier(ident, res, diag, main_key, spec)
     main_result = res.get(main_key)
     if not ident.get("identifiable"):

@@ -20,12 +20,17 @@ Paths may be absolute or relative to where you run `ca.py`.
 | `hidden_driver_note` | no | The SME's words about the hidden driver |
 | `hidden_driver_label` | no | Short label (under ~40 characters) for the diagram, e.g. "rep's sense the account is warm". The diagram adds "Not in data:" itself, so don't write "unrecorded" |
 | `outcome_range` | no | `[min, max]` the outcome can take, for no-instrument bounds (default: observed min/max; use `[0, 1]` for yes/no) |
-| `extra_edges` | no | `[["from", "to"], ...]` arrows the SME adds between factors (e.g. `["income_k", "prior_quarter_spend"]`). Drawn in the diagram and used in the DoWhy check, which reports if the controls then need to change. |
+| `extra_edges` | no | `[["from", "to", "source"], ...]` arrows added between factors (e.g. `["income_k", "prior_quarter_spend", "sme"]`); source `"sme"`, `"brief"` or `"general knowledge"` (drawn dashed, labelled unconfirmed). Drawn in the diagram and used in the DoWhy check, which reports if the controls then need to change. |
 | `allow_external_services` | no | `["tabpfn_api"]` to allow the hosted TabPFN cross-check (sends data to Prior Labs). Only with the SME's consent. |
 | `causalpfn_max_rows` | no | Row cap for the local CausalPFN cross-check (default 20000) |
 | `report_sample_rows` | no | Rows of raw data shown in the report's data section (default 5). Set `0` for sensitive data. |
-| `codebook` | recommended | `{column: {"meaning", "recorded", "confirmed"}}`: your reading of each column and whether the SME confirmed it. Draft with `ca.py codebook`. |
+| `codebook` | recommended | `{column: {"meaning", "recorded", "confirmed", "source"}}` (source: "brief", "sme", "data" or "general knowledge"): your reading of each column and whether the SME confirmed it. Draft with `ca.py codebook`. |
 | `outcome_baseline` | recommended | Column holding the outcome measured before the action (guards against reverse causation); also list it in `confounders` |
+| `domain_notes` | recommended | `{"domain", "usual_drivers": [...], "known_traps": [{"name","why","handled","source"}]}`: the pre-run domain briefing (see `references/domain.md`); shown in the report |
+| `suspected_hidden` | if relevant | `[{"label","why","proxies":[cols],"source":"general knowledge"}]`: drivers domain knowledge suggests but the data lacks. Drawn dotted, caps the grade at C, not used for identification |
+| `negative_control_outcomes` | if available | `[{"column","why"}]`: outcomes the action cannot plausibly change; an apparent effect on them caps the grade at C |
+| `expected_effect` | recommended | `{"low","high","basis","source"}` in the outcome's units, written before the run from published evidence; flags implausible results, never changes them |
+| `dismissed_findings` | no | `{column: reason}`: structure-check flags you reviewed and ruled out (e.g. recorded before the action per the brief); they stay in the report but no longer count against the grade |
 | `alternatives` | recommended | `[{"name", "why", "add": [...], "remove": [...]}]` or `{"name","why","confounders":[...]}`: plausible other diagrams to re-estimate under. Add `"illustrative": true` to one you include only to show a trap (e.g. controlling for a known consequence); it is drawn but does not lower the grade |
 | `segments` | no | Pandas query strings for "who benefits more", e.g. `"tenure_months<12"`, `"urban==1"`. Each is compared automatically with the rest; don't also list the complement. |
 | `main_method` | no | Default `"aipw_gbm"` (binary). Continuous main model is chosen by cross-validation automatically. |

@@ -1,0 +1,1646 @@
+{
+ "spec": {
+  "data": "data.csv",
+  "treatment": "adherent",
+  "outcome": "cardiac_adm_12m",
+  "treatment_type": "binary",
+  "estimand": "ATE",
+  "confounders": [
+   "age",
+   "female",
+   "diabetes",
+   "smoker",
+   "ldl_baseline",
+   "admits_prior_yr",
+   "flu_shot_prior_yr"
+  ],
+  "excluded": {
+   "pid": "identifier",
+   "injury_adm_12m": "measured after adherence (months 7-18); used only as a negative-control outcome, never as a control"
+  },
+  "hidden_confounding": "none_known",
+  "outcome_baseline": "admits_prior_yr",
+  "outcome_range": [
+   0,
+   1
+  ],
+  "report_sample_rows": 0,
+  "causalpfn_max_rows": 0,
+  "codebook": {
+   "pid": {
+    "meaning": "Member identifier",
+    "recorded": "n/a",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "age": {
+    "meaning": "Age in years",
+    "recorded": "at prescription (before adherence)",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "female": {
+    "meaning": "1 = female",
+    "recorded": "at enrolment (before adherence)",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "diabetes": {
+    "meaning": "1 = diabetes diagnosis on file",
+    "recorded": "before prescription",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "smoker": {
+    "meaning": "1 = current smoker on file",
+    "recorded": "before prescription",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "ldl_baseline": {
+    "meaning": "LDL cholesterol (mg/dL) when the statin was prescribed",
+    "recorded": "at prescription (before adherence)",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "admits_prior_yr": {
+    "meaning": "All-cause hospital admissions in the year before prescription; the closest thing to a before-the-action measure of the outcome",
+    "recorded": "before prescription",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "flu_shot_prior_yr": {
+    "meaning": "1 = flu vaccination in the year before prescription; a partial stand-in for health-seeking behaviour",
+    "recorded": "before prescription",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "adherent": {
+    "meaning": "1 = statin filled for at least 80% of days in the first 6 months (proportion of days covered >= 80%)",
+    "recorded": "months 1-6 after prescription",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "cardiac_adm_12m": {
+    "meaning": "1 = admitted for a cardiac event in the following 12 months",
+    "recorded": "months 7-18 (after the adherence window)",
+    "confirmed": false,
+    "source": "brief"
+   },
+   "injury_adm_12m": {
+    "meaning": "1 = admitted for an accidental injury in the following 12 months; a statin cannot plausibly prevent this",
+    "recorded": "months 7-18 (after the adherence window)",
+    "confirmed": false,
+    "source": "brief"
+   }
+  },
+  "domain_notes": {
+   "domain": "statin adherence and cardiac hospital admissions (health insurer claims)",
+   "usual_drivers": [
+    "age",
+    "sex",
+    "diabetes",
+    "smoking",
+    "LDL cholesterol",
+    "prior admissions / frailty",
+    "health-seeking behaviour (diet, exercise, keeping appointments)"
+   ],
+   "known_traps": [
+    {
+     "name": "Healthy-adherer effect",
+     "source": "general knowledge",
+     "why": "People who take their medicines as prescribed also tend to exercise, eat better, keep appointments and avoid risks, so they have fewer admissions of every kind, whether or not the pill works. Classic evidence: adherent statin users also had fewer road accidents and workplace injuries (Dormuth et al., Circulation 2009), and people who took their placebo faithfully in trials lived longer.",
+     "handled": "Prior flu vaccination used as a partial stand-in control; accidental-injury admissions used as a negative-control outcome; the unrecorded part is drawn in the diagram and sized in the hidden-factor chart."
+    },
+    {
+     "name": "Sick-stopper / reverse causation",
+     "source": "general knowledge",
+     "why": "Members who become frail or ill early on may stop filling prescriptions, and are also more likely to be admitted, which makes non-adherence look harmful.",
+     "handled": "Prior-year admissions and baseline risk factors are controlled; the 6-month adherence window ends before the 12-month outcome window starts, which avoids counting early events. Remaining risk noted as a question."
+    },
+    {
+     "name": "Adherence is not the programme",
+     "source": "general knowledge",
+     "why": "Finance's number is for a programme of reminder calls; the programme will only make some non-adherent members adherent, so the effect of the programme is smaller than the effect of adherence.",
+     "handled": "Stated in the report; the result is the effect of adherence itself, an upper guide for the programme."
+    }
+   ]
+  },
+  "suspected_hidden": [
+   {
+    "label": "Health-conscious habits",
+    "why": "Healthy-adherer effect: people who stick to their pills also look after their health in ways the claims data do not record (diet, exercise, alcohol, keeping appointments).",
+    "proxies": [
+     "flu_shot_prior_yr"
+    ],
+    "source": "general knowledge"
+   }
+  ],
+  "negative_control_outcomes": [
+   {
+    "column": "injury_adm_12m",
+    "why": "A statin cannot plausibly prevent accidental-injury admissions, but health-conscious habits could. An apparent 'effect' of adherence on injuries would expose healthy-adherer bias."
+   }
+  ],
+  "expected_effect": {
+   "low": -0.035,
+   "high": -0.005,
+   "basis": "Randomised trials (Cholesterol Treatment Trialists' meta-analyses) show statins cut major vascular events by roughly a fifth per 1 mmol/L LDL reduction, i.e. roughly 20-30% relative. On this file's roughly 11% one-year cardiac admission rate that is about 1 to 3.5 points; comparing >=80% vs <80% days covered (non-adherent members still take some tablets) and a one-year horizon push it toward the lower end. Written before the run.",
+   "source": "general knowledge"
+  },
+  "alternatives": [
+   {
+    "name": "Without the flu-shot stand-in",
+    "why": "shows how much the one recorded health-seeking proxy moves the answer; if dropping it moves the answer a lot, unrecorded habits likely move it too",
+    "remove": [
+     "flu_shot_prior_yr"
+    ],
+    "illustrative": true
+   },
+   {
+    "name": "Treat injury admissions as a control",
+    "why": "illustrates the trap of controlling for something measured after adherence",
+    "add": [
+     "injury_adm_12m"
+    ],
+    "illustrative": true
+   }
+  ],
+  "segments": [
+   "diabetes==1",
+   "age>=70",
+   "admits_prior_yr>=1"
+  ],
+  "budget": "standard",
+  "seed": 1729,
+  "labels": {
+   "adherent": "Sticks to statin (>=80% days covered)",
+   "cardiac_adm_12m": "Cardiac admission within 12 months",
+   "injury_adm_12m": "Injury admission within 12 months",
+   "age": "Age",
+   "female": "Female",
+   "diabetes": "Diabetes",
+   "smoker": "Smoker",
+   "ldl_baseline": "LDL at prescription",
+   "admits_prior_yr": "Admissions in prior year",
+   "flu_shot_prior_yr": "Flu shot in prior year",
+   "diabetes==1": "Members with diabetes",
+   "not (diabetes==1)": "Members without diabetes",
+   "age>=70": "Aged 70+",
+   "not (age>=70)": "Under 70",
+   "admits_prior_yr>=1": "Admitted in prior year",
+   "not (admits_prior_yr>=1)": "Not admitted in prior year"
+  },
+  "dismissed_findings": {
+   "diabetes": "recorded before the prescription (brief)",
+   "flu_shot_prior_yr": "recorded in the year before the prescription (brief)"
+  }
+ },
+ "dag": {
+  "nodes": [
+   {
+    "id": "adherent",
+    "label": "Sticks to statin (>=80% days covered)",
+    "role": "action"
+   },
+   {
+    "id": "cardiac_adm_12m",
+    "label": "Cardiac admission within 12 months",
+    "role": "outcome"
+   },
+   {
+    "id": "age",
+    "label": "Age",
+    "role": "control"
+   },
+   {
+    "id": "female",
+    "label": "Female",
+    "role": "control"
+   },
+   {
+    "id": "diabetes",
+    "label": "Diabetes",
+    "role": "control"
+   },
+   {
+    "id": "smoker",
+    "label": "Smoker",
+    "role": "control"
+   },
+   {
+    "id": "ldl_baseline",
+    "label": "LDL at prescription",
+    "role": "control"
+   },
+   {
+    "id": "admits_prior_yr",
+    "label": "Admissions in prior year",
+    "role": "control"
+   },
+   {
+    "id": "flu_shot_prior_yr",
+    "label": "Flu shot in prior year",
+    "role": "control"
+   },
+   {
+    "id": "U_suspected_0",
+    "label": "Suspected, not in data: Health-conscious habits",
+    "role": "hidden",
+    "suspected": true
+   },
+   {
+    "id": "injury_adm_12m",
+    "label": "Injury admission within 12 months",
+    "role": "check: can't be affected"
+   }
+  ],
+  "edges": [
+   {
+    "from": "adherent",
+    "to": "cardiac_adm_12m",
+    "kind": "assumed"
+   },
+   {
+    "from": "age",
+    "to": "adherent",
+    "kind": "assumed"
+   },
+   {
+    "from": "age",
+    "to": "cardiac_adm_12m",
+    "kind": "assumed"
+   },
+   {
+    "from": "female",
+    "to": "adherent",
+    "kind": "assumed"
+   },
+   {
+    "from": "female",
+    "to": "cardiac_adm_12m",
+    "kind": "assumed"
+   },
+   {
+    "from": "diabetes",
+    "to": "adherent",
+    "kind": "assumed"
+   },
+   {
+    "from": "diabetes",
+    "to": "cardiac_adm_12m",
+    "kind": "assumed"
+   },
+   {
+    "from": "smoker",
+    "to": "adherent",
+    "kind": "assumed"
+   },
+   {
+    "from": "smoker",
+    "to": "cardiac_adm_12m",
+    "kind": "assumed"
+   },
+   {
+    "from": "ldl_baseline",
+    "to": "adherent",
+    "kind": "assumed"
+   },
+   {
+    "from": "ldl_baseline",
+    "to": "cardiac_adm_12m",
+    "kind": "assumed"
+   },
+   {
+    "from": "admits_prior_yr",
+    "to": "adherent",
+    "kind": "assumed"
+   },
+   {
+    "from": "admits_prior_yr",
+    "to": "cardiac_adm_12m",
+    "kind": "assumed"
+   },
+   {
+    "from": "flu_shot_prior_yr",
+    "to": "adherent",
+    "kind": "assumed"
+   },
+   {
+    "from": "flu_shot_prior_yr",
+    "to": "cardiac_adm_12m",
+    "kind": "assumed"
+   },
+   {
+    "from": "U_suspected_0",
+    "to": "adherent",
+    "kind": "suspected",
+    "source": "general knowledge"
+   },
+   {
+    "from": "U_suspected_0",
+    "to": "cardiac_adm_12m",
+    "kind": "suspected",
+    "source": "general knowledge"
+   },
+   {
+    "from": "U_suspected_0",
+    "to": "flu_shot_prior_yr",
+    "kind": "suspected",
+    "source": "general knowledge"
+   },
+   {
+    "from": "U_suspected_0",
+    "to": "injury_adm_12m",
+    "kind": "suspected",
+    "source": "general knowledge"
+   }
+  ],
+  "treatment": "adherent",
+  "outcome": "cardiac_adm_12m",
+  "warnings": []
+ },
+ "data_overview": {
+  "rows": 6000,
+  "columns": 11,
+  "columns_shown": 11,
+  "treated_share": 0.5261666666666667,
+  "complete_rows_pct": 100.0,
+  "column_info": [
+   {
+    "column": "adherent",
+    "role": "action",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = statin filled for at least 80% of days in the first 6 months (proportion of days covered >= 80%)",
+    "recorded": "months 1-6 after prescription",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "categories",
+    "top": [
+     {
+      "value": "1",
+      "count": 3157
+     },
+     {
+      "value": "0",
+      "count": 2843
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "cardiac_adm_12m",
+    "role": "outcome",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = admitted for a cardiac event in the following 12 months",
+    "recorded": "months 7-18 (after the adherence window)",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 5361
+     },
+     {
+      "value": "1",
+      "count": 639
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "age",
+    "role": "control",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 51,
+    "meaning": "Age in years",
+    "recorded": "at prescription (before adherence)",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "numeric",
+    "min": 40.0,
+    "median": 66.0,
+    "mean": 65.91766666666666,
+    "max": 90.0,
+    "histogram": {
+     "counts": [
+      31,
+      60,
+      116,
+      215,
+      336,
+      450,
+      634,
+      793,
+      1074,
+      698,
+      571,
+      429,
+      279,
+      159,
+      88,
+      67
+     ],
+     "edges": [
+      40.0,
+      43.125,
+      46.25,
+      49.375,
+      52.5,
+      55.625,
+      58.75,
+      61.875,
+      65.0,
+      68.125,
+      71.25,
+      74.375,
+      77.5,
+      80.625,
+      83.75,
+      86.875,
+      90.0
+     ]
+    }
+   },
+   {
+    "column": "female",
+    "role": "control",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = female",
+    "recorded": "at enrolment (before adherence)",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 3470
+     },
+     {
+      "value": "1",
+      "count": 2530
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "diabetes",
+    "role": "control",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = diabetes diagnosis on file",
+    "recorded": "before prescription",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 4428
+     },
+     {
+      "value": "1",
+      "count": 1572
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "smoker",
+    "role": "control",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = current smoker on file",
+    "recorded": "before prescription",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 4647
+     },
+     {
+      "value": "1",
+      "count": 1353
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "ldl_baseline",
+    "role": "control",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 165,
+    "meaning": "LDL cholesterol (mg/dL) when the statin was prescribed",
+    "recorded": "at prescription (before adherence)",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "numeric",
+    "min": 60.0,
+    "median": 134.0,
+    "mean": 134.28066666666666,
+    "max": 239.0,
+    "histogram": {
+     "counts": [
+      71,
+      119,
+      244,
+      451,
+      652,
+      893,
+      944,
+      861,
+      695,
+      513,
+      329,
+      120,
+      69,
+      28,
+      9,
+      2
+     ],
+     "edges": [
+      60.0,
+      71.1875,
+      82.375,
+      93.5625,
+      104.75,
+      115.9375,
+      127.125,
+      138.3125,
+      149.5,
+      160.6875,
+      171.875,
+      183.0625,
+      194.25,
+      205.4375,
+      216.625,
+      227.8125,
+      239.0
+     ]
+    }
+   },
+   {
+    "column": "admits_prior_yr",
+    "role": "control",
+    "kind": "count/ordinal",
+    "missing_pct": 0.0,
+    "n_unique": 5,
+    "meaning": "All-cause hospital admissions in the year before prescription; the closest thing to a before-the-action measure of the outcome",
+    "recorded": "before prescription",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 4289
+     },
+     {
+      "value": "1",
+      "count": 1421
+     },
+     {
+      "value": "2",
+      "count": 252
+     },
+     {
+      "value": "3",
+      "count": 35
+     }
+    ],
+    "other": 3
+   },
+   {
+    "column": "flu_shot_prior_yr",
+    "role": "control",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = flu vaccination in the year before prescription; a partial stand-in for health-seeking behaviour",
+    "recorded": "before prescription",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 3304
+     },
+     {
+      "value": "1",
+      "count": 2696
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "injury_adm_12m",
+    "role": "check",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "why_left_out": "measured after adherence (months 7-18); used only as a negative-control outcome, never as a control",
+    "meaning": "1 = admitted for an accidental injury in the following 12 months; a statin cannot plausibly prevent this",
+    "recorded": "months 7-18 (after the adherence window)",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 5678
+     },
+     {
+      "value": "1",
+      "count": 322
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "pid",
+    "role": "left out",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 6000,
+    "why_left_out": "identifier",
+    "meaning": "Member identifier",
+    "recorded": "n/a",
+    "confirmed": false,
+    "source": "brief",
+    "summary": "numeric",
+    "min": 700001.0,
+    "median": 703000.5,
+    "mean": 703000.5,
+    "max": 706000.0,
+    "histogram": {
+     "counts": [
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375
+     ],
+     "edges": [
+      700001.0,
+      700375.9375,
+      700750.875,
+      701125.8125,
+      701500.75,
+      701875.6875,
+      702250.625,
+      702625.5625,
+      703000.5,
+      703375.4375,
+      703750.375,
+      704125.3125,
+      704500.25,
+      704875.1875,
+      705250.125,
+      705625.0625,
+      706000.0
+     ]
+    }
+   }
+  ],
+  "sample_rows": []
+ },
+ "identification": {
+  "treatment": "adherent",
+  "outcome": "cardiac_adm_12m",
+  "estimand": "ATE",
+  "assumptions": [
+   "All controls were measured before the treatment (none are consequences of it).",
+   "No important unrecorded factor drives both treatment and outcome (cannot be checked; will be sized).",
+   "Every kind of unit has some treated and some untreated examples (overlap; will be checked).",
+   "One unit's treatment does not change another unit's outcome."
+  ],
+  "identifiable": true,
+  "strategy": "adjust for measured confounders (backdoor)",
+  "adjustment_set": [
+   "age",
+   "female",
+   "diabetes",
+   "smoker",
+   "ldl_baseline",
+   "admits_prior_yr",
+   "flu_shot_prior_yr"
+  ],
+  "explanation": "Comparing like with like on the recorded pre-treatment traits identifies the effect, provided nothing important that drives both treatment and outcome is missing from the data.",
+  "dowhy": {
+   "backdoor_variables": [
+    "diabetes",
+    "flu_shot_prior_yr",
+    "smoker",
+    "admits_prior_yr",
+    "ldl_baseline",
+    "female",
+    "age"
+   ],
+   "instruments": [],
+   "frontdoor": [],
+   "estimand": [
+    "Estimand type: EstimandType.NONPARAMETRIC_ATE",
+    "",
+    "### Estimand : 1",
+    "Estimand name: backdoor",
+    "Estimand expression:",
+    "     d                                                                         \u21aa",
+    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[cardiac_adm_12m|diabetes,flu_shot_prior_yr,smoker,admits_prior_y \u21aa",
+    "d[adherent]                                                                    \u21aa",
+    "",
+    "\u21aa                            ",
+    "\u21aa r,ldl_baseline,female,age])",
+    "\u21aa                            "
+   ]
+  }
+ },
+ "rows_used": 6000,
+ "rows_dropped_missing": 0,
+ "main_method": "aipw_gbm",
+ "main_result": {
+  "estimate": -0.0451309113939059,
+  "se": 0.008843030492110708,
+  "ci": [
+   -0.06246325115844288,
+   -0.02779857162936891
+  ],
+  "per_seed": [
+   -0.04769111732638167,
+   -0.04483231489853549,
+   -0.0451309113939059
+  ]
+ },
+ "estimates": {
+  "naive_difference": {
+   "estimate": -0.06164917672857584,
+   "ci": [
+    -0.07741367915338473,
+    -0.04588467430376694
+   ],
+   "se": 0.008043113482045354
+  },
+  "regression_linear": {
+   "estimate": -0.04833433592364437,
+   "se": 0.008833707049396325,
+   "ci": [
+    -0.0649036578942749,
+    -0.030935439643843946
+   ],
+   "n_boot": 200
+  },
+  "aipw_gbm": {
+   "estimate": -0.0451309113939059,
+   "se": 0.008843030492110708,
+   "ci": [
+    -0.06246325115844288,
+    -0.02779857162936891
+   ],
+   "per_seed": [
+    -0.04769111732638167,
+    -0.04483231489853549,
+    -0.0451309113939059
+   ]
+  },
+  "aipw_spline": {
+   "estimate": -0.0492717658122611,
+   "se": 0.008166447581769664,
+   "ci": [
+    -0.06527800307252965,
+    -0.03326552855199256
+   ]
+  },
+  "ipw_gbm": {
+   "estimate": -0.04638695048013658,
+   "se": 0.00903956948115998,
+   "ci": [
+    -0.06343207092891873,
+    -0.029805146862881816
+   ],
+   "n_boot": 200
+  },
+  "regression_gbm": {
+   "estimate": -0.04785357592176511
+  },
+  "double_ml": {
+   "estimate": -0.05183846174305795,
+   "ci": [
+    -0.06762082177378438,
+    -0.03605610171233152
+   ]
+  },
+  "causal_forest": {
+   "estimate": -0.05315040860511283,
+   "ci": [
+    -0.1160094147400599,
+    0.009708597529834218
+   ]
+  }
+ },
+ "diagnostics": {
+  "optional_cross_checks": {
+   "causalpfn": {
+    "skipped": "6000 rows is slow on CPU; raise causalpfn_max_rows to run it"
+   },
+   "tabpfn": {
+    "skipped": "no TABPFN_TOKEN / TABPFN_TOKEN_FILE"
+   }
+  },
+  "overlap": {
+   "propensity_quantiles": {
+    "0": 0.04395640354537181,
+    "0.01": 0.21773406243880838,
+    "0.05": 0.30622545269235824,
+    "0.5": 0.5123500905963616,
+    "0.95": 0.737457347027354,
+    "0.99": 0.797322013602247,
+    "1": 0.9209500495106617
+   },
+   "share_below_0.05": 0.00016666666666666666,
+   "share_above_0.95": 0.0,
+   "histogram": {
+    "bin_edges": [
+     0.0,
+     0.05,
+     0.1,
+     0.15000000000000002,
+     0.2,
+     0.25,
+     0.30000000000000004,
+     0.35000000000000003,
+     0.4,
+     0.45,
+     0.5,
+     0.55,
+     0.6000000000000001,
+     0.65,
+     0.7000000000000001,
+     0.75,
+     0.8,
+     0.8500000000000001,
+     0.9,
+     0.9500000000000001,
+     1.0
+    ],
+    "treated": [
+     0,
+     0,
+     2,
+     9,
+     24,
+     72,
+     126,
+     224,
+     369,
+     417,
+     284,
+     302,
+     402,
+     504,
+     286,
+     101,
+     26,
+     8,
+     1,
+     0
+    ],
+    "untreated": [
+     1,
+     1,
+     11,
+     18,
+     48,
+     80,
+     202,
+     265,
+     474,
+     480,
+     304,
+     222,
+     240,
+     259,
+     160,
+     55,
+     18,
+     4,
+     1,
+     0
+    ]
+   }
+  },
+  "balance": [
+   {
+    "variable": "age",
+    "smd_before": 0.005661303252301998,
+    "smd_after_weighting": 0.011450779789411447
+   },
+   {
+    "variable": "female",
+    "smd_before": 0.02274371518572073,
+    "smd_after_weighting": 0.0020512089949154674
+   },
+   {
+    "variable": "diabetes",
+    "smd_before": 0.1111218537976619,
+    "smd_after_weighting": -0.0034134941729909232
+   },
+   {
+    "variable": "smoker",
+    "smd_before": -0.19527525717846608,
+    "smd_after_weighting": 0.0049107961639533754
+   },
+   {
+    "variable": "ldl_baseline",
+    "smd_before": 0.0241802967688129,
+    "smd_after_weighting": 0.0022662269073602604
+   },
+   {
+    "variable": "admits_prior_yr",
+    "smd_before": -0.07280204297073464,
+    "smd_after_weighting": -0.004179339237967762
+   },
+   {
+    "variable": "flu_shot_prior_yr",
+    "smd_before": 0.40273899089486037,
+    "smd_after_weighting": -0.011049520939057563
+   }
+  ],
+  "max_abs_smd_after": 0.011450779789411447,
+  "placebo_permuted_treatment": {
+   "estimate": -0.0005898017112336542,
+   "ci": [
+    -0.0074593005850242195,
+    0.0062796971625569105
+   ],
+   "shuffles": [
+    0.009422858246535156,
+    -0.002553252040987631,
+    -0.006701002545555368,
+    0.0004744638820809044,
+    -0.003592076098241332
+   ],
+   "passes": true
+  },
+  "random_common_cause": {
+   "estimate": -0.04266112000240931,
+   "change": 0.002469791391496584
+  },
+  "subset_80pct_estimates": [
+   -0.048886299750974575,
+   -0.04733174495820798,
+   -0.046761216061758856,
+   -0.05834172384219703,
+   -0.051391490225267525
+  ],
+  "segments": [
+   {
+    "segment": "diabetes==1",
+    "n": 1572,
+    "estimate": -0.07941532406664761,
+    "ci": [
+     -0.1193798327623516,
+     -0.03945081537094362
+    ]
+   },
+   {
+    "segment": "not (diabetes==1)",
+    "n": 4428,
+    "estimate": -0.03295948033664529,
+    "ci": [
+     -0.051665046156176675,
+     -0.014253914517113903
+    ]
+   },
+   {
+    "segment": "difference: (diabetes==1) minus rest",
+    "estimate": -0.046455843730002326,
+    "ci": [
+     -0.09058134823610198,
+     -0.002330339223902675
+    ]
+   },
+   {
+    "segment": "age>=70",
+    "n": 2054,
+    "estimate": -0.06632073089701175,
+    "ci": [
+     -0.10070256910707297,
+     -0.031938892686950535
+    ]
+   },
+   {
+    "segment": "not (age>=70)",
+    "n": 3946,
+    "estimate": -0.03410103575797598,
+    "ci": [
+     -0.053441320334496216,
+     -0.014760751181455749
+    ]
+   },
+   {
+    "segment": "difference: (age>=70) minus rest",
+    "estimate": -0.03221969513903577,
+    "ci": [
+     -0.07166785613804322,
+     0.007228465859971674
+    ]
+   },
+   {
+    "segment": "admits_prior_yr>=1",
+    "n": 1711,
+    "estimate": -0.05327095696033672,
+    "ci": [
+     -0.09085839764147402,
+     -0.015683516279199415
+    ]
+   },
+   {
+    "segment": "not (admits_prior_yr>=1)",
+    "n": 4289,
+    "estimate": -0.04188362345635329,
+    "ci": [
+     -0.06094003585885141,
+     -0.02282721105385517
+    ]
+   },
+   {
+    "segment": "difference: (admits_prior_yr>=1) minus rest",
+    "estimate": -0.01138733350398343,
+    "ci": [
+     -0.053529504195727586,
+     0.030754837187760724
+    ]
+   }
+  ],
+  "forest_cate_spread": {
+   "p10": -0.09907019137970537,
+   "p50": -0.04863204273045817,
+   "p90": -0.015135925612280178,
+   "share_positive": 0.021833333333333333
+  },
+  "sensitivity": {
+   "linear_estimate": -0.04868420787257299,
+   "robustness_value": 0.07559949271518089,
+   "robustness_value_significance": 0.05189927253468046,
+   "benchmarks": [
+    {
+     "confounder": "flu_shot_prior_yr",
+     "partial_r2_outcome": 0.005643604114608128,
+     "partial_r2_treatment": 0.03732819966740666,
+     "strength": 0.014514323312986036
+    },
+    {
+     "confounder": "smoker",
+     "partial_r2_outcome": 0.006250069669587966,
+     "partial_r2_treatment": 0.008090709777696624,
+     "strength": 0.00711108288427441
+    },
+    {
+     "confounder": "diabetes",
+     "partial_r2_outcome": 0.003932615814276417,
+     "partial_r2_treatment": 0.003928908797517941,
+     "strength": 0.003930761868896257
+    },
+    {
+     "confounder": "admits_prior_yr",
+     "partial_r2_outcome": 0.005746942087000641,
+     "partial_r2_treatment": 0.0010104156950159838,
+     "strength": 0.0024097303755925394
+    },
+    {
+     "confounder": "age",
+     "partial_r2_outcome": 0.009097828395866765,
+     "partial_r2_treatment": 0.00025506720576940335,
+     "strength": 0.001523337673499631
+    },
+    {
+     "confounder": "ldl_baseline",
+     "partial_r2_outcome": 0.002983655744704791,
+     "partial_r2_treatment": 3.8577410168484294e-05,
+     "strength": 0.00033926643138546903
+    },
+    {
+     "confounder": "female",
+     "partial_r2_outcome": 0.00014000230917569337,
+     "partial_r2_treatment": 3.0157547853968886e-05,
+     "strength": 6.497789115254603e-05
+    }
+   ],
+   "strongest_measured": {
+    "confounder": "flu_shot_prior_yr",
+    "partial_r2_outcome": 0.005643604114608128,
+    "partial_r2_treatment": 0.03732819966740666,
+    "strength": 0.014514323312986036
+   }
+  },
+  "derived": {
+   "share_of_raw_gap_from_selection": 0.2679397554227734,
+   "hidden_factor_strength_needed_vs_strongest_measured": 5.208612973885021,
+   "outcome_sd": 0.30850220788304167,
+   "outcome_mean_treated": 0.07728856509344315,
+   "outcome_mean_untreated": 0.13893774182201898,
+   "effect_relative_to_untreated": -0.32482830656423917
+  },
+  "codebook": {
+   "has_codebook": true,
+   "no_meaning": [],
+   "unconfirmed": [],
+   "from_brief": [
+    "adherent",
+    "cardiac_adm_12m",
+    "age",
+    "female",
+    "diabetes",
+    "smoker",
+    "ldl_baseline",
+    "admits_prior_yr",
+    "flu_shot_prior_yr"
+   ]
+  },
+  "alternatives": {
+   "user": [
+    {
+     "name": "Without the flu-shot stand-in",
+     "why": "shows how much the one recorded health-seeking proxy moves the answer; if dropping it moves the answer a lot, unrecorded habits likely move it too",
+     "confounders": [
+      "age",
+      "female",
+      "diabetes",
+      "smoker",
+      "ldl_baseline",
+      "admits_prior_yr"
+     ],
+     "illustrative": true,
+     "estimate": -0.05562775427459663,
+     "ci": [
+      -0.0724291233688373,
+      -0.03882638518035596
+     ]
+    },
+    {
+     "name": "Treat injury admissions as a control",
+     "why": "illustrates the trap of controlling for something measured after adherence",
+     "confounders": [
+      "age",
+      "female",
+      "diabetes",
+      "smoker",
+      "ldl_baseline",
+      "admits_prior_yr",
+      "flu_shot_prior_yr",
+      "injury_adm_12m"
+     ],
+     "illustrative": true,
+     "estimate": -0.047808666654671414,
+     "ci": [
+      -0.06473798218824724,
+      -0.030879351121095595
+     ]
+    }
+   ],
+   "leave_one_out": [
+    {
+     "column": "age",
+     "estimate": -0.04963170981064479,
+     "ci": [
+      -0.06548420620847768,
+      -0.0337792134128119
+     ],
+     "shift": -0.0009475019380717972
+    },
+    {
+     "column": "female",
+     "estimate": -0.04872444206881732,
+     "ci": [
+      -0.06450805619872799,
+      -0.03294082793890665
+     ],
+     "shift": -4.023419624432645e-05
+    },
+    {
+     "column": "diabetes",
+     "estimate": -0.04624565773644708,
+     "ci": [
+      -0.06196528664746104,
+      -0.030526028825433118
+     ],
+     "shift": 0.0024385501361259138
+    },
+    {
+     "column": "smoker",
+     "estimate": -0.0531008936161827,
+     "ci": [
+      -0.06885433766220174,
+      -0.03734744957016366
+     ],
+     "shift": -0.004416685743609705
+    },
+    {
+     "column": "ldl_baseline",
+     "estimate": -0.04847383532506283,
+     "ci": [
+      -0.06428099813241078,
+      -0.03266667251771488
+     ],
+     "shift": 0.00021037254751016254
+    },
+    {
+     "column": "admits_prior_yr",
+     "estimate": -0.05018051001860582,
+     "ci": [
+      -0.06600234035700099,
+      -0.034358679680210655
+     ],
+     "shift": -0.0014963021460328296
+    },
+    {
+     "column": "flu_shot_prior_yr",
+     "estimate": -0.057696288562530715,
+     "ci": [
+      -0.07333735387592907,
+      -0.04205522324913235
+     ],
+     "shift": -0.009012080689957722
+    }
+   ],
+   "add_one": [
+    {
+     "column": "injury_adm_12m",
+     "left_out_because": "measured after adherence (months 7-18); used only as a negative-control outcome, never as a control",
+     "estimate": -0.04838687418445628,
+     "ci": [
+      -0.06416073663242555,
+      -0.03261301173648701
+     ],
+     "shift": 0.00029733368811671324
+    }
+   ],
+   "linear_main_spec": {
+    "estimate": -0.04868420787257299,
+    "ci": [
+     -0.06446731505104834,
+     -0.03290110069409764
+    ]
+   }
+  },
+  "structure_check": {
+   "method": "PC-style search, Fisher-z partial correlations (linear), alpha 0.001, conditioning sets up to 2",
+   "columns": [
+    "adherent",
+    "cardiac_adm_12m",
+    "age",
+    "female",
+    "diabetes",
+    "smoker",
+    "ldl_baseline",
+    "admits_prior_yr",
+    "flu_shot_prior_yr",
+    "injury_adm_12m"
+   ],
+   "rows": 6000,
+   "edges": [
+    [
+     "adherent",
+     "cardiac_adm_12m"
+    ],
+    [
+     "adherent",
+     "diabetes"
+    ],
+    [
+     "adherent",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "adherent",
+     "smoker"
+    ],
+    [
+     "admits_prior_yr",
+     "age"
+    ],
+    [
+     "admits_prior_yr",
+     "cardiac_adm_12m"
+    ],
+    [
+     "admits_prior_yr",
+     "diabetes"
+    ],
+    [
+     "age",
+     "cardiac_adm_12m"
+    ],
+    [
+     "age",
+     "diabetes"
+    ],
+    [
+     "age",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "cardiac_adm_12m",
+     "diabetes"
+    ],
+    [
+     "cardiac_adm_12m",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "cardiac_adm_12m",
+     "ldl_baseline"
+    ],
+    [
+     "cardiac_adm_12m",
+     "smoker"
+    ]
+   ],
+   "v_structures": [
+    [
+     "diabetes",
+     "adherent",
+     "smoker"
+    ],
+    [
+     "diabetes",
+     "adherent",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "adherent",
+     "cardiac_adm_12m",
+     "age"
+    ],
+    [
+     "adherent",
+     "cardiac_adm_12m",
+     "ldl_baseline"
+    ],
+    [
+     "adherent",
+     "cardiac_adm_12m",
+     "admits_prior_yr"
+    ],
+    [
+     "age",
+     "cardiac_adm_12m",
+     "smoker"
+    ],
+    [
+     "age",
+     "cardiac_adm_12m",
+     "ldl_baseline"
+    ],
+    [
+     "diabetes",
+     "cardiac_adm_12m",
+     "smoker"
+    ],
+    [
+     "diabetes",
+     "cardiac_adm_12m",
+     "ldl_baseline"
+    ],
+    [
+     "diabetes",
+     "cardiac_adm_12m",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "smoker",
+     "cardiac_adm_12m",
+     "ldl_baseline"
+    ],
+    [
+     "smoker",
+     "cardiac_adm_12m",
+     "admits_prior_yr"
+    ],
+    [
+     "smoker",
+     "cardiac_adm_12m",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "ldl_baseline",
+     "cardiac_adm_12m",
+     "admits_prior_yr"
+    ],
+    [
+     "ldl_baseline",
+     "cardiac_adm_12m",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "admits_prior_yr",
+     "cardiac_adm_12m",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "diabetes",
+     "age",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "admits_prior_yr",
+     "age",
+     "flu_shot_prior_yr"
+    ],
+    [
+     "adherent",
+     "diabetes",
+     "age"
+    ],
+    [
+     "adherent",
+     "diabetes",
+     "admits_prior_yr"
+    ],
+    [
+     "adherent",
+     "flu_shot_prior_yr",
+     "age"
+    ]
+   ],
+   "findings": [
+    {
+     "column": "female",
+     "kind": "no link",
+     "text": "No direct link from female to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."
+    },
+    {
+     "column": "diabetes",
+     "kind": "possible consequence",
+     "text": "The data pattern suggests diabetes may be affected by other variables rather than only affecting them (a collider-like pattern). Confirm it was recorded before the action and isn't influenced by the outcome."
+    },
+    {
+     "column": "flu_shot_prior_yr",
+     "kind": "possible consequence",
+     "text": "The data pattern suggests flu_shot_prior_yr may be affected by other variables rather than only affecting them (a collider-like pattern). Confirm it was recorded before the action and isn't influenced by the outcome."
+    }
+   ],
+   "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."
+  },
+  "simulation_check": {
+   "planted": -0.041190144194202104,
+   "reps": 3,
+   "runs": [
+    {
+     "estimate": -0.03729219473100195,
+     "ci": [
+      -0.05412183392568719,
+      -0.020462555536316703
+     ],
+     "covers": true,
+     "naive": -0.04933444942710319
+    },
+    {
+     "estimate": -0.05546103062832969,
+     "ci": [
+      -0.07237768161033081,
+      -0.038544379646328564
+     ],
+     "covers": true,
+     "naive": -0.0643581515642118
+    },
+    {
+     "estimate": -0.04207729130778202,
+     "ci": [
+      -0.05927751442856473,
+      -0.02487706818699931
+     ],
+     "covers": true,
+     "naive": -0.052956814725128865
+    }
+   ],
+   "mean_estimate": -0.04494350555570455,
+   "bias": -0.0037533613615024497,
+   "coverage": 1.0,
+   "naive_mean": -0.05554980523881462,
+   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect. Tests the method on this data's structure, not hidden factors."
+  },
+  "negative_controls": [
+   {
+    "column": "injury_adm_12m",
+    "why": "A statin cannot plausibly prevent accidental-injury admissions, but health-conscious habits could. An apparent 'effect' of adherence on injuries would expose healthy-adherer bias.",
+    "estimate": -0.012527751290527557,
+    "ci": [
+     -0.024692703596965338,
+     -0.00036279898408977593
+    ],
+    "untreated_mean": 0.063665142455153,
+    "relative": -0.19677567358546877,
+    "passes": false
+   }
+  ],
+  "negative_control_adjusted": {
+   "estimate": -0.022149906415125604,
+   "ci": [
+    -0.052524044327076004,
+    0.018900643693492737
+   ],
+   "negative_control": "injury_adm_12m",
+   "assumption": "The unrecorded difference between the groups changes the main outcome and the check outcome by the same share."
+  },
+  "plausibility": {
+   "low": -0.035,
+   "high": -0.005,
+   "estimate": -0.0451309113939059,
+   "inside": false,
+   "range_overlaps": true,
+   "far_outside": false,
+   "basis": "Randomised trials (Cholesterol Treatment Trialists' meta-analyses) show statins cut major vascular events by roughly a fifth per 1 mmol/L LDL reduction, i.e. roughly 20-30% relative. On this file's roughly 11% one-year cardiac admission rate that is about 1 to 3.5 points; comparing >=80% vs <80% days covered (non-adherent members still take some tablets) and a one-year horizon push it toward the lower end. Written before the run.",
+   "source": "general knowledge"
+  },
+  "domain_notes": {
+   "domain": "statin adherence and cardiac hospital admissions (health insurer claims)",
+   "usual_drivers": [
+    "age",
+    "sex",
+    "diabetes",
+    "smoking",
+    "LDL cholesterol",
+    "prior admissions / frailty",
+    "health-seeking behaviour (diet, exercise, keeping appointments)"
+   ],
+   "known_traps": [
+    {
+     "name": "Healthy-adherer effect",
+     "source": "general knowledge",
+     "why": "People who take their medicines as prescribed also tend to exercise, eat better, keep appointments and avoid risks, so they have fewer admissions of every kind, whether or not the pill works. Classic evidence: adherent statin users also had fewer road accidents and workplace injuries (Dormuth et al., Circulation 2009), and people who took their placebo faithfully in trials lived longer.",
+     "handled": "Prior flu vaccination used as a partial stand-in control; accidental-injury admissions used as a negative-control outcome; the unrecorded part is drawn in the diagram and sized in the hidden-factor chart."
+    },
+    {
+     "name": "Sick-stopper / reverse causation",
+     "source": "general knowledge",
+     "why": "Members who become frail or ill early on may stop filling prescriptions, and are also more likely to be admitted, which makes non-adherence look harmful.",
+     "handled": "Prior-year admissions and baseline risk factors are controlled; the 6-month adherence window ends before the 12-month outcome window starts, which avoids counting early events. Remaining risk noted as a question."
+    },
+    {
+     "name": "Adherence is not the programme",
+     "source": "general knowledge",
+     "why": "Finance's number is for a programme of reminder calls; the programme will only make some non-adherent members adherent, so the effect of the programme is smaller than the effect of adherence.",
+     "handled": "Stated in the report; the result is the effect of adherence itself, an upper guide for the programme."
+    }
+   ]
+  }
+ },
+ "trust_tier": "C",
+ "trust_reasons": [
+  "Observational data: rests on no important unrecorded factor (cannot be checked).",
+  "The action shows an 'effect' on something it cannot plausibly change: injury_adm_12m -0.0125. That points to an unrecorded difference between the groups, which likely also inflates the main answer.",
+  "Domain knowledge suggests an unrecorded driver: Health-conscious habits. It is not in the data; see how strong it would need to be.",
+  "The estimate (-0.0451) is outside the range expected before the run (-0.035 to -0.005; Randomised trials (Cholesterol Treatment Trialists' meta-analyses) show statins cut major vascular events by roughly a fifth per 1 mmol/L LDL reduction, i.e. roughly 20-30% relative. On this file's roughly 11% one-year cardiac admission rate that is about 1 to 3.5 points; comparing >=80% vs <80% days covered (non-adherent members still take some tablets) and a one-year horizon push it toward the lower end. Written before the run.). Either this setting differs or something is missing from the diagram."
+ ],
+ "timings_sec": {
+  "naive_difference": 0.0,
+  "regression_linear": 0.5,
+  "aipw_gbm": 9.8,
+  "aipw_spline": 0.3,
+  "ipw_gbm": 0.0,
+  "regression_gbm": 0.0,
+  "double_ml": 3.6,
+  "causal_forest": 5.0
+ },
+ "manifest": {
+  "fingerprint": "ds-90e743f0",
+  "seed": 1729,
+  "budget": "standard",
+  "versions": {
+   "numpy": "2.4.4",
+   "pandas": "2.3.3",
+   "scipy": "1.15.3",
+   "sklearn": "1.8.0",
+   "statsmodels": "0.15.0",
+   "econml": "0.17.0",
+   "dowhy": "0.14"
+  },
+  "run_at_utc": "2026-09-26T16:42:11",
+  "runtime_sec": 59.6
+ }
+}

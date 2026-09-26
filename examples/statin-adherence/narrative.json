@@ -1,0 +1,67 @@
+{
+ "eyebrow": "Statin adherence programme",
+ "title": "How much does sticking to your statin reduce cardiac hospital admissions over the next year?",
+ "answer_html": "The best estimate is <strong>about 4.5 fewer cardiac admissions per 100 members a year</strong> (range 2.8 to 6.2), but that figure is very likely too high. Adherent members also had about 20% fewer <em>injury</em> admissions, which a statin cannot cause, so part of the gap is people who look after themselves generally. A rough correction for that brings it to <strong>about 2 per 100</strong>, in line with trial evidence, and that corrected figure is still consistent with no effect. For the business case, use about 2 per 100 as the planning number and 4.5 as a ceiling.",
+ "value_scale": 100, "value_suffix": " per 100", "decimals": 1,
+ "effect_label": "Effect of sticking to the statin",
+ "unit": "cardiac admissions per 100 members over 12 months (negative = fewer)",
+ "units": "members",
+ "group_names": {"treated": "adherent members", "untreated": "non-adherent members"},
+ "labels": {
+  "adherent": "Sticks to statin (>=80% days covered)", "cardiac_adm_12m": "Cardiac admission within 12 months",
+  "injury_adm_12m": "Injury admission within 12 months",
+  "age": "Age", "female": "Female", "diabetes": "Diabetes", "smoker": "Smoker",
+  "ldl_baseline": "LDL at prescription", "admits_prior_yr": "Admissions in prior year", "flu_shot_prior_yr": "Flu shot in prior year",
+  "diabetes==1": "Members with diabetes", "not (diabetes==1)": "Members without diabetes",
+  "age>=70": "Aged 70+", "not (age>=70)": "Under 70",
+  "admits_prior_yr>=1": "Admitted in prior year", "not (admits_prior_yr>=1)": "Not admitted in prior year"
+ },
+ "data_title": "What we worked from",
+ "data_text": "6,000 members prescribed a statin last year, one row each. Adherence was measured over the first 6 months and admissions over the following 12, so the two windows do not overlap. Raw rows are not shown because this is member health data.",
+ "caution_bullets": [
+  "Adherent members also had about 20% fewer accidental-injury admissions, which a statin cannot prevent. That is the classic healthy-adherer pattern, and it inflates the headline number too.",
+  "The estimate is bigger than the range we wrote down from trial evidence before the run (1 to 3.5 fewer per 100).",
+  "Column meanings come from your brief; no one could confirm them this week."
+ ],
+ "segment_card_title": "Bigger for members with diabetes",
+ "segment_card_note": "Members with diabetes show about 7.9 fewer admissions per 100, against about 3.3 for the rest. The same healthy-adherer bias applies to both groups, so treat the size of each with the same caution; the ranking is more reliable than the numbers.",
+ "segment_card_note_similar": "No group stood out beyond chance.",
+ "segment_title": "Who gains most",
+ "segment_text": "Members with diabetes gain more than the rest, beyond what chance would explain. Members aged 70+ and those admitted in the prior year also look like bigger gainers, but those differences could be chance. If the programme has to be targeted, members with diabetes are the natural first group.",
+ "gap_title": "Most of the raw gap survives the recorded traits, but not the hidden ones",
+ "gap_text": "Non-adherent members had a cardiac admission rate of about 13.9% against 7.7% for adherent members, a raw gap of about 6.2 per 100. About 27% of that is explained by recorded differences (smoking, diabetes, flu shots and so on). The rest is the 4.5 headline, which still contains whatever unrecorded habits separate the two groups.",
+ "selection_label": "Recorded differences between the groups",
+ "action_label": "Adherence plus unrecorded habits",
+ "methods_title": "Seven methods agree on 4.5 to 5.3 fewer per 100",
+ "methods_text": "Every adjusted method lands close to the main one. That means the answer does not hinge on the modelling choice. It does not protect against a factor none of them can see, which is the real risk here.",
+ "overlap_title": "Adherent and non-adherent members are comparable on recorded traits",
+ "hidden_note": "On paper a hidden factor would need to be about 5 times stronger than prior flu vaccination, our strongest recorded driver, to erase this result. That is not reassuring here: flu shots capture only a sliver of 'looks after their health', and the injury check shows the unrecorded part is real.",
+ "trust_title": "Why the grade is C",
+ "trust_text": "The comparison is well balanced and the methods agree, but the injury check shows the adherent group is healthier in ways the data do not record. The headline 4.5 per 100 therefore overstates what adherence itself does.",
+ "domain_title": "What usually goes wrong with this question",
+ "domain_text": "We wrote these down from published evidence before looking at any results. They are general knowledge, not confirmed by you.",
+ "negative_control_note": "A statin cannot prevent accidental injuries, yet adherent members had about 1.3 fewer injury admissions per 100 (about 20% fewer). That is the healthy-adherer effect showing through, and it very likely inflates the cardiac number too.",
+ "dag_confirmed": false,
+ "dag_title": "How we think it works",
+ "dag_text": "Recorded traits (age, sex, diabetes, smoking, LDL, prior admissions, prior flu shot) affect both adherence and cardiac admissions and are controlled for. The dotted box is the suspected unrecorded driver: health-conscious habits, which also reach injury admissions.",
+ "dag_note": "Drawn from the brief; not yet confirmed by you.",
+ "alternatives_title": "What if our diagram is wrong?",
+ "alternatives_text": "Leaving out any one control moves the answer very little. Dropping the flu-shot stand-in makes the effect look bigger (about 5.6 per 100), which is the direction you would expect if health-seeking habits are inflating it; the unrecorded habits likely push the same way.",
+ "trap_title": "Why injury admissions are not a control",
+ "trap_text": "Injury admissions are recorded after adherence, in the same window as the outcome. They are used only as a check, never as something to adjust for.",
+ "data_issues": [
+  {"title": "A pattern-search flag we set aside", "text": "The automated structure search suggested diabetes and prior flu shots might be consequences of adherence. Your brief says both were recorded before the prescription, so we kept them as controls. This kind of search is often wrong on its own."},
+  {"title": "Rough bias correction (custom analysis, outside the tested toolkit)", "text": "Assuming hidden habits cut cardiac and injury admissions by the same share, dividing out the injury 'effect' leaves about 2.2 fewer cardiac admissions per 100 (roughly 17% fewer), with a 95% range from about 5.1 fewer to 1.1 more. That matches the 20-30% relative reduction seen in statin trials. The equal-bias assumption is itself unproven; habits like diet and exercise may matter more for the heart than for injuries, which would make the true effect smaller still. Script and output are saved as custom_negative_control_calibration.py/.json."}
+ ],
+ "next_steps": [
+  {"title": "Put 2 per 100 in the business case, with 4.5 as the ceiling.", "text": "About 2 fewer cardiac admissions per 100 fully adherent members a year is the defensible planning figure; 4.5 is the upper end if none of the gap were habits. Also remember the programme will only turn some non-adherent members into adherent ones, so multiply by the share it converts (for example, if calls convert 1 in 4, expect roughly 0.5 fewer admissions per 100 members enrolled)."},
+  {"title": "Settle it with a randomised roll-out.", "text": "Offer the reminder calls to a random half of new statin starters and track both adherence and admissions. Spotting a 2-point drop in cardiac admissions needs about 4,400 members per group; a 1-point drop needs about 18,200 per group. The random offer also lets you measure the effect of adherence among the members the calls actually moved."},
+  {"title": "Start with members with diabetes.", "text": "They show the largest estimated gain, so a pilot there gives the best chance of seeing a measurable effect."}
+ ],
+ "questions": [
+  {"title": "We assumed the column meanings in your brief are right.", "text": "In particular that 'adherent' means at least 80% of days covered in months 1-6, and that admissions are counted only in months 7-18."},
+  {"title": "Were members who died or left the plan in the first 6 months dropped from the file?", "text": "If so, the file may exclude the sickest early stoppers, which could bias the comparison either way. We assumed the file covers everyone who reached month 7."},
+  {"title": "Is 'one number for adherence' the right number for Finance?", "text": "We answered the effect of being adherent versus not, averaged over all members. The programme's effect is that figure times the share of members the calls convert, and may be lower if the easiest-to-convert members are the healthier ones."},
+  {"title": "Do you have other health-seeking markers?", "text": "Screening uptake, missed appointments, or other preventive fills would strengthen the healthy-adherer correction. We treated health-conscious habits as a suspected unrecorded driver (general knowledge, not confirmed by you)."}
+ ]
+}

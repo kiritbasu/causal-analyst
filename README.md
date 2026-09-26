@@ -6,7 +6,7 @@
 
 ![Report headline: effect, trust grade and who gains most](docs/images/loyalty-headline.png)
 
-<p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/ai-training/report.html">AI training</a> (grade B, three traps) · <a href="#quick-start">Quick start</a></p>
+<p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/ai-training/report.html">AI training</a> (grade B, three traps) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/statin-adherence/report.html">Statin adherence</a> (grade C, a bias the brief never mentions) · <a href="#quick-start">Quick start</a></p>
 
 **Contents:** [Why this exists](#why-this-exists) · [What it's like to use](#what-its-like-to-use) · [The report](#the-report) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Does it work?](#does-it-work) · [Which model to use](#which-model-to-use) · [Data and privacy](#data-and-privacy) · [Limitations and roadmap](#limitations-and-roadmap)
 
@@ -44,7 +44,9 @@ You attach a file and ask in your own words. The skill takes it from there, stop
 
 **2. It confirms what each column means.** Column names mislead (is `usage_idx` measured before or after the training?), so Claude writes down its reading of every column and when it was recorded, and you correct it.
 
-**3. It asks what only you know**, one question at a time, as clickable options:
+**3. It brings what it knows about your domain.** Before asking you anything, Claude lists the traps that usually bias this kind of question: healthy-adherer effects in health data, targeting the already-engaged in marketing, regression to the mean after a bad quarter. Each one becomes a question for you, a check, or a control, and stays labelled "general knowledge, not confirmed" until you confirm it.
+
+**4. It asks what only you know**, one question at a time, as clickable options:
 
 > Were income, tenure, age, city and last quarter's spend all recorded *before* customers joined? ○ Yes ○ Some were later ○ Not sure
 >
@@ -52,9 +54,9 @@ You attach a file and ask in your own words. The skill takes it from there, stop
 >
 > Could past spending have driven who joined, rather than only the other way round? ○ Yes, big spenders were targeted ○ No ○ Not sure
 
-**4. You confirm the diagram and the plan.** Claude draws how it thinks things work, you correct it, and the main method is fixed before anything runs. Where you weren't sure, Claude writes down the alternative diagrams too.
+**5. You confirm the diagram and the plan.** Claude draws how it thinks things work, you correct it, and the main method is fixed before anything runs. Where you weren't sure, Claude writes down the alternative diagrams too.
 
-**5. You get the report** about a minute later. It gives the answer, how much to trust it and why, who benefits most, and the randomized test that would settle it.
+**6. You get the report** about a minute later. It gives the answer, how much to trust it and why, who benefits most, and the randomized test that would settle it.
 
 ## The report
 
@@ -65,12 +67,13 @@ A self-contained HTML page: it works offline, on a phone, and prints cleanly. It
 | 1 | Headline + trust grade (A–D) | What's the effect, how sure are we, who gains most |
 | 2 | The data | How big it is, each column's role (action, outcome, control, left out), distributions, the first few rows |
 | 3 | How we think it works | The causal diagram, in a picture and in words, and whether you confirmed it |
+| 3b | What we know about this kind of question | The domain traps Claude raised before the run, and what was done about each |
 | 4 | Where the raw gap comes from | How much of the naive difference is *who* got the action vs the action itself |
 | 5 | Methods side by side | Does the answer depend on the technique? |
 | 6 | Meet the methods | A timeline and plain-English guide to each method family |
 | 7 | What if our diagram is wrong? | The answer under alternative diagrams, and what the data itself suggests about the structure |
 | 8 | Who benefits more | Effects for the groups you asked about, with ranges |
-| 9 | Why the grade | Overlap, balance, hidden-factor strength, a planted-effect test on your own data, placebo and stability checks |
+| 9 | Why the grade | Overlap, balance, hidden-factor strength, a check on outcomes the action can't change, the estimate against published evidence, a planted-effect test on your own data, placebo and stability checks |
 | 10 | What this rests on | Every assumption and its status; the trap that was avoided; data issues |
 | 11 | Next steps and questions | A sized randomized test, and every assumption made on your behalf |
 
@@ -107,7 +110,16 @@ A self-contained HTML page: it works offline, on a phone, and prints cleanly. It
 </tr>
 </table>
 
-**Open the full reports:** [loyalty program](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html) (grade C) · [sales calls](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html) (grade D) · [AI training](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/ai-training/report.html) (grade B: a misleadingly named mediator, a collider and reverse causation). The HTML files, data and every intermediate file are in [`examples/`](examples/).
+**When domain knowledge matters**, the report shows it. In the statin example the brief never mentions that people who take their pills also look after themselves. Claude raised it before the run, and the check on injury admissions (which a statin can't prevent) confirmed it:
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/statin-domain.png" alt="What we know about statin adherence: traps raised before the run"></td>
+<td width="50%"><img src="docs/images/statin-checks.png" alt="Negative-control check and the estimate against trial evidence"></td>
+</tr>
+</table>
+
+**Open the full reports:** [loyalty program](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html) (grade C) · [sales calls](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html) (grade D) · [AI training](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/ai-training/report.html) (grade B: a misleadingly named mediator, a collider and reverse causation) · [statin adherence](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/statin-adherence/report.html) (grade C: a healthy-adherer effect the brief never mentions). The HTML files, data and every intermediate file are in [`examples/`](examples/).
 
 ## Quick start
 
@@ -141,7 +153,8 @@ python $S/ca.py report   results.json --narrative narrative.json --out report.ht
 flowchart LR
   A[Your data + question] --> B[1. Profile + codebook<br/>flags odd values; you confirm<br/>what each column means]
   B --> C[2. The question<br/>action, outcome, target,<br/>groups to compare]
-  C --> D[3. Assumptions interview<br/>timing, assignment, hidden drivers,<br/>reverse causation, colliders]
+  C --> K[3a. Domain briefing<br/>usual traps, expected effect,<br/>checks it can't fool]
+  K --> D[3b. Assumptions interview<br/>timing, assignment, hidden drivers,<br/>reverse causation, colliders]
   D --> E[4. Diagram + plan<br/>expert confirms the DAG;<br/>alternatives named; method fixed]
   E --> F[5. Run<br/>estimators, diagnostics, design checks,<br/>sensitivity, trust grade]
   F --> G[6. Report<br/>designed HTML page]
@@ -180,6 +193,13 @@ For amount treatments (e.g. discount size), the skill uses g-computation with th
 - **Structure second opinion:** a light PC-algorithm search on the data flags controls that look like consequences (collider patterns) and unused columns linked to both action and outcome. Its findings become questions for you, never silent edits.
 - **Planted-effect test:** the main method is rerun on your real columns and real assignment with a simulated outcome carrying a known effect. If it can't find that effect, the grade drops.
 
+**Domain knowledge, used carefully.** Frontier models know a lot about most domains; the expert knows their own process. The skill uses the first to ask better questions, never to overrule the second:
+- **Domain briefing:** before the interview, Claude writes down the 2–4 traps that typically bias this kind of comparison, each turned into a question, a control, a check or an alternative diagram.
+- **Where each assumption came from:** every arrow and column reading is tagged "you told us", "from your brief", "the data suggests" or "general knowledge, not confirmed", and the report shows it.
+- **Suspected hidden drivers:** a driver the domain suggests but the data lacks is drawn, sized, and caps the grade at C, unless a random nudge in the data gives an agreeing independent estimate.
+- **Checks it can't fool:** outcomes the action cannot plausibly change (injury admissions for a heart drug, spend *before* a programme). An apparent effect there exposes hidden bias; the run then also gives a rough planning figure with that bias removed, next to the main result.
+- **Expected effect:** a range from published evidence, written into the plan before the run. It flags implausible answers and never moves them.
+
 **Trust grades:** **A** randomized and checks pass · **B** observational, good overlap, robust to moderate hidden bias · **C** a weakness (weak overlap, fragile to hidden bias, methods disagree) · **D** the data can't answer this.
 
 ## Does it work?
@@ -191,9 +211,10 @@ We ran the [skill-creator](https://github.com/anthropics/skills) eval loop on th
 | Loyalty program with a post-treatment trap | +$9.17 | +$9.25 (7.43–11.07), grade C, trap excluded | +$9.50 (8.3–10.7), trap excluded, no grade |
 | Benchmark case with an unmeasured confounder (not identifiable) | null | null; bounds −0.295 to −0.214 contain the truth | null; bounds −0.281 to −0.261 **miss** the truth |
 | Sales calls chosen on an unrecorded "gut feel" | ≈ +5 per 100 | grade D; 0–25 per 100 contains the truth; test sized | no headline; "6 to 16 per 100" **misses** the truth |
+| Statin adherence: a healthy-adherer effect the brief never mentions | −2.0 per 100 | adjusted −4.5 flagged as too high by the built-in injury check and trial range; planning figure −2.2; grade C | *(vs the previous skill version)* found the same bias by hand, but its script still graded it B |
 | AI training: misleading mediator name, a collider, reverse causation | +7.5 | +7.55 (7.0–8.1), grade B, all three traps avoided, planted-effect test passed | +7.4 (7.0–7.8), all three traps avoided, no grade |
 
-Assertion pass rate: **100% with the skill vs 50–57% without**, at about 2–3 minutes and ~20% more tokens per run. Accuracy on clean cases is similar either way; on the AI-training case both runs avoided every trap, which tells us current frontier models handle well-described traps. The skill's added value there is the checks and the audit trail: the report shows what the answer would have been under each wrong diagram. The difference is honest ranges, abstention, pre-registration, and a report someone can act on.
+Assertion pass rate: **100% with the skill vs 50–57% without**, at about 2–3 minutes and ~20% more tokens per run. Accuracy on clean cases is similar either way; on the AI-training case both runs avoided every trap, which tells us current frontier models handle well-described traps. The skill's added value there is the checks and the audit trail: the report shows what the answer would have been under each wrong diagram. The statin case tells the same story about domain knowledge: the model already knew about healthy-adherer bias, and the new step makes using it systematic, graded and visible. The difference is honest ranges, abstention, pre-registration, and a report someone can act on.
 
 The foundation-model cross-checks were benchmarked on 14 semi-synthetic datasets ([results](evals/foundation-models/)):
 
@@ -246,7 +267,7 @@ The model matters less for the numbers (they're scripted) and more for knowing w
 
 ```
 skills/causal-analyst/     the skill: SKILL.md, scripts/, references/
-examples/                  three worked cases: data, brief, spec, results, narrative, report
+examples/                  four worked cases: data, brief, spec, results, narrative, report
 evals/                     eval scenarios, assertions, benchmark results, foundation-model study
 tests/                     smoke test (runs the full pipeline on the examples)
 docs/images/               screenshots used in this README

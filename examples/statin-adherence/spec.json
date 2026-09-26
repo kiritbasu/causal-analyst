@@ -1,0 +1,197 @@
+{
+  "data": "data.csv",
+  "treatment": "adherent",
+  "outcome": "cardiac_adm_12m",
+  "treatment_type": "binary",
+  "estimand": "ATE",
+  "confounders": [
+    "age",
+    "female",
+    "diabetes",
+    "smoker",
+    "ldl_baseline",
+    "admits_prior_yr",
+    "flu_shot_prior_yr"
+  ],
+  "excluded": {
+    "pid": "identifier",
+    "injury_adm_12m": "measured after adherence (months 7-18); used only as a negative-control outcome, never as a control"
+  },
+  "hidden_confounding": "none_known",
+  "outcome_baseline": "admits_prior_yr",
+  "outcome_range": [
+    0,
+    1
+  ],
+  "report_sample_rows": 0,
+  "causalpfn_max_rows": 0,
+  "codebook": {
+    "pid": {
+      "meaning": "Member identifier",
+      "recorded": "n/a",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "age": {
+      "meaning": "Age in years",
+      "recorded": "at prescription (before adherence)",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "female": {
+      "meaning": "1 = female",
+      "recorded": "at enrolment (before adherence)",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "diabetes": {
+      "meaning": "1 = diabetes diagnosis on file",
+      "recorded": "before prescription",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "smoker": {
+      "meaning": "1 = current smoker on file",
+      "recorded": "before prescription",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "ldl_baseline": {
+      "meaning": "LDL cholesterol (mg/dL) when the statin was prescribed",
+      "recorded": "at prescription (before adherence)",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "admits_prior_yr": {
+      "meaning": "All-cause hospital admissions in the year before prescription; the closest thing to a before-the-action measure of the outcome",
+      "recorded": "before prescription",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "flu_shot_prior_yr": {
+      "meaning": "1 = flu vaccination in the year before prescription; a partial stand-in for health-seeking behaviour",
+      "recorded": "before prescription",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "adherent": {
+      "meaning": "1 = statin filled for at least 80% of days in the first 6 months (proportion of days covered >= 80%)",
+      "recorded": "months 1-6 after prescription",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "cardiac_adm_12m": {
+      "meaning": "1 = admitted for a cardiac event in the following 12 months",
+      "recorded": "months 7-18 (after the adherence window)",
+      "confirmed": false,
+      "source": "brief"
+    },
+    "injury_adm_12m": {
+      "meaning": "1 = admitted for an accidental injury in the following 12 months; a statin cannot plausibly prevent this",
+      "recorded": "months 7-18 (after the adherence window)",
+      "confirmed": false,
+      "source": "brief"
+    }
+  },
+  "domain_notes": {
+    "domain": "statin adherence and cardiac hospital admissions (health insurer claims)",
+    "usual_drivers": [
+      "age",
+      "sex",
+      "diabetes",
+      "smoking",
+      "LDL cholesterol",
+      "prior admissions / frailty",
+      "health-seeking behaviour (diet, exercise, keeping appointments)"
+    ],
+    "known_traps": [
+      {
+        "name": "Healthy-adherer effect",
+        "source": "general knowledge",
+        "why": "People who take their medicines as prescribed also tend to exercise, eat better, keep appointments and avoid risks, so they have fewer admissions of every kind, whether or not the pill works. Classic evidence: adherent statin users also had fewer road accidents and workplace injuries (Dormuth et al., Circulation 2009), and people who took their placebo faithfully in trials lived longer.",
+        "handled": "Prior flu vaccination used as a partial stand-in control; accidental-injury admissions used as a negative-control outcome; the unrecorded part is drawn in the diagram and sized in the hidden-factor chart."
+      },
+      {
+        "name": "Sick-stopper / reverse causation",
+        "source": "general knowledge",
+        "why": "Members who become frail or ill early on may stop filling prescriptions, and are also more likely to be admitted, which makes non-adherence look harmful.",
+        "handled": "Prior-year admissions and baseline risk factors are controlled; the 6-month adherence window ends before the 12-month outcome window starts, which avoids counting early events. Remaining risk noted as a question."
+      },
+      {
+        "name": "Adherence is not the programme",
+        "source": "general knowledge",
+        "why": "Finance's number is for a programme of reminder calls; the programme will only make some non-adherent members adherent, so the effect of the programme is smaller than the effect of adherence.",
+        "handled": "Stated in the report; the result is the effect of adherence itself, an upper guide for the programme."
+      }
+    ]
+  },
+  "suspected_hidden": [
+    {
+      "label": "Health-conscious habits",
+      "why": "Healthy-adherer effect: people who stick to their pills also look after their health in ways the claims data do not record (diet, exercise, alcohol, keeping appointments).",
+      "proxies": [
+        "flu_shot_prior_yr"
+      ],
+      "source": "general knowledge"
+    }
+  ],
+  "negative_control_outcomes": [
+    {
+      "column": "injury_adm_12m",
+      "why": "A statin cannot plausibly prevent accidental-injury admissions, but health-conscious habits could. An apparent 'effect' of adherence on injuries would expose healthy-adherer bias."
+    }
+  ],
+  "expected_effect": {
+    "low": -0.035,
+    "high": -0.005,
+    "basis": "Randomised trials (Cholesterol Treatment Trialists' meta-analyses) show statins cut major vascular events by roughly a fifth per 1 mmol/L LDL reduction, i.e. roughly 20-30% relative. On this file's roughly 11% one-year cardiac admission rate that is about 1 to 3.5 points; comparing >=80% vs <80% days covered (non-adherent members still take some tablets) and a one-year horizon push it toward the lower end. Written before the run.",
+    "source": "general knowledge"
+  },
+  "alternatives": [
+    {
+      "name": "Without the flu-shot stand-in",
+      "why": "shows how much the one recorded health-seeking proxy moves the answer; if dropping it moves the answer a lot, unrecorded habits likely move it too",
+      "remove": [
+        "flu_shot_prior_yr"
+      ],
+      "illustrative": true
+    },
+    {
+      "name": "Treat injury admissions as a control",
+      "why": "illustrates the trap of controlling for something measured after adherence",
+      "add": [
+        "injury_adm_12m"
+      ],
+      "illustrative": true
+    }
+  ],
+  "segments": [
+    "diabetes==1",
+    "age>=70",
+    "admits_prior_yr>=1"
+  ],
+  "budget": "standard",
+  "seed": 1729,
+  "labels": {
+    "adherent": "Sticks to statin (>=80% days covered)",
+    "cardiac_adm_12m": "Cardiac admission within 12 months",
+    "injury_adm_12m": "Injury admission within 12 months",
+    "age": "Age",
+    "female": "Female",
+    "diabetes": "Diabetes",
+    "smoker": "Smoker",
+    "ldl_baseline": "LDL at prescription",
+    "admits_prior_yr": "Admissions in prior year",
+    "flu_shot_prior_yr": "Flu shot in prior year",
+    "diabetes==1": "Members with diabetes",
+    "not (diabetes==1)": "Members without diabetes",
+    "age>=70": "Aged 70+",
+    "not (age>=70)": "Under 70",
+    "admits_prior_yr>=1": "Admitted in prior year",
+    "not (admits_prior_yr>=1)": "Not admitted in prior year"
+  },
+  "dismissed_findings": {
+    "diabetes": "recorded before the prescription (brief)",
+    "flu_shot_prior_yr": "recorded in the year before the prescription (brief)"
+  }
+}

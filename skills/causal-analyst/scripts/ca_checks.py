@@ -43,8 +43,10 @@ def codebook_status(spec: dict) -> dict:
     cb = spec.get("codebook") or {}
     used = [spec["treatment"], spec["outcome"]] + spec.get("confounders", []) + spec.get("instruments", [])
     missing = [c for c in used if c not in cb or not cb[c].get("meaning")]
-    unconfirmed = [c for c in used if c in cb and cb[c].get("meaning") and not cb[c].get("confirmed")]
-    return {"has_codebook": bool(cb), "no_meaning": missing, "unconfirmed": unconfirmed}
+    unconfirmed = [c for c in used if c in cb and cb[c].get("meaning") and not cb[c].get("confirmed")
+                   and str(cb[c].get("source", "")).lower() not in ("brief", "sme")]
+    from_brief = [c for c in used if c in cb and not cb[c].get("confirmed") and str(cb[c].get("source", "")).lower() == "brief"]
+    return {"has_codebook": bool(cb), "no_meaning": missing, "unconfirmed": unconfirmed, "from_brief": from_brief}
 
 
 # ---------------------------------------------------------------------------- alternatives
@@ -205,6 +207,11 @@ def simulation_check(df, spec, planted=None, reps=3, seed=1729):
         resid = y[t == 0] - m.predict(X[t == 0])
     if planted is None:
         planted = 0.2 * (float(np.std(y)) if not binary_y else 0.25)
+    target = float(planted)
+    if binary_y:
+        # probabilities are clipped to [0, 1], so the effect actually planted can be smaller than asked
+        p1, p0 = np.clip(base + planted, 0, 1), np.clip(base, 0, 1)
+        target = float(np.mean(p1 - p0)) if estimand == "ATE" else float(np.mean((p1 - p0)[t == 1]))
     runs = []
     for k in range(reps):
         if binary_y:
@@ -214,10 +221,74 @@ def simulation_check(df, spec, planted=None, reps=3, seed=1729):
         e, m0, m1 = core.crossfit_nuisances(X, t, ys, "gbm", 5, seed + k)
         r = core.aipw(ys, t, e, m0, m1, estimand)
         naive = float(ys[t == 1].mean() - ys[t == 0].mean())
-        runs.append({"estimate": r["estimate"], "ci": r["ci"], "covers": bool(r["ci"][0] <= planted <= r["ci"][1]), "naive": naive})
+        runs.append({"estimate": r["estimate"], "ci": r["ci"], "covers": bool(r["ci"][0] <= target <= r["ci"][1]), "naive": naive})
     est = [x["estimate"] for x in runs]
-    return {"planted": float(planted), "reps": reps, "runs": runs,
-            "mean_estimate": float(np.mean(est)), "bias": float(np.mean(est) - planted),
+    return {"planted": target, "reps": reps, "runs": runs,
+            "mean_estimate": float(np.mean(est)), "bias": float(np.mean(est) - target),
             "coverage": float(np.mean([x["covers"] for x in runs])),
             "naive_mean": float(np.mean([x["naive"] for x in runs])),
             "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect. Tests the method on this data's structure, not hidden factors."}
+
+
+# ---------------------------------------------------------------------------- domain checks
+def negative_controls(df, spec, seed=1729):
+    """Main-method estimate on outcomes the action cannot plausibly affect (chosen before the run
+    from domain knowledge). A clear 'effect' there signals hidden bias that also touches the main answer."""
+    T = spec["treatment"]
+    conf = list(spec.get("confounders", []))
+    estimand = spec.get("estimand", "ATE")
+    out = []
+    for item in spec.get("negative_control_outcomes", []):
+        col = item["column"] if isinstance(item, dict) else item
+        why = item.get("why", "") if isinstance(item, dict) else ""
+        if col not in df:
+            out.append({"column": col, "error": "column not found"}); continue
+        d = df[[T, col] + conf].dropna()
+        try:
+            r = _quick_aipw(d, T, col, conf, estimand, seed)
+        except Exception as ex:
+            out.append({"column": col, "error": str(ex)[:200]}); continue
+        base = float(d.loc[d[T] == 0, col].mean())
+        lo, hi = r["ci"]
+        out.append({"column": col, "why": why, **r, "untreated_mean": base,
+                    "relative": (r["estimate"] / base) if base else None,
+                    "passes": bool(lo <= 0 <= hi)})
+    return out
+
+
+def calibrate_with_negative_control(main, main_base, nc):
+    """Planning figure: remove the relative bias seen on a negative-control outcome from the main
+    estimate, assuming the hidden difference shifts both outcomes by the same share. A rough guide,
+    reported next to (never instead of) the main result."""
+    try:
+        m0, b0 = float(main_base), float(nc["untreated_mean"])
+        if m0 <= 0 or b0 <= 0:
+            return None
+        rr_m = (m0 + main["estimate"]) / m0
+        rr_n = (b0 + nc["estimate"]) / b0
+        if rr_m <= 0 or rr_n <= 0:
+            return None
+        se_m = (main["ci"][1] - main["ci"][0]) / 3.92 / (m0 + main["estimate"])
+        se_n = (nc["ci"][1] - nc["ci"][0]) / 3.92 / (b0 + nc["estimate"])
+        x = math.log(rr_m) - math.log(rr_n)
+        se = math.hypot(se_m, se_n)
+        to_diff = lambda v: m0 * (math.exp(v) - 1)
+        return {"estimate": to_diff(x), "ci": [to_diff(x - 1.96 * se), to_diff(x + 1.96 * se)], "negative_control": nc["column"],
+                "assumption": "The unrecorded difference between the groups changes the main outcome and the check outcome by the same share."}
+    except Exception:
+        return None
+
+
+def plausibility(main, expected):
+    """Compare the main estimate with a range written into the plan before the run
+    (from published evidence or domain knowledge). Never changes the estimate."""
+    if not expected or main is None or main.get("estimate") is None:
+        return None
+    lo, hi = sorted([float(expected["low"]), float(expected["high"])])
+    est = main["estimate"]
+    width = max(abs(hi), abs(lo), 1e-12)
+    inside = lo <= est <= hi
+    overlaps = bool(main.get("ci")) and not (main["ci"][1] < lo or main["ci"][0] > hi)
+    far = (not inside) and (abs(est) > 2 * max(abs(lo), abs(hi)) or est * (lo + hi) < 0)
+    return {"low": lo, "high": hi, "estimate": est, "inside": inside, "range_overlaps": overlaps,
+            "far_outside": bool(far), "basis": expected.get("basis", ""), "source": expected.get("source", "general knowledge")}

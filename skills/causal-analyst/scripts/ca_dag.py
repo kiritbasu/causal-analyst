@@ -18,6 +18,8 @@ def build(spec: dict) -> dict:
     """Nodes with roles and edges with kinds, from the spec.
 
     Edge kinds: assumed (from the plan), hidden (unrecorded driver), sme (arrow the SME added),
+    knowledge (arrow from general domain knowledge, not confirmed), suspected (a driver that
+    domain knowledge suggests but nobody confirmed; shown, sized, not used for identification),
     after (consequence of the action; deliberately not controlled for).
     """
     T, Y = spec["treatment"], spec["outcome"]
@@ -28,9 +30,9 @@ def build(spec: dict) -> dict:
     def node(n, role):
         nodes.setdefault(n, {"id": n, "label": lab.get(n, n), "role": role})
 
-    def edge(a, b, kind):
+    def edge(a, b, kind, source=None):
         if (a, b) not in {(e["from"], e["to"]) for e in edges}:
-            edges.append({"from": a, "to": b, "kind": kind})
+            edges.append({"from": a, "to": b, "kind": kind, **({"source": source} if source else {})})
 
     node(T, "action"); node(Y, "outcome")
     meds = spec.get("mediators", [])
@@ -52,13 +54,30 @@ def build(spec: dict) -> dict:
             note = note[:44].rsplit(" ", 1)[0] + " ..."
         nodes[HIDDEN] = {"id": HIDDEN, "label": f"Not in data: {note}", "role": "hidden"}
         edge(HIDDEN, T, "hidden"); edge(HIDDEN, Y, "hidden")
+    ncs = [x["column"] if isinstance(x, dict) else x for x in spec.get("negative_control_outcomes", [])]
     for c, why in spec.get("excluded", {}).items():
+        if c in ncs:
+            continue
         if _is_post(why):
             node(c, "after the action"); edge(T, c, "after")
-    for a, b in spec.get("extra_edges", []):
+    for item in spec.get("extra_edges", []):
+        a, b = item[0], item[1]
+        src = item[2] if len(item) > 2 else "sme"
         for n in (a, b):
             node(n, "other")
-        edge(a, b, "sme")
+        edge(a, b, "knowledge" if "general" in str(src).lower() else "sme", src)
+    if not randomized:
+        for i, sh in enumerate(spec.get("suspected_hidden", [])[:2]):
+            hid = f"U_suspected_{i}"
+            lbl = sh.get("label", "suspected driver") if isinstance(sh, dict) else str(sh)
+            nodes[hid] = {"id": hid, "label": f"Suspected, not in data: {lbl}", "role": "hidden", "suspected": True}
+            edge(hid, T, "suspected", "general knowledge"); edge(hid, Y, "suspected", "general knowledge")
+            for px in (sh.get("proxies", []) if isinstance(sh, dict) else []):
+                if px in nodes:
+                    edge(hid, px, "suspected", "general knowledge")
+            for c in ncs:
+                node(c, "check: can't be affected")
+                edge(hid, c, "suspected", "general knowledge")
     if randomized:
         nodes[T]["label"] += " (randomized)"
     return {"nodes": list(nodes.values()), "edges": edges, "treatment": T, "outcome": Y}
@@ -69,7 +88,7 @@ def analysis_graph(dag: dict):
     import networkx as nx
     g = nx.DiGraph()
     for e in dag["edges"]:
-        if e["kind"] != "after":
+        if e["kind"] not in ("after", "suspected"):
             g.add_edge(e["from"], e["to"])
     g.add_node(dag["treatment"]); g.add_node(dag["outcome"])
     return g
@@ -84,7 +103,7 @@ def mermaid(dag: dict) -> str:
         out.append(f"  {ids[n['id']]}{shape.format(text)}")
     for e in dag["edges"]:
         a, b = ids[e["from"]], ids[e["to"]]
-        arrow = {"hidden": "-.->", "after": "-. not controlled .->", "sme": "==>"}.get(e["kind"], "-->")
+        arrow = {"hidden": "-.->", "suspected": "-. suspected .->", "after": "-. not controlled .->", "sme": "==>", "knowledge": "-. general knowledge .->"}.get(e["kind"], "-->")
         out.append(f"  {a} {arrow} {b}")
     out += ["  classDef action fill:#1f5fa6,color:#fff,stroke:#1f5fa6",
             "  classDef outcome fill:#2e7d4f,color:#fff,stroke:#2e7d4f",
@@ -124,7 +143,7 @@ def draw(dag: dict, path, group_over: int = 6):
     edges = [dict(e) for e in dag["edges"]]
     T, Y = dag["treatment"], dag["outcome"]
     controls = [n for n, v in nodes.items() if v["role"] == "control"]
-    sme_touch = {e["from"] for e in edges if e["kind"] == "sme"} | {e["to"] for e in edges if e["kind"] == "sme"}
+    sme_touch = {e["from"] for e in edges if e["kind"] in ("sme", "knowledge", "suspected")} | {e["to"] for e in edges if e["kind"] in ("sme", "knowledge", "suspected")}
     groupable = [c for c in controls if c not in sme_touch]
     if len(groupable) > group_over:
         gid = "__controls__"
@@ -145,7 +164,7 @@ def draw(dag: dict, path, group_over: int = 6):
     nudges = [n for n, v in nodes.items() if v["role"] == "nudge (instrument)"]
     hidden = [n for n, v in nodes.items() if v["role"] == "hidden"]
     meds = [n for n, v in nodes.items() if v["role"] == "middle step"]
-    after = [n for n, v in nodes.items() if v["role"] == "after the action"]
+    after = [n for n, v in nodes.items() if v["role"] in ("after the action", "check: can't be affected")]
     # Confounding triangle: shared causes above, action left, outcome right, hidden driver below.
     W = max(6.0, 1.7 * min(len(top_nodes), 5))
     pos = {T: (0.0, 0.0), Y: (W, 0.0)}
@@ -205,18 +224,20 @@ def draw(dag: dict, path, group_over: int = 6):
         if a not in pos or b not in pos:
             continue
         col, ls, lw = {"assumed": ("#555555", "-", 1.1), "hidden": ("#b5542c", "--", 1.3),
-                       "sme": ("#7a3fb0", "-", 1.8), "after": ("#999999", ":", 1.2)}[e["kind"]]
+                       "sme": ("#7a3fb0", "-", 1.8), "after": ("#999999", ":", 1.2),
+                       "knowledge": ("#7a3fb0", "--", 1.4), "suspected": ("#b5542c", ":", 1.3)}[e["kind"]]
         start = clip(pos[a], pos[b], rects[a])
         end = clip(pos[b], pos[a], rects[b])
-        rad = 0.25 if (e["kind"] == "sme" and abs(pos[a][1] - pos[b][1]) < 1e-9) else 0.0
+        rad = 0.25 if (e["kind"] in ("sme", "knowledge") and abs(pos[a][1] - pos[b][1]) < 1e-9) else 0.0
         ax.annotate("", xy=end, xytext=start, zorder=2,
                     arrowprops=dict(arrowstyle="-|>,head_length=0.6,head_width=0.3", color=col, ls=ls, lw=lw,
                                     connectionstyle=f"arc3,rad={rad}", shrinkA=0, shrinkB=0))
     ax.axis("off")
     legend = [("#555555", "-", "assumed cause (from our plan)"), ("#b5542c", "--", "not in the data (hidden driver)"),
-              ("#7a3fb0", "-", "added arrow (beyond the default plan)"), ("#999999", ":", "happens after the action: not controlled for")]
+              ("#7a3fb0", "-", "added arrow (beyond the default plan)"), ("#999999", ":", "happens after the action: not controlled for"),
+              ("#7a3fb0", "--", "from general knowledge, not confirmed"), ("#b5542c", ":", "suspected from general knowledge, not in the data")]
     used = {e["kind"] for e in edges}
-    keep = {"assumed": 0, "hidden": 1, "sme": 2, "after": 3}
+    keep = {"assumed": 0, "hidden": 1, "sme": 2, "after": 3, "knowledge": 4, "suspected": 5}
     handles = [plt.Line2D([0], [0], color=c, ls=l, lw=1.5, label=t) for k, (c, l, t) in zip(keep, legend) if k in used]
     ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.02), ncol=2, fontsize=8, frameon=False)
     ax.set_title("How we think it works: arrows mean 'affects'", fontsize=10, loc="left")

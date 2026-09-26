@@ -563,9 +563,11 @@ def data_overview(df: pd.DataFrame, spec: dict, sample_rows: int = 5, max_cols: 
         roles[c] = "nudge"
     for c in spec.get("mediators", []):
         roles[c] = "middle step"
+    for x in spec.get("negative_control_outcomes", []):
+        roles.setdefault(x["column"] if isinstance(x, dict) else x, "check")
     for c, why in spec.get("excluded", {}).items():
         roles.setdefault(c, "left out")
-    order = {"action": 0, "outcome": 1, "control": 2, "nudge": 3, "middle step": 4, "left out": 5, "not used": 6}
+    order = {"action": 0, "outcome": 1, "control": 2, "nudge": 3, "middle step": 4, "check": 5, "left out": 6, "not used": 7}
     cols = sorted(df.columns, key=lambda c: (order[roles.get(c, "not used")], list(df.columns).index(c)))[:max_cols]
     out_cols = []
     for c in cols:
@@ -577,7 +579,7 @@ def data_overview(df: pd.DataFrame, spec: dict, sample_rows: int = 5, max_cols: 
             info["why_left_out"] = str(spec["excluded"][c])
         cbk = (spec.get("codebook") or {}).get(c)
         if cbk and cbk.get("meaning"):
-            info.update(meaning=cbk["meaning"], recorded=cbk.get("recorded", ""), confirmed=bool(cbk.get("confirmed")))
+            info.update(meaning=cbk["meaning"], recorded=cbk.get("recorded", ""), confirmed=bool(cbk.get("confirmed")), source=cbk.get("source", ""))
         if pd.api.types.is_numeric_dtype(s) and kind != "binary" and info["n_unique"] > 12:
             v = s.dropna().astype(float)
             counts, edges = np.histogram(v, bins=16)
