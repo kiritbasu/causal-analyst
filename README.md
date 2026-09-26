@@ -178,8 +178,6 @@ For amount treatments (e.g. discount size), the skill uses g-computation with th
 - **Structure second opinion:** a light PC-algorithm search on the data flags controls that look like consequences (collider patterns) and unused columns linked to both action and outcome. Its findings become questions for you, never silent edits.
 - **Planted-effect test:** the main method is rerun on your real columns and real assignment with a simulated outcome carrying a known effect. If it can't find that effect, the grade drops.
 
-These loops were prompted by Adam Kucharski's ["Confounded by confounders"](https://substack.com/home/post/p-215351864) (2026), which shows AI models reasoning well about causal structure yet getting misled by column names into controlling for mediators and colliders.
-
 **Trust grades:** **A** randomized and checks pass · **B** observational, good overlap, robust to moderate hidden bias · **C** a weakness (weak overlap, fragile to hidden bias, methods disagree) · **D** the data can't answer this.
 
 ## Does it work?

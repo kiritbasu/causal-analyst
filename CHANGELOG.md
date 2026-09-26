@@ -2,7 +2,7 @@
 
 ## 0.2.0 (2026-09-26)
 
-Checks on the diagram itself, prompted by Adam Kucharski's "Confounded by confounders" (2026).
+Checks on the diagram itself.
 
 - Codebook: `ca.py codebook` drafts what each column means and when it was recorded; the expert confirms. Unconfirmed meanings lower the grade.
 - Reverse causation: the interview asks whether past outcomes drove who got the action; `outcome_baseline` names the before-the-action measure, and its absence is flagged.
