@@ -11,6 +11,8 @@ Checks on the diagram itself.
 - Planted-effect simulation on the user's own data (`sim_reps` by budget); failure lowers the grade.
 - Placebo uses 5 shuffles. Report diagram now draws every node and added arrow at full width. "Who gains most" only names a group when the difference is real.
 - New example and eval: AI-training case with a misleading mediator name, a collider and reverse causation.
+- Report polish from the v0.2.0 eval rerun: raw-gap label in the estimates table, exact IDs in the sample rows, a note that passing checks can't rescue a grade-D result, clearer bounds wording, assumptions marked as confirmed when the column sheet is confirmed.
+- Test sizing is now suggested for grade B results too.
 
 ## 0.1.0 (2026-09-26)
 

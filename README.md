@@ -1,5 +1,7 @@
 # causal-analyst
 
+[![tests](https://github.com/kiritbasu/causal-analyst/actions/workflows/test.yml/badge.svg)](https://github.com/kiritbasu/causal-analyst/actions/workflows/test.yml) [![release](https://img.shields.io/github/v/release/kiritbasu/causal-analyst)](https://github.com/kiritbasu/causal-analyst/releases) [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 **Causal analysis for people who aren't data scientists.** An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) that lets Claude answer "did X actually cause Y?" from your data. You bring the question and what you know about your business. Claude does the modelling, checks how far to trust the answer, and hands back a one-page report. When the data can't answer the question, it says so.
 
 ![Report headline: effect, trust grade and who gains most](docs/images/loyalty-headline.png)

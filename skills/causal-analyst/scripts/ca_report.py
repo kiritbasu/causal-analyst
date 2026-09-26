@@ -563,6 +563,15 @@ ROLE_STYLE = {"action": ("#dbe8f8", BLUE), "outcome": ("#dcefe4", "#1d6b43"), "c
               "nudge": ("#e7e3f6", "#4a3aa7"), "middle step": ("#e7e3f6", "#4a3aa7"), "left out": ("#fbe6dc", ORANGE), "not used": ("#f4f3ee", "#b5b3ab")}
 
 
+def _cell(v):
+    """A raw value in the sample-rows table: exact, never abbreviated (IDs stay IDs)."""
+    if v is None:
+        return ""
+    if isinstance(v, float):
+        return str(int(v)) if v.is_integer() else f"{v:.4g}" if abs(v) < 1e4 else f"{v:.2f}"
+    return str(v)
+
+
 def _num(v):
     a = abs(v)
     if a >= 1e6:
@@ -627,8 +636,8 @@ def data_section(ov, labels, names, units, n):
     if ov.get("sample_rows"):
         keys = list(ov["sample_rows"][0].keys())
         head = "".join(f'<th>{e(labels.get(k, k))}</th>' for k in keys)
-        body = "".join("<tr>" + "".join(f'<td>{e(_num(v) if isinstance(v, float) else ("" if v is None else v))}</td>' for v in r.values()) + "</tr>" for r in ov["sample_rows"])
-        sample = (f'<details><summary>First {len(ov["sample_rows"])} rows of the file (columns used in the analysis)</summary>'
+        body = "".join("<tr>" + "".join(f'<td>{e(_cell(v))}</td>' for v in r.values()) + "</tr>" for r in ov["sample_rows"])
+        sample = (f'<details><summary>First {len(ov["sample_rows"])} rows of the file</summary>'
                   f'<div class="tscroll"><table class="sample"><tr>{head}</tr>{body}</table></div></details>')
     return tile_html, table, sample
 
@@ -682,7 +691,10 @@ def assumption_rows(r, n, diag):
             elif "unrecorded" in low or "cannot be checked" in low:
                 st = "Can't be checked; sized above"
             elif "measured before" in low:
-                st = "Confirmed by you" if n.get("dag_confirmed") else "Assumed"
+                cbk = (r.get("spec") or {}).get("codebook") or {}
+                used = (r.get("spec") or {}).get("confounders", [])
+                st = ("Confirmed by you" if n.get("dag_confirmed") else
+                      "Confirmed in the column sheet" if used and all((cbk.get(c) or {}).get("confirmed") for c in used) else "Assumed")
             else:
                 st = "Assumed"
             rows.append({"text": a.split(" (")[0], "status": st})
@@ -882,7 +894,7 @@ def render(results: dict, narrative: dict) -> str:
         b = (diag.get("bounds_no_instrument") or {}).get("mtr_mts") or (diag.get("instrument") or {}).get("bounds_on_average_effect")
         body = f'<div class="eyebrow">{e(n.get("effect_label", "Effect"))}</div><div class="bigrow"><span class="big" style="font-size:56px">We can’t tell</span></div>'
         if b and b.get("lower") is not None:
-            body += f'<div class="small">The true effect lies between <strong>{e(f(b["lower"]))}</strong> and <strong>{e(f(b["upper"]))}</strong>, under the assumptions below.</div>'
+            body += f'<div class="small">Only a range can be given: <strong>{e(f(b["lower"]))}</strong> to <strong>{e(f(b["upper"]))}</strong>, and only if the assumptions below hold.</div>'
         hero.append(card(body))
     bullets = n.get("caution_bullets") or []
     blist = f'<ul class="small">{"".join(f"<li>{e(x)}</li>" for x in bullets)}</ul>' if bullets else ""
@@ -1040,7 +1052,7 @@ def render(results: dict, narrative: dict) -> str:
     sim = diag.get("simulation_check") or {}
     if sim.get("reps"):
         good = sim["coverage"] >= 0.5 and abs(sim["bias"]) <= 0.25 * abs(sim["planted"] or 1)
-        tcards.append(card(f'<h3>{"Tested on your data: it finds a planted effect" if good else "Tested on your data: it struggles"}</h3>'
+        tcards.append(card(f'<h3>{("Tested on your data: it finds a planted effect" if sim["coverage"] >= 0.99 else "Tested on your data: it finds a planted effect, with ranges a little narrow") if good else "Tested on your data: it struggles"}</h3>'
                            f'<p class="small">We kept your real columns and who really got the action, simulated the outcome with a known effect of {e(f(sim["planted"]))}, and reran the main method. It recovered {e(f(sim["mean_estimate"]))} on average; {sim["coverage"]:.0%} of its ranges contained the planted value. The raw gap would have said {e(f(sim["naive_mean"]))}.</p>'
                            + chart_sim(sim, f) + '<div class="note">This checks the method on your data’s structure. It can’t test for factors missing from the data.</div>'))
     checks = []
@@ -1055,7 +1067,8 @@ def render(results: dict, narrative: dict) -> str:
     if subs:
         checks.append(check_row("Stable on random 80% subsets", f"{f(min(subs))} to {f(max(subs))}; blue line is the main result.", chart_subsets(subs, m_est, f)))
     if checks:
-        tcards.append(card(f'<h3>{"Checks that passed" if all("Passed" in c for c in checks) else "Checks"}</h3>{"".join(checks)}'))
+        d_note = ('<div class="note">These checks look for problems in the method. They can’t detect the unrecorded factor that makes this a D, so passing them doesn’t make the adjusted numbers trustworthy.</div>' if tier == "D" else "")
+        tcards.append(card(f'<h3>{"Checks that passed" if all("Passed" in c for c in checks) else "Checks"}</h3>{"".join(checks)}{d_note}'))
     if tcards:
         P.append(section(n.get("trust_title", f"Why the grade is {tier}"), f'<div class="grid2">{"".join(tcards)}</div>', n.get("trust_text")))
 
@@ -1099,7 +1112,7 @@ def render(results: dict, narrative: dict) -> str:
     v = man.get("versions", {})
     opt = diag.get("optional_cross_checks", {})
     fm_used = [nm for k, nm in (("causalpfn", "CausalPFN"), ("tabpfn", "TabPFN API")) if (opt.get(k) or {}).get("ran")]
-    trs = "".join(f'<tr><td>{e(METHODS.get(k, (k,))[0])}{" (main)" if k == main_key else ""}</td><td>{e(f(est[k]["estimate"]))}</td>'
+    trs = "".join(f'<tr><td>{e("Raw gap (not adjusted)" if k == "naive_difference" else METHODS.get(k, (k,))[0])}{" (main)" if k == main_key else ""}</td><td>{e(f(est[k]["estimate"]))}</td>'
                   f'<td>{e(f(est[k]["ci"][0]) + " to " + f(est[k]["ci"][1])) if est[k].get("ci") else "n/a"}</td></tr>'
                   for k in (["naive_difference"] if naive is not None else []) + keys)
     P.append(f'<details><summary>All estimates as a table</summary><table><tr><th>Method</th><th>Estimate</th><th>95% range</th></tr>{trs}</table></details>')

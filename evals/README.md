@@ -15,9 +15,11 @@ which we don't redistribute.
 | 2 | one-thread numerics, bundled bounds / power / bad-control tools | 100% | 57% | ~2.6 min | 96k / 79k |
 | 3 | causal diagram + sign-off step (baselines reused from iteration 2) | 100% | 50%* | ~3.1 min | 99k / 79k |
 | 5 | codebook, alternative diagrams, structure check, planted-effect test; new scenario 4 only | 100% | 86%† | n/a | n/a |
+| 6 | v0.2.0 rerun of scenarios 1–3 (baselines from iteration 2) | 100% | 50%* | ~7 min‡ | 102–114k / 79k |
 
 \* Iteration 3 added a "shows a causal diagram" assertion that the baseline can't pass by design.
 † Scenario 4: the baseline avoided all three traps (+7.4, 7.0–7.8) and showed what controlling for them would do, but gave no trust grade. On this case accuracy does not separate the arms.
+‡ Most of the time is the optional CausalPFN cross-check (2–5 minutes on CPU). Estimates matched iteration 2: loyalty +$9.25 (7.43–11.07), benchmark null with bounds −0.295 to −0.214, sales calls grade D with 0–25 per 100.
 
 ### Where the skill made a difference
 

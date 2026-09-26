@@ -18,7 +18,7 @@ Paths may be absolute or relative to where you run `ca.py`.
 | `randomized` | no | `true` if treatment was randomly assigned |
 | `hidden_confounding` | yes | `"none_known"` or `"named_driver"` (SME named an unrecorded factor driving both) |
 | `hidden_driver_note` | no | The SME's words about the hidden driver |
-| `hidden_driver_label` | no | Short label (under ~40 characters) for the diagram, e.g. "rep's sense the account is warm" |
+| `hidden_driver_label` | no | Short label (under ~40 characters) for the diagram, e.g. "rep's sense the account is warm". The diagram adds "Not in data:" itself, so don't write "unrecorded" |
 | `outcome_range` | no | `[min, max]` the outcome can take, for no-instrument bounds (default: observed min/max; use `[0, 1]` for yes/no) |
 | `extra_edges` | no | `[["from", "to"], ...]` arrows the SME adds between factors (e.g. `["income_k", "prior_quarter_spend"]`). Drawn in the diagram and used in the DoWhy check, which reports if the controls then need to change. |
 | `allow_external_services` | no | `["tabpfn_api"]` to allow the hosted TabPFN cross-check (sends data to Prior Labs). Only with the SME's consent. |

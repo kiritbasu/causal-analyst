@@ -29,7 +29,7 @@ jargon without a translation. Keep the whole page readable in two minutes.
 | `labels` | Friendly names for columns and segment queries, incl. `"not (<query>)"` |
 | `data_title`, `data_text` | Header and one line for the data section (shape, column roles, distributions, sample rows) |
 | `caution_bullets` | 1-3 short plain reasons behind the grade (translate `trust_reasons`) |
-| `segment_card_title`, `segment_card_note`, `segment_title`, `segment_text` | Group comparison copy |
+| `segment_card_title`, `segment_card_note`, `segment_title`, `segment_text` | Group comparison copy. Not shown at tier D (group effects share the same hidden bias). The hero card names a group only when a group difference is bigger than chance; otherwise it says "About the same for everyone" and uses `segment_card_note_similar` |
 | `third_card` | `{"title","text"}` hero card when there are no segments (e.g. "What would answer it") |
 | `gap_title`, `gap_text`, `selection_label`, `action_label` | The raw-gap breakdown ("Most of the $35 gap isn't the program") |
 | `methods_title`, `methods_text` | Method comparison header and one-paragraph read |

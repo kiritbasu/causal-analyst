@@ -138,7 +138,7 @@ same diagram as Mermaid text, for documents and artifacts that render it.
 Then show the SME a short plan next to the confirmed diagram: the question in their words, the target, the main method (fixed
 now), the controls and what was excluded and why, the assumptions with status (confirmed by
 you / will be checked / cannot be checked, will be sized), the budget (`quick` under a minute,
-`standard` about 1 minute, `thorough` a few minutes on ~5k rows; more on large files or busy
+`standard` about 1 minute, `thorough` a few minutes on ~5k rows; the optional CausalPFN cross-check adds 2-5 minutes on CPU; more on large files or busy
 machines), and anything open. Get approval.
 If identification says the question cannot be answered, explain why before running, and offer
 what can be answered (complier effect, bounds, a narrower question, or a small experiment).
@@ -192,7 +192,7 @@ adds, when relevant:
 
 All of these sit under `diagnostics` in results.json; the printed summary lists which exist.
 
-When the answer is tier C or D and the action is something the business could randomize
+When the answer is tier B, C or D and the action is something the business could randomize
 (offers, calls, emails; not wars or diagnoses), size the test that would settle it:
 
 ```bash

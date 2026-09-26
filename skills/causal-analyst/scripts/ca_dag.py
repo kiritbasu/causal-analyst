@@ -3,6 +3,7 @@ and the graph used in the DoWhy identification cross-check."""
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 HIDDEN = "U_hidden"
@@ -46,6 +47,7 @@ def build(spec: dict) -> dict:
         node(z, "nudge (instrument)"); edge(z, T, "assumed")
     if spec.get("hidden_confounding") == "named_driver" and not randomized:
         note = spec.get("hidden_driver_label") or spec.get("hidden_driver_note") or "unrecorded driver"
+        note = re.sub(r"\s*\((unrecorded|not recorded|not in (the )?data)\)\s*$", "", note, flags=re.I)
         if len(note) > 45:
             note = note[:44].rsplit(" ", 1)[0] + " ..."
         nodes[HIDDEN] = {"id": HIDDEN, "label": f"Not in data: {note}", "role": "hidden"}
