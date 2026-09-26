@@ -1,0 +1,597 @@
+{
+ "spec": {
+  "data": "data.csv",
+  "treatment": "joined_loyalty",
+  "outcome": "monthly_spend",
+  "treatment_type": "binary",
+  "estimand": "ATE",
+  "confounders": [
+   "income_k",
+   "tenure_months",
+   "age",
+   "urban",
+   "prior_quarter_spend"
+  ],
+  "excluded": {
+   "points_redeemed": "post-treatment: recorded after joining, members only (confirmed by SME)",
+   "customer_id": "identifier"
+  },
+  "hidden_confounding": "none_known",
+  "segments": [
+   "tenure_months<12"
+  ],
+  "main_method": "aipw_gbm",
+  "budget": "standard",
+  "seed": 1729,
+  "labels": {
+   "joined_loyalty": "Joined loyalty program",
+   "monthly_spend": "Monthly spend ($)",
+   "income_k": "Household income",
+   "tenure_months": "Months as customer",
+   "age": "Age",
+   "urban": "Lives in a city",
+   "prior_quarter_spend": "Spend last quarter",
+   "points_redeemed": "Points redeemed"
+  },
+  "allow_external_services": [
+   "tabpfn_api"
+  ]
+ },
+ "dag": {
+  "nodes": [
+   {
+    "id": "joined_loyalty",
+    "label": "Joined loyalty program",
+    "role": "action"
+   },
+   {
+    "id": "monthly_spend",
+    "label": "Monthly spend ($)",
+    "role": "outcome"
+   },
+   {
+    "id": "income_k",
+    "label": "Household income",
+    "role": "control"
+   },
+   {
+    "id": "tenure_months",
+    "label": "Months as customer",
+    "role": "control"
+   },
+   {
+    "id": "age",
+    "label": "Age",
+    "role": "control"
+   },
+   {
+    "id": "urban",
+    "label": "Lives in a city",
+    "role": "control"
+   },
+   {
+    "id": "prior_quarter_spend",
+    "label": "Spend last quarter",
+    "role": "control"
+   },
+   {
+    "id": "points_redeemed",
+    "label": "Points redeemed",
+    "role": "after the action"
+   }
+  ],
+  "edges": [
+   {
+    "from": "joined_loyalty",
+    "to": "monthly_spend",
+    "kind": "assumed"
+   },
+   {
+    "from": "income_k",
+    "to": "joined_loyalty",
+    "kind": "assumed"
+   },
+   {
+    "from": "income_k",
+    "to": "monthly_spend",
+    "kind": "assumed"
+   },
+   {
+    "from": "tenure_months",
+    "to": "joined_loyalty",
+    "kind": "assumed"
+   },
+   {
+    "from": "tenure_months",
+    "to": "monthly_spend",
+    "kind": "assumed"
+   },
+   {
+    "from": "age",
+    "to": "joined_loyalty",
+    "kind": "assumed"
+   },
+   {
+    "from": "age",
+    "to": "monthly_spend",
+    "kind": "assumed"
+   },
+   {
+    "from": "urban",
+    "to": "joined_loyalty",
+    "kind": "assumed"
+   },
+   {
+    "from": "urban",
+    "to": "monthly_spend",
+    "kind": "assumed"
+   },
+   {
+    "from": "prior_quarter_spend",
+    "to": "joined_loyalty",
+    "kind": "assumed"
+   },
+   {
+    "from": "prior_quarter_spend",
+    "to": "monthly_spend",
+    "kind": "assumed"
+   },
+   {
+    "from": "joined_loyalty",
+    "to": "points_redeemed",
+    "kind": "after"
+   }
+  ],
+  "treatment": "joined_loyalty",
+  "outcome": "monthly_spend",
+  "warnings": []
+ },
+ "identification": {
+  "treatment": "joined_loyalty",
+  "outcome": "monthly_spend",
+  "estimand": "ATE",
+  "assumptions": [
+   "All controls were measured before the treatment (none are consequences of it).",
+   "No important unrecorded factor drives both treatment and outcome (cannot be checked; will be sized).",
+   "Every kind of unit has some treated and some untreated examples (overlap; will be checked).",
+   "One unit's treatment does not change another unit's outcome."
+  ],
+  "identifiable": true,
+  "strategy": "adjust for measured confounders (backdoor)",
+  "adjustment_set": [
+   "income_k",
+   "tenure_months",
+   "age",
+   "urban",
+   "prior_quarter_spend"
+  ],
+  "explanation": "Comparing like with like on the recorded pre-treatment traits identifies the effect, provided nothing important that drives both treatment and outcome is missing from the data.",
+  "dowhy": {
+   "backdoor_variables": [
+    "tenure_months",
+    "age",
+    "income_k",
+    "urban",
+    "prior_quarter_spend"
+   ],
+   "instruments": [],
+   "frontdoor": [],
+   "estimand": [
+    "Estimand type: EstimandType.NONPARAMETRIC_ATE",
+    "",
+    "### Estimand : 1",
+    "Estimand name: backdoor",
+    "Estimand expression:",
+    "        d                                                                      \u21aa",
+    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[monthly_spend|tenure_months,age,income_k,urban,prior_quart \u21aa",
+    "d[joined_loyalty]                                                              \u21aa",
+    "",
+    "\u21aa           ",
+    "\u21aa er_spend])",
+    "\u21aa           "
+   ]
+  }
+ },
+ "rows_used": 4000,
+ "rows_dropped_missing": 0,
+ "main_method": "aipw_gbm",
+ "main_result": {
+  "estimate": 9.252804564066349,
+  "se": 0.9293017944159113,
+  "ci": [
+   7.431373047011162,
+   11.074236081121535
+  ],
+  "per_seed": [
+   9.104972764943835,
+   9.252804564066349,
+   9.449555490126
+  ]
+ },
+ "estimates": {
+  "naive_difference": {
+   "estimate": 34.765823937972286,
+   "ci": [
+    33.13608407830111,
+    36.39556379764346
+   ],
+   "se": 0.8314999284036604
+  },
+  "regression_linear": {
+   "estimate": 8.854627077033495,
+   "se": 0.568660553592713,
+   "ci": [
+    7.714351057327164,
+    9.870513541527286
+   ],
+   "n_boot": 200
+  },
+  "aipw_gbm": {
+   "estimate": 9.252804564066349,
+   "se": 0.9293017944159113,
+   "ci": [
+    7.431373047011162,
+    11.074236081121535
+   ],
+   "per_seed": [
+    9.104972764943835,
+    9.252804564066349,
+    9.449555490126
+   ]
+  },
+  "aipw_spline": {
+   "estimate": 9.580867890264388,
+   "se": 0.6661312243531354,
+   "ci": [
+    8.275250690532243,
+    10.886485089996533
+   ]
+  },
+  "ipw_gbm": {
+   "estimate": 7.2591218103965645,
+   "se": 1.8098458540857063,
+   "ci": [
+    3.9507825101965732,
+    10.893011979358054
+   ],
+   "n_boot": 200
+  },
+  "regression_gbm": {
+   "estimate": 10.052529574718948
+  },
+  "double_ml": {
+   "estimate": 8.06610608624792,
+   "ci": [
+    6.982014182213021,
+    9.15019799028282
+   ]
+  },
+  "causal_forest": {
+   "estimate": 8.011878482275126,
+   "ci": [
+    4.457777316331761,
+    11.565979648218491
+   ]
+  },
+  "causalpfn": {
+   "estimate": 8.766945756912232,
+   "ci": [
+    8.03194808959961,
+    9.466191291809082
+   ],
+   "note": "Causal foundation model; interval is the model's own and tends to be too narrow."
+  },
+  "aipw_tabpfn": {
+   "estimate": 7.882236917559336,
+   "se": 0.5778518133016651,
+   "ci": [
+    6.749647363488072,
+    9.014826471630599
+   ],
+   "note": "Doubly robust with TabPFN models (hosted by Prior Labs; data was sent to their API)."
+  }
+ },
+ "diagnostics": {
+  "optional_cross_checks": {
+   "causalpfn": {
+    "ran": true,
+    "weights": "causalpfn_v0.pt"
+   },
+   "tabpfn": {
+    "ran": true,
+    "mode": "api"
+   }
+  },
+  "overlap": {
+   "propensity_quantiles": {
+    "0": 0.008653067806921719,
+    "0.01": 0.03693442556136159,
+    "0.05": 0.07998353540714548,
+    "0.5": 0.376129639222763,
+    "0.95": 0.9979749862192656,
+    "0.99": 0.9992616870156278,
+    "1": 0.9995573937394371
+   },
+   "share_below_0.05": 0.0215,
+   "share_above_0.95": 0.08325,
+   "histogram": {
+    "bin_edges": [
+     0.0,
+     0.05,
+     0.1,
+     0.15000000000000002,
+     0.2,
+     0.25,
+     0.30000000000000004,
+     0.35000000000000003,
+     0.4,
+     0.45,
+     0.5,
+     0.55,
+     0.6000000000000001,
+     0.65,
+     0.7000000000000001,
+     0.75,
+     0.8,
+     0.8500000000000001,
+     0.9,
+     0.9500000000000001,
+     1.0
+    ],
+    "treated": [
+     7,
+     36,
+     46,
+     72,
+     87,
+     92,
+     71,
+     65,
+     95,
+     95,
+     90,
+     87,
+     85,
+     64,
+     78,
+     109,
+     90,
+     98,
+     87,
+     327
+    ],
+    "untreated": [
+     79,
+     182,
+     286,
+     272,
+     278,
+     210,
+     177,
+     121,
+     108,
+     115,
+     83,
+     73,
+     59,
+     33,
+     41,
+     30,
+     32,
+     26,
+     8,
+     6
+    ]
+   },
+   "trimmed_estimate": {
+    "estimate": 7.9824260453912155,
+    "ci": [
+     6.51196051893167,
+     9.45289157185076
+    ],
+    "share_kept": 0.89525,
+    "note": "effect among units with propensity 0.05-0.95 (a narrower population)"
+   }
+  },
+  "balance": [
+   {
+    "variable": "income_k",
+    "smd_before": 0.2447295526903011,
+    "smd_after_weighting": 0.06409609888337302
+   },
+   {
+    "variable": "tenure_months",
+    "smd_before": -0.14672115266784033,
+    "smd_after_weighting": -0.018323825455402745
+   },
+   {
+    "variable": "age",
+    "smd_before": 0.04618729992973335,
+    "smd_after_weighting": 0.05149992965262007
+   },
+   {
+    "variable": "urban",
+    "smd_before": 0.30618016051682917,
+    "smd_after_weighting": -0.0044800738139868825
+   },
+   {
+    "variable": "prior_quarter_spend",
+    "smd_before": 1.0996795613142123,
+    "smd_after_weighting": -0.061056254988130554
+   }
+  ],
+  "max_abs_smd_after": 0.06409609888337302,
+  "placebo_permuted_treatment": {
+   "estimate": -0.8671311014399131,
+   "ci": [
+    -1.88027711476064,
+    0.14601491188081372
+   ],
+   "passes": true
+  },
+  "random_common_cause": {
+   "estimate": 9.343219730696969,
+   "change": 0.09041516663062055
+  },
+  "subset_80pct_estimates": [
+   8.95876826402167,
+   8.580891260916964,
+   8.271522023264847,
+   9.343651299039003,
+   9.677055045079854
+  ],
+  "segments": [
+   {
+    "segment": "tenure_months<12",
+    "n": 1492,
+    "estimate": 15.170278139649096,
+    "ci": [
+     12.904496957822971,
+     17.43605932147522
+    ]
+   },
+   {
+    "segment": "not (tenure_months<12)",
+    "n": 2508,
+    "estimate": 5.732521240793038,
+    "ci": [
+     3.2367294467389542,
+     8.228313034847123
+    ]
+   },
+   {
+    "segment": "difference: (tenure_months<12) minus rest",
+    "estimate": 9.437756898856058,
+    "ci": [
+     6.0668903866391934,
+     12.808623411072922
+    ]
+   }
+  ],
+  "forest_cate_spread": {
+   "p10": 4.539380429705869,
+   "p50": 7.076005970022962,
+   "p90": 12.277377374109788,
+   "share_positive": 1.0
+  },
+  "sensitivity": {
+   "linear_estimate": 10.131161463787903,
+   "robustness_value": 0.23885856750787235,
+   "robustness_value_significance": 0.21507076664813962,
+   "benchmarks": [
+    {
+     "confounder": "prior_quarter_spend",
+     "partial_r2_outcome": 0.6129900865171399,
+     "partial_r2_treatment": 0.2516039734471793,
+     "strength": 0.39272221919754247
+    },
+    {
+     "confounder": "income_k",
+     "partial_r2_outcome": 0.18259607401161343,
+     "partial_r2_treatment": 0.023810265621794884,
+     "strength": 0.06593679567368613
+    },
+    {
+     "confounder": "urban",
+     "partial_r2_outcome": 0.015471662428258712,
+     "partial_r2_treatment": 0.02828834828846611,
+     "strength": 0.02092051087741783
+    },
+    {
+     "confounder": "tenure_months",
+     "partial_r2_outcome": 0.0047469330921954015,
+     "partial_r2_treatment": 0.006134221375114278,
+     "strength": 0.005396178132751211
+    },
+    {
+     "confounder": "age",
+     "partial_r2_outcome": 0.00021157257208932588,
+     "partial_r2_treatment": 0.0004277389186649529,
+     "strength": 0.00030082856115178135
+    }
+   ],
+   "strongest_measured": {
+    "confounder": "prior_quarter_spend",
+    "partial_r2_outcome": 0.6129900865171399,
+    "partial_r2_treatment": 0.2516039734471793,
+    "strength": 0.39272221919754247
+   }
+  },
+  "bad_control_illustration": {
+   "correct_controls": {
+    "estimate": 10.131161463787903,
+    "ci": [
+     8.96239299916969,
+     11.299929928406115
+    ],
+    "columns": [
+     "income_k",
+     "tenure_months",
+     "age",
+     "urban",
+     "prior_quarter_spend"
+    ]
+   },
+   "also_controlling_for_excluded": {
+    "estimate": -22.00665945558051,
+    "ci": [
+     -25.503707267742108,
+     -18.509611643418914
+    ],
+    "columns": [
+     "income_k",
+     "tenure_months",
+     "age",
+     "urban",
+     "prior_quarter_spend",
+     "points_redeemed"
+    ]
+   },
+   "excluded_columns": [
+    "points_redeemed"
+   ],
+   "note": "Illustration only: shows how the answer changes if post-treatment columns are wrongly used as controls."
+  },
+  "derived": {
+   "share_of_raw_gap_from_selection": 0.7338534366228509,
+   "hidden_factor_strength_needed_vs_strongest_measured": 0.608212512131188,
+   "outcome_sd": 30.95245579792376,
+   "outcome_mean_treated": 107.65747332959013,
+   "outcome_mean_untreated": 72.89164939161785
+  }
+ },
+ "trust_tier": "C",
+ "trust_reasons": [
+  "Observational data: rests on no important unrecorded factor (cannot be checked).",
+  "Weak overlap: 10.5% of units are almost always or never treated; part of the answer is extrapolated.",
+  "A hidden factor about as strong as 'prior_quarter_spend' (already controlled) could erase the effect (robustness value 0.24 vs 0.39). This is a caution, not proof of bias."
+ ],
+ "timings_sec": {
+  "naive_difference": 0.0,
+  "regression_linear": 0.3,
+  "aipw_gbm": 6.7,
+  "aipw_spline": 0.1,
+  "ipw_gbm": 0.0,
+  "regression_gbm": 0.0,
+  "double_ml": 3.1,
+  "causal_forest": 3.5,
+  "causalpfn": 51.6,
+  "aipw_tabpfn": 72.7
+ },
+ "manifest": {
+  "fingerprint": "ds-6e68072e",
+  "seed": 1729,
+  "budget": "standard",
+  "versions": {
+   "numpy": "2.4.4",
+   "pandas": "2.3.3",
+   "scipy": "1.15.3",
+   "sklearn": "1.8.0",
+   "statsmodels": "0.15.0",
+   "econml": "0.17.0",
+   "dowhy": "0.14"
+  },
+  "run_at_utc": "2026-09-26T06:45:29",
+  "runtime_sec": 158.9
+ }
+}

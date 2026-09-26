@@ -1,0 +1,38 @@
+{
+ "data": "data.csv",
+ "treatment": "joined_loyalty",
+ "outcome": "monthly_spend",
+ "treatment_type": "binary",
+ "estimand": "ATE",
+ "confounders": [
+  "income_k",
+  "tenure_months",
+  "age",
+  "urban",
+  "prior_quarter_spend"
+ ],
+ "excluded": {
+  "points_redeemed": "post-treatment: recorded after joining, members only (confirmed by SME)",
+  "customer_id": "identifier"
+ },
+ "hidden_confounding": "none_known",
+ "segments": [
+  "tenure_months<12"
+ ],
+ "main_method": "aipw_gbm",
+ "budget": "standard",
+ "seed": 1729,
+ "labels": {
+  "joined_loyalty": "Joined loyalty program",
+  "monthly_spend": "Monthly spend ($)",
+  "income_k": "Household income",
+  "tenure_months": "Months as customer",
+  "age": "Age",
+  "urban": "Lives in a city",
+  "prior_quarter_spend": "Spend last quarter",
+  "points_redeemed": "Points redeemed"
+ },
+ "allow_external_services": [
+  "tabpfn_api"
+ ]
+}

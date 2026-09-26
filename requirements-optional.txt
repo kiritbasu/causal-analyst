@@ -1,0 +1,4 @@
+# Local causal foundation model (CPU is fine; weights ~75 MB download on first use)
+causalpfn>=0.1.4
+# Hosted TabPFN (sends data to Prior Labs; only used when the analysis plan opts in)
+tabpfn-client>=0.2

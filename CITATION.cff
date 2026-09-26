@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use causal-analyst, please cite it as below."
+title: "causal-analyst: an Agent Skill for plain-language causal analysis"
+type: software
+license: Apache-2.0
+date-released: 2026-09-26
+version: 0.1.0
+authors:
+  - name: "The causal-analyst authors"

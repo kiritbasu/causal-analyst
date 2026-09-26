@@ -1,0 +1,32 @@
+{
+ "data": "data.csv",
+ "treatment": "got_sales_call",
+ "outcome": "purchased_90d",
+ "treatment_type": "binary",
+ "estimand": "ATE",
+ "confounders": [
+  "account_size",
+  "past_purchases",
+  "industry"
+ ],
+ "excluded": {
+  "account_id": "identifier"
+ },
+ "randomized": false,
+ "hidden_confounding": "named_driver",
+ "hidden_driver_note": "Reps decide who to call and pick accounts they feel are 'warm' / ready to buy, based on conversations, emails and gut feel. That judgement is not recorded anywhere.",
+ "hidden_driver_label": "rep's sense the account is warm",
+ "outcome_range": [
+  0,
+  1
+ ],
+ "budget": "standard",
+ "seed": 1729,
+ "labels": {
+  "got_sales_call": "Sales call this quarter",
+  "purchased_90d": "Purchased within 90 days",
+  "account_size": "Account size",
+  "past_purchases": "Purchases last year",
+  "industry": "Industry"
+ }
+}

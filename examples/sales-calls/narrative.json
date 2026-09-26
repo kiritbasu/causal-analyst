@@ -1,0 +1,80 @@
+{
+ "eyebrow": "Sales calls",
+ "title": "How many extra purchases do we get per 100 sales calls?",
+ "page_title": "Sales Calls Impact",
+ "answer_html": "<strong>We can't tell from this data</strong>, because reps call the accounts they already sense are ready to buy, and that judgement isn't recorded. Called accounts bought far more often (39% vs 14%), but if calls never hurt and reps pick accounts at least as likely to buy anyway, the true lift is somewhere between <strong>0 and about 25 extra purchases per 100 calls</strong>. A small randomized test would settle it.",
+ "decimals": 1,
+ "effect_label": "Extra purchases per call (0.25 = 25 per 100 calls)",
+ "unit": "per account called",
+ "units": "accounts",
+ "group_names": {
+  "treated": "called accounts",
+  "untreated": "accounts not called"
+ },
+ "labels": {
+  "got_sales_call": "Sales call this quarter",
+  "purchased_90d": "Purchased within 90 days",
+  "account_size": "Account size",
+  "past_purchases": "Purchases last year",
+  "industry": "Industry"
+ },
+ "caution_bullets": [
+  "Reps choose who to call based on a feeling the account is 'warm'. That feeling also predicts buying, and it isn't in the data.",
+  "Size, industry and last year's purchases barely explain who got called, so almost all of the reps' choice is invisible to us.",
+  "The adjusted methods all land near 0.24 per call, but that only removes the bias we can see, not the reps' judgement."
+ ],
+ "third_card": {
+  "title": "What would answer it",
+  "text": "Randomly pick which accounts get a call for a few weeks. About 862 accounts called and 862 not called would reliably detect 5 extra purchases per 100 calls; about 238 per group would detect 10 per 100."
+ },
+ "methods_title": "Adjusted estimates are a reference point, not the answer",
+ "methods_text": "Every method agrees at about 0.24 extra purchases per call once size, industry and last year's purchases are taken into account, barely below the raw gap of 0.25. That tells us the recorded traits explain very little of why called accounts buy more. It does not tell us the call caused it: the reps' sense of who is warm is left out of every one of these methods.",
+ "bounds_title": "What the data can still tell us",
+ "bounds_text": "With no assumptions at all the range is too wide to be useful. With two plain assumptions (a call never makes an account less likely to buy, and reps pick accounts that would have bought at least as often without a call) the effect is between 0 and about 25 extra purchases per 100 calls. For a hiring decision, the lower part of that range is the safer planning figure: new reps would be calling accounts that current reps chose not to call, and those are probably less ready to buy.",
+ "overlap_title": "Every account had a real chance of a call",
+ "hidden_note": "A hidden factor would need to be about 31 times as strong as last year's purchases to erase this. That sounds reassuring but isn't: the reps' gut feel about who is ready to buy could easily be that strong, because our recorded traits are weak predictors of both calls and purchases.",
+ "trust_title": "Why the grade is D",
+ "trust_text": "The checks we can run pass: called and uncalled accounts look alike on the recorded traits after adjustment, and a fake, randomly shuffled call showed no effect, as it should. None of that can detect the reps' unrecorded judgement, which you told us drives who gets called.",
+ "dag_note": "Drawn from your brief: reps pick 'warm' accounts, and that judgement is not recorded. Not yet confirmed with you.",
+ "data_issues": [
+  {
+   "title": "Calls and purchases overlap in time",
+   "text": "Calls are logged 'during the quarter' and purchases 'within 90 days of the quarter start'. Some calls may have come after the purchase (for example an onboarding or thank-you call). Those would inflate the apparent link. If call and purchase dates exist, we can keep only calls made before any purchase."
+  }
+ ],
+ "next_steps": [
+  {
+   "title": "Run a short randomized call test before hiring.",
+   "text": "Take accounts reps would not normally call and randomly split them: half get a call, half don't. About 862 accounts per group spots a lift of 5 purchases per 100 calls; about 238 per group spots 10 per 100. This measures exactly what new reps would add."
+  },
+  {
+   "title": "Start recording the reps' 'warm' judgement.",
+   "text": "A simple warm/cold tag logged before each call would let future analyses separate the rep's pick from the call itself."
+  },
+  {
+   "title": "Plan hiring on the low end for now.",
+   "text": "Until a test is done, treat 25 extra purchases per 100 calls as a ceiling, not an expectation."
+  }
+ ],
+ "questions": [
+  {
+   "title": "Is the diagram right?",
+   "text": "You were unavailable, so we drew it from the brief and treated the reps' 'warm' judgement as a hidden driver of both calls and purchases. That is what makes this a D."
+  },
+  {
+   "title": "Which accounts are we asking about?",
+   "text": "We targeted the average over all accounts. For hiring, the relevant accounts are the ones not called today; we can't measure them separately without a test."
+  },
+  {
+   "title": "Did calls always come before purchases?",
+   "text": "We assumed so. If some calls followed a purchase, the true effect is smaller."
+  },
+  {
+   "title": "Can one account's call affect another's purchase?",
+   "text": "Your brief says no, so we assumed accounts are independent."
+  }
+ ],
+ "value_scale": 100,
+ "value_prefix": "",
+ "value_suffix": " per 100"
+}

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+*token*.txt
+causal-runs/
+examples/*/profile.json
+examples/*/identification.json
+examples/*/run.log
+examples/*/methods.png
+.DS_Store
+dist/

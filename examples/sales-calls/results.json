@@ -1,0 +1,489 @@
+{
+ "spec": {
+  "data": "data.csv",
+  "treatment": "got_sales_call",
+  "outcome": "purchased_90d",
+  "treatment_type": "binary",
+  "estimand": "ATE",
+  "confounders": [
+   "account_size",
+   "past_purchases",
+   "industry"
+  ],
+  "excluded": {
+   "account_id": "identifier"
+  },
+  "randomized": false,
+  "hidden_confounding": "named_driver",
+  "hidden_driver_note": "Reps decide who to call and pick accounts they feel are 'warm' / ready to buy, based on conversations, emails and gut feel. That judgement is not recorded anywhere.",
+  "hidden_driver_label": "rep's sense the account is warm",
+  "outcome_range": [
+   0,
+   1
+  ],
+  "budget": "standard",
+  "seed": 1729,
+  "labels": {
+   "got_sales_call": "Sales call this quarter",
+   "purchased_90d": "Purchased within 90 days",
+   "account_size": "Account size",
+   "past_purchases": "Purchases last year",
+   "industry": "Industry"
+  }
+ },
+ "dag": {
+  "nodes": [
+   {
+    "id": "got_sales_call",
+    "label": "Sales call this quarter",
+    "role": "action"
+   },
+   {
+    "id": "purchased_90d",
+    "label": "Purchased within 90 days",
+    "role": "outcome"
+   },
+   {
+    "id": "account_size",
+    "label": "Account size",
+    "role": "control"
+   },
+   {
+    "id": "past_purchases",
+    "label": "Purchases last year",
+    "role": "control"
+   },
+   {
+    "id": "industry",
+    "label": "Industry",
+    "role": "control"
+   },
+   {
+    "id": "U_hidden",
+    "label": "Not in data: rep's sense the account is warm",
+    "role": "hidden"
+   }
+  ],
+  "edges": [
+   {
+    "from": "got_sales_call",
+    "to": "purchased_90d",
+    "kind": "assumed"
+   },
+   {
+    "from": "account_size",
+    "to": "got_sales_call",
+    "kind": "assumed"
+   },
+   {
+    "from": "account_size",
+    "to": "purchased_90d",
+    "kind": "assumed"
+   },
+   {
+    "from": "past_purchases",
+    "to": "got_sales_call",
+    "kind": "assumed"
+   },
+   {
+    "from": "past_purchases",
+    "to": "purchased_90d",
+    "kind": "assumed"
+   },
+   {
+    "from": "industry",
+    "to": "got_sales_call",
+    "kind": "assumed"
+   },
+   {
+    "from": "industry",
+    "to": "purchased_90d",
+    "kind": "assumed"
+   },
+   {
+    "from": "U_hidden",
+    "to": "got_sales_call",
+    "kind": "hidden"
+   },
+   {
+    "from": "U_hidden",
+    "to": "purchased_90d",
+    "kind": "hidden"
+   }
+  ],
+  "treatment": "got_sales_call",
+  "outcome": "purchased_90d",
+  "warnings": []
+ },
+ "identification": {
+  "treatment": "got_sales_call",
+  "outcome": "purchased_90d",
+  "estimand": "ATE",
+  "assumptions": [],
+  "identifiable": false,
+  "strategy": "none",
+  "adjustment_set": [
+   "account_size",
+   "past_purchases",
+   "industry"
+  ],
+  "explanation": "An unrecorded driver affects both treatment and outcome, and there is no instrument or clean middle step. No method can remove that bias from this data. We report the adjusted estimate only as a biased reference point, with a sensitivity analysis showing how strong the hidden driver would need to be.",
+  "dowhy": {
+   "backdoor_variables": [],
+   "instruments": [],
+   "frontdoor": [],
+   "estimand": [
+    "Estimand type: EstimandType.NONPARAMETRIC_ATE",
+    "",
+    "### Estimand : 1",
+    "Estimand name: backdoor",
+    "No such variable(s) found!",
+    "",
+    "### Estimand : 2",
+    "Estimand name: iv",
+    "No such variable(s) found!",
+    "",
+    "### Estimand : 3",
+    "Estimand name: frontdoor"
+   ]
+  }
+ },
+ "rows_used": 6000,
+ "rows_dropped_missing": 0,
+ "main_method": null,
+ "main_result": null,
+ "estimates": {
+  "naive_difference": {
+   "estimate": 0.24887070929184618,
+   "ci": [
+    0.22650411992159414,
+    0.2712372986620982
+   ],
+   "se": 0.011411525188904108
+  },
+  "regression_linear": {
+   "estimate": 0.23796510750590558,
+   "se": 0.011655056184943901,
+   "ci": [
+    0.21690615672134825,
+    0.2586597230700082
+   ],
+   "n_boot": 200
+  },
+  "aipw_gbm": {
+   "estimate": 0.23840869794403427,
+   "se": 0.011837402436874471,
+   "ci": [
+    0.2152073891677603,
+    0.2616100067203082
+   ],
+   "per_seed": [
+    0.23840869794403427,
+    0.2366547861495361,
+    0.23980814342115608
+   ]
+  },
+  "aipw_spline": {
+   "estimate": 0.23803604632957365,
+   "se": 0.011463453148804963,
+   "ci": [
+    0.21556767815791592,
+    0.26050441450123135
+   ]
+  },
+  "ipw_gbm": {
+   "estimate": 0.23798206824306956,
+   "se": 0.011685775349627864,
+   "ci": [
+    0.21567250503729749,
+    0.25973544411945404
+   ],
+   "n_boot": 200
+  },
+  "regression_gbm": {
+   "estimate": 0.23925466985682708
+  },
+  "double_ml": {
+   "estimate": 0.2406588986029006,
+   "ci": [
+    0.21834965251146532,
+    0.2629681446943359
+   ]
+  },
+  "causal_forest": {
+   "estimate": 0.24014957335914133,
+   "ci": [
+    0.1251992918062904,
+    0.35509985491199225
+   ]
+  },
+  "causalpfn": {
+   "estimate": 0.23691824673240383,
+   "ci": [
+    0.22041526436805725,
+    0.2533777356147766
+   ],
+   "note": "Causal foundation model; interval is the model's own and tends to be too narrow."
+  }
+ },
+ "diagnostics": {
+  "optional_cross_checks": {
+   "causalpfn": {
+    "ran": true,
+    "weights": "causalpfn_v0.pt"
+   },
+   "tabpfn": {
+    "skipped": "no TABPFN_TOKEN / TABPFN_TOKEN_FILE"
+   }
+  },
+  "overlap": {
+   "propensity_quantiles": {
+    "0": 0.23086388432449484,
+    "0.01": 0.2614061961131156,
+    "0.05": 0.30640782055223975,
+    "0.5": 0.39978332752313034,
+    "0.95": 0.5622399927956293,
+    "0.99": 0.6302469784132525,
+    "1": 0.6805278319542791
+   },
+   "share_below_0.05": 0.0,
+   "share_above_0.95": 0.0,
+   "histogram": {
+    "bin_edges": [
+     0.0,
+     0.05,
+     0.1,
+     0.15000000000000002,
+     0.2,
+     0.25,
+     0.30000000000000004,
+     0.35000000000000003,
+     0.4,
+     0.45,
+     0.5,
+     0.55,
+     0.6000000000000001,
+     0.65,
+     0.7000000000000001,
+     0.75,
+     0.8,
+     0.8500000000000001,
+     0.9,
+     0.9500000000000001,
+     1.0
+    ],
+    "treated": [
+     0,
+     0,
+     0,
+     0,
+     12,
+     80,
+     357,
+     703,
+     589,
+     346,
+     222,
+     89,
+     60,
+     10,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "untreated": [
+     0,
+     0,
+     0,
+     0,
+     20,
+     130,
+     625,
+     1084,
+     848,
+     404,
+     226,
+     105,
+     81,
+     9,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  "balance": [
+   {
+    "variable": "past_purchases",
+    "smd_before": 0.17873775425541796,
+    "smd_after_weighting": -0.011814070577233588
+   },
+   {
+    "variable": "account_size_mid",
+    "smd_before": 0.006145128980066337,
+    "smd_after_weighting": 0.002007605238823926
+   },
+   {
+    "variable": "account_size_small",
+    "smd_before": -0.1007586765796142,
+    "smd_after_weighting": 0.0012603966855355502
+   },
+   {
+    "variable": "industry_retail",
+    "smd_before": 0.010935961037681819,
+    "smd_after_weighting": 0.0016040668335582365
+   },
+   {
+    "variable": "industry_services",
+    "smd_before": -0.009033373133599623,
+    "smd_after_weighting": 0.00022135814823741098
+   },
+   {
+    "variable": "industry_tech",
+    "smd_before": 0.001095863023367446,
+    "smd_after_weighting": -0.0001330372992209738
+   }
+  ],
+  "max_abs_smd_after": 0.011814070577233588,
+  "placebo_permuted_treatment": {
+   "estimate": 0.00450823352414966,
+   "ci": [
+    -0.01742798306839042,
+    0.026444450116689742
+   ],
+   "passes": true
+  },
+  "random_common_cause": {
+   "estimate": 0.23540521163696077,
+   "change": -0.003003486307073505
+  },
+  "subset_80pct_estimates": [
+   0.24389956131128807,
+   0.23965436761170386,
+   0.24455102432768797,
+   0.23671203813048416,
+   0.2362343533109953
+  ],
+  "forest_cate_spread": {
+   "p10": 0.1673943282534545,
+   "p50": 0.2537555047240639,
+   "p90": 0.3129208930862495,
+   "share_positive": 1.0
+  },
+  "sensitivity": {
+   "linear_estimate": 0.23905602903468404,
+   "robustness_value": 0.24850149519092954,
+   "robustness_value_significance": 0.2294058613146559,
+   "benchmarks": [
+    {
+     "confounder": "past_purchases",
+     "partial_r2_outcome": 0.008142795500610147,
+     "partial_r2_treatment": 0.007990007833615755,
+     "strength": 0.0080660399104769
+    },
+    {
+     "confounder": "account_size",
+     "partial_r2_outcome": 0.003224891768907109,
+     "partial_r2_treatment": 0.00527085968230136,
+     "strength": 0.00412285726220518
+    },
+    {
+     "confounder": "industry",
+     "partial_r2_outcome": 0.0010903205111091093,
+     "partial_r2_treatment": 4.891609321966691e-05,
+     "strength": 0.00023094202683948207
+    }
+   ],
+   "strongest_measured": {
+    "confounder": "past_purchases",
+    "partial_r2_outcome": 0.008142795500610147,
+    "partial_r2_treatment": 0.007990007833615755,
+    "strength": 0.0080660399104769
+   }
+  },
+  "bounds_no_instrument": {
+   "outcome_range_assumed": [
+    0.0,
+    1.0
+   ],
+   "worst_case": {
+    "lower": -0.3336666666666666,
+    "upper": 0.6663333333333333,
+    "assumes": "outcome within the stated range only"
+   },
+   "mtr_mts": {
+    "lower": 0.0,
+    "upper": 0.24887070929184618,
+    "consistent_with_data": true,
+    "assumes": "treatment never lowers the outcome AND treated units would have done at least as well untreated (positive selection)"
+   },
+   "naive_difference": 0.24887070929184618
+  },
+  "derived": {
+   "hidden_factor_strength_needed_vs_strongest_measured": 30.80836419717604,
+   "outcome_sd": 0.4281289968711329,
+   "outcome_mean_treated": 0.3881685575364668,
+   "outcome_mean_untreated": 0.1392978482446206
+  },
+  "power": [
+   {
+    "per_group_control": 857,
+    "per_group_treated": 857,
+    "total": 1714,
+    "alpha": 0.05,
+    "power": 0.8,
+    "lift": 0.05,
+    "baseline": 0.139,
+    "sd": null
+   },
+   {
+    "per_group_control": 237,
+    "per_group_treated": 237,
+    "total": 474,
+    "alpha": 0.05,
+    "power": 0.8,
+    "lift": 0.1,
+    "baseline": 0.139,
+    "sd": null
+   }
+  ]
+ },
+ "trust_tier": "D",
+ "trust_reasons": [
+  "The question cannot be answered from this data without assumptions it cannot support; see bounds / complier effect.",
+  "Adjusted estimates in 'estimates' (and any segment effects) are biased reference points only; do not report them as the answer."
+ ],
+ "timings_sec": {
+  "naive_difference": 0.0,
+  "regression_linear": 0.3,
+  "aipw_gbm": 8.1,
+  "aipw_spline": 0.2,
+  "ipw_gbm": 0.0,
+  "regression_gbm": 0.0,
+  "double_ml": 2.9,
+  "causal_forest": 4.1,
+  "causalpfn": 67.7
+ },
+ "manifest": {
+  "fingerprint": "ds-7c8df9dd",
+  "seed": 1729,
+  "budget": "standard",
+  "versions": {
+   "numpy": "2.4.4",
+   "pandas": "2.3.3",
+   "scipy": "1.15.3",
+   "sklearn": "1.8.0",
+   "statsmodels": "0.15.0",
+   "econml": "0.17.0",
+   "dowhy": "0.14"
+  },
+  "run_at_utc": "2026-09-26T07:13:33",
+  "runtime_sec": 102.1
+ }
+}

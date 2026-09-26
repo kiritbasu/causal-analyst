@@ -1,0 +1,7 @@
+causal-analyst
+Copyright 2026 the causal-analyst authors
+
+This project is licensed under the Apache License, Version 2.0 (see LICENSE).
+It uses DoWhy (MIT), EconML (MIT), scikit-learn (BSD-3-Clause), statsmodels (BSD-3-Clause),
+and optionally CausalPFN (Apache-2.0-style CausalPFN License) and tabpfn-client (Apache-2.0).
+No third-party model weights are distributed in this repository.
