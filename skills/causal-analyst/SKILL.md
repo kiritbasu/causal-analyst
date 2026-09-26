@@ -188,6 +188,10 @@ holds words only, so never type a number into it that you did not read from the 
    the file. In the chat, give a three-to-five line summary: the answer, the grade and why, and
    the one next step.
 
+The report opens with the data itself (size, each column's role, distributions and the first few
+rows) so readers know what the analysis stood on. The sample rows are raw values: if the file holds
+personal or sensitive data, set `"report_sample_rows": 0` in the spec before running.
+
 Sections appear only when their data exists: the gap breakdown needs a yes/no action with an
 answer; group comparisons need `segments`; overlap and balance charts need a yes/no action;
 tier D shows ranges and, with an instrument, the effect for the units the nudge moved.

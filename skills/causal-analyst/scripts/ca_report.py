@@ -506,6 +506,76 @@ def chart_bad_control(bc, f):
     return "".join(out)
 
 
+ROLE_STYLE = {"action": ("#dbe8f8", BLUE), "outcome": ("#dcefe4", "#1d6b43"), "control": ("#ecebe5", GREY),
+              "nudge": ("#e7e3f6", "#4a3aa7"), "middle step": ("#e7e3f6", "#4a3aa7"), "left out": ("#fbe6dc", ORANGE), "not used": ("#f4f3ee", "#b5b3ab")}
+
+
+def _num(v):
+    a = abs(v)
+    if a >= 1e6:
+        return f"{v / 1e6:.1f}M"
+    if a >= 1e4:
+        return f"{v / 1e3:.0f}k"
+    if a >= 100 or float(v).is_integer():
+        return f"{v:,.0f}"
+    return f"{v:.2f}" if a < 10 else f"{v:.1f}"
+
+
+def mini_hist(counts):
+    m = max(counts) or 1
+    w = 120 / len(counts)
+    bars = "".join(f'<rect x="{i * w + 0.5:.1f}" y="{28 - 26 * c / m:.1f}" width="{w - 1:.1f}" height="{26 * c / m:.1f}" fill="#8a8883"/>' for i, c in enumerate(counts))
+    return f'<svg width="120" height="28" viewBox="0 0 120 28" aria-hidden="true">{bars}<line x1="0" y1="28" x2="120" y2="28" stroke="{BASE}"/></svg>'
+
+
+def mini_cats(top, other, total):
+    x, parts = 0.0, []
+    shades = ["#6b6964", "#8a8883", "#a9a7a0", "#c3c2b7"]
+    for i, t in enumerate(top):
+        w = 120 * t["count"] / total
+        parts.append(f'<rect x="{x:.1f}" y="6" width="{max(w - 1.5, 0.5):.1f}" height="16" rx="2" fill="{shades[i % 4]}"><title>{e(t["value"])}: {t["count"]:,}</title></rect>')
+        x += w
+    if other:
+        parts.append(f'<rect x="{x:.1f}" y="6" width="{max(120 * other / total - 1.5, 0.5):.1f}" height="16" rx="2" fill="#e1e0d9"><title>other: {other:,}</title></rect>')
+    return f'<svg width="120" height="28" viewBox="0 0 120 28" aria-hidden="true">{"".join(parts)}</svg>'
+
+
+def data_section(ov, labels, names, units, n):
+    tiles = [(f'{ov["rows"]:,}', units), (f'{ov["columns"]}', "columns")]
+    if ov.get("treated_share") is not None:
+        tiles.append((f'{ov["treated_share"]:.0%}', f'{names["treated"]}'))
+    tiles.append((f'{ov["complete_rows_pct"]:.0f}%', "rows with no missing values"))
+    tile_html = "".join(f'<div class="tile"><div class="tv">{e(v)}</div><div class="tl">{e(l)}</div></div>' for v, l in tiles)
+    rows = []
+    for c in ov["column_info"]:
+        bg, fg = ROLE_STYLE.get(c["role"], ROLE_STYLE["not used"])
+        chip = f'<span class="chip" style="background:{bg}"><i style="background:{fg}"></i>{e(c["role"])}</span>'
+        name = labels.get(c["column"], c["column"])
+        sub = f'<div class="raw">{e(c["column"])}</div>' if name != c["column"] else ""
+        if c["n_unique"] == ov["rows"] and c["kind"] in ("number", "text/id") and c["role"] in ("left out", "not used"):
+            viz, summ = "", f'unique for every row ({c["n_unique"]:,} values)'
+        elif c["summary"] == "numeric":
+            viz = mini_hist(c["histogram"]["counts"])
+            summ = f'{_num(c["min"])} to {_num(c["max"])} · average {_num(c["mean"])}'
+        else:
+            viz = mini_cats(c["top"], c["other"], ov["rows"])
+            summ = ", ".join(f'{t["value"]} ({t["count"] / ov["rows"]:.0%})' for t in c["top"][:3]) + (" …" if c["n_unique"] > 3 else "")
+        if c.get("why_left_out"):
+            summ += f'<div class="why">Left out: {e(c["why_left_out"])}</div>'
+        miss = f'{c["missing_pct"]:.0f}%' if c["missing_pct"] >= 0.5 else ("<1%" if c["missing_pct"] > 0 else "none")
+        rows.append(f'<tr><td><div class="cn">{e(name)}</div>{sub}</td><td>{chip}</td><td>{e(c["kind"])}</td><td>{miss}</td><td>{viz}</td><td class="sm">{summ}</td></tr>')
+    more = f'<div class="note">Showing {ov["columns_shown"]} of {ov["columns"]} columns.</div>' if ov["columns_shown"] < ov["columns"] else ""
+    table = (f'<div class="tscroll"><table class="cols"><tr><th>Column</th><th>Role in the analysis</th><th>Type</th><th>Missing</th><th>Distribution</th><th>Summary</th></tr>{"".join(rows)}</table></div>{more}')
+    sample = ""
+    if ov.get("sample_rows"):
+        keys = list(ov["sample_rows"][0].keys())
+        head = "".join(f'<th>{e(labels.get(k, k))}</th>' for k in keys)
+        body = "".join("<tr>" + "".join(f'<td>{e(_num(v) if isinstance(v, float) else ("" if v is None else v))}</td>' for v in r.values()) + "</tr>" for r in ov["sample_rows"])
+        sample = (f'<details><summary>First {len(ov["sample_rows"])} rows of the file (columns used in the analysis)</summary>'
+                  f'<div class="tscroll"><table class="sample"><tr>{head}</tr>{body}</table></div></details>')
+    return tile_html, table, sample
+
+
 def check_row(title, text, extra=""):
     icon = f'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{GOODTXT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Passed"><path d="M20 6L9 17l-5-5"/></svg>'
     return f'<div class="check">{icon}<div><div class="ctitle">{e(title)}</div><div class="small">{e(text)}</div>{extra}</div></div>'
@@ -563,11 +633,19 @@ ul.small{{padding-left:18px}}
 .q{{font-size:15px;line-height:1.5;color:{INK2}}} .q strong{{color:{INK}}}
 footer{{border-top:1px solid #dcdad2;padding-top:20px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;font-size:13px;line-height:1.5;color:{INK3}}}
 footer b{{color:{INK};display:block}}
+.tiles{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}}
+.tile{{background:{CARD};border:1px solid {HAIR};border-radius:14px;padding:18px 22px}}
+.tv{{font-family:{SERIF};font-size:40px;line-height:1}} .tl{{font-size:13px;color:{MUTED};margin-top:6px}}
+.tscroll{{overflow-x:auto}}
+table.cols td{{vertical-align:middle;font-size:14px}} .cn{{font-weight:600}} .raw{{font-size:12px;color:{MUTED};font-family:ui-monospace,Menlo,monospace}}
+.sm{{color:{INK2};font-size:13px;max-width:320px}} .why{{font-size:12px;color:{MUTED};margin-top:2px}}
+.chip{{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;color:{INK};white-space:nowrap}} .chip i{{width:8px;height:8px;border-radius:50%;display:inline-block}}
+table.sample td,table.sample th{{font-size:13px;white-space:nowrap}}
 details{{font-size:14px}} summary{{cursor:pointer;color:{INK3}}}
 table{{border-collapse:collapse;width:100%;margin-top:10px;font-variant-numeric:tabular-nums}}
 th,td{{text-align:left;padding:6px 10px;border-bottom:1px solid #ecebe5}} th{{color:{MUTED};font-weight:500}}
 svg text{{font-family:"IBM Plex Sans",system-ui,sans-serif}}
-@media (max-width:900px){{.page{{padding:32px 16px}} .grid2,.grid3,footer{{grid-template-columns:minmax(0,1fr)}} h1{{font-size:38px}} .big{{font-size:60px}}}}
+@media (max-width:900px){{.page{{padding:32px 16px}} .tiles{{grid-template-columns:repeat(2,minmax(0,1fr))}} .grid2,.grid3,footer{{grid-template-columns:minmax(0,1fr)}} h1{{font-size:38px}} .big{{font-size:60px}}}}
 @media print{{body{{background:#fff}} .card,.issue{{break-inside:avoid}}}}
 """
 
@@ -622,6 +700,13 @@ def render(results: dict, narrative: dict) -> str:
     elif n.get("third_card"):
         hero.append(card(f'<div class="eyebrow">{e(n["third_card"].get("title", ""))}</div><p class="small">{e(n["third_card"].get("text", ""))}</p>'))
     P.append(f'<section class="grid{len(hero)}" style="display:grid">{"".join(hero)}</section>')
+
+    # the data
+    ov = r.get("data_overview")
+    if ov:
+        tiles, table, sample = data_section(ov, labels, names, unit_word, n)
+        P.append(section(n.get("data_title", "The data"), f'<div class="tiles">{tiles}</div>' + card(table + sample),
+                         n.get("data_text") or f'What the analysis worked from: one row per {unit_word.rstrip("s")}, and the role each column played.'))
 
     # decomposition of the raw gap
     m_est = main.get("estimate")

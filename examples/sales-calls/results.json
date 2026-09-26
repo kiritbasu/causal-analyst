@@ -485,5 +485,223 @@
   },
   "run_at_utc": "2026-09-26T07:13:33",
   "runtime_sec": 102.1
+ },
+ "data_overview": {
+  "rows": 6000,
+  "columns": 6,
+  "columns_shown": 6,
+  "treated_share": 0.41133333333333333,
+  "complete_rows_pct": 100.0,
+  "column_info": [
+   {
+    "column": "got_sales_call",
+    "role": "action",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 3532
+     },
+     {
+      "value": "1",
+      "count": 2468
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "purchased_90d",
+    "role": "outcome",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 4550
+     },
+     {
+      "value": "1",
+      "count": 1450
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "account_size",
+    "role": "control",
+    "kind": "category",
+    "missing_pct": 0.0,
+    "n_unique": 3,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "small",
+      "count": 3044
+     },
+     {
+      "value": "mid",
+      "count": 2095
+     },
+     {
+      "value": "large",
+      "count": 861
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "past_purchases",
+    "role": "control",
+    "kind": "count/ordinal",
+    "missing_pct": 0.0,
+    "n_unique": 11,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "1",
+      "count": 1669
+     },
+     {
+      "value": "2",
+      "count": 1610
+     },
+     {
+      "value": "3",
+      "count": 1079
+     },
+     {
+      "value": "0",
+      "count": 839
+     }
+    ],
+    "other": 803
+   },
+   {
+    "column": "industry",
+    "role": "control",
+    "kind": "category",
+    "missing_pct": 0.0,
+    "n_unique": 4,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "services",
+      "count": 1587
+     },
+     {
+      "value": "manufacturing",
+      "count": 1526
+     },
+     {
+      "value": "retail",
+      "count": 1447
+     },
+     {
+      "value": "tech",
+      "count": 1440
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "account_id",
+    "role": "left out",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 6000,
+    "why_left_out": "identifier",
+    "summary": "numeric",
+    "min": 5001.0,
+    "median": 8000.5,
+    "mean": 8000.5,
+    "max": 11000.0,
+    "histogram": {
+     "counts": [
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375
+     ],
+     "edges": [
+      5001.0,
+      5375.9375,
+      5750.875,
+      6125.8125,
+      6500.75,
+      6875.6875,
+      7250.625,
+      7625.5625,
+      8000.5,
+      8375.4375,
+      8750.375,
+      9125.3125,
+      9500.25,
+      9875.1875,
+      10250.125,
+      10625.0625,
+      11000.0
+     ]
+    }
+   }
+  ],
+  "sample_rows": [
+   {
+    "got_sales_call": "0",
+    "purchased_90d": "0",
+    "account_size": "small",
+    "past_purchases": "2",
+    "industry": "tech",
+    "account_id": "5001"
+   },
+   {
+    "got_sales_call": "0",
+    "purchased_90d": "0",
+    "account_size": "small",
+    "past_purchases": "3",
+    "industry": "tech",
+    "account_id": "5002"
+   },
+   {
+    "got_sales_call": "0",
+    "purchased_90d": "0",
+    "account_size": "mid",
+    "past_purchases": "4",
+    "industry": "manufacturing",
+    "account_id": "5003"
+   },
+   {
+    "got_sales_call": "0",
+    "purchased_90d": "0",
+    "account_size": "small",
+    "past_purchases": "0",
+    "industry": "retail",
+    "account_id": "5004"
+   },
+   {
+    "got_sales_call": "1",
+    "purchased_90d": "1",
+    "account_size": "small",
+    "past_purchases": "4",
+    "industry": "retail",
+    "account_id": "5005"
+   }
+  ]
  }
 }

@@ -384,13 +384,14 @@ def cmd_run(a):
     t0 = time.time()
     log(f"budget {spec.get('budget', 'standard')}; progress lines follow. Typical: quick <1 min, standard 1-2 min on ~5k rows")
     df = core.load_data(spec["data"])
+    overview = core.data_overview(df, spec, int(spec.get("report_sample_rows", 5)))
     cols = [spec["treatment"], spec["outcome"]] + spec.get("confounders", []) + spec.get("instruments", [])
     before = len(df)
     df = df.dropna(subset=cols).reset_index(drop=True)
     ident = identify(spec)
     import ca_dag
     _dag = ca_dag.build(spec); _dag["warnings"] = ca_dag.checks(_dag)
-    out = {"spec": spec, "dag": _dag, "identification": ident, "rows_used": len(df), "rows_dropped_missing": before - len(df)}
+    out = {"spec": spec, "dag": _dag, "data_overview": overview, "identification": ident, "rows_used": len(df), "rows_dropped_missing": before - len(df)}
     if spec.get("treatment_type", "binary") == "continuous":
         res, diag, timings, main_key = run_continuous(df, spec, BUD["boot"])
     else:

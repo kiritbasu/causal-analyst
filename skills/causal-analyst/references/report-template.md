@@ -27,6 +27,7 @@ jargon without a translation. Keep the whole page readable in two minutes.
 | `units` | What a row is, plural ("customers", "accounts") |
 | `group_names` | `{"treated": "members", "untreated": "non-members"}` |
 | `labels` | Friendly names for columns and segment queries, incl. `"not (<query>)"` |
+| `data_title`, `data_text` | Header and one line for the data section (shape, column roles, distributions, sample rows) |
 | `caution_bullets` | 1-3 short plain reasons behind the grade (translate `trust_reasons`) |
 | `segment_card_title`, `segment_card_note`, `segment_title`, `segment_text` | Group comparison copy |
 | `third_card` | `{"title","text"}` hero card when there are no segments (e.g. "What would answer it") |

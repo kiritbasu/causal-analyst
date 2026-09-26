@@ -23,6 +23,7 @@ Paths may be absolute or relative to where you run `ca.py`.
 | `extra_edges` | no | `[["from", "to"], ...]` arrows the SME adds between factors (e.g. `["income_k", "prior_quarter_spend"]`). Drawn in the diagram and used in the DoWhy check, which reports if the controls then need to change. |
 | `allow_external_services` | no | `["tabpfn_api"]` to allow the hosted TabPFN cross-check (sends data to Prior Labs). Only with the SME's consent. |
 | `causalpfn_max_rows` | no | Row cap for the local CausalPFN cross-check (default 20000) |
+| `report_sample_rows` | no | Rows of raw data shown in the report's data section (default 5). Set `0` for sensitive data. |
 | `segments` | no | Pandas query strings for "who benefits more", e.g. `"tenure_months<12"`, `"urban==1"`. Each is compared automatically with the rest; don't also list the complement. |
 | `main_method` | no | Default `"aipw_gbm"` (binary). Continuous main model is chosen by cross-validation automatically. |
 | `budget` | no | `"quick"`, `"standard"` (default), `"thorough"` |

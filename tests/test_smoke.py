@@ -31,7 +31,8 @@ def test_pipeline(tmp_path):
     assert bc["also_controlling_for_excluded"]["estimate"] < 0 < bc["correct_controls"]["estimate"]
     ca("report", "results.json", "--narrative", str(EX / "narrative.json"), "--out", "report.html", cwd=tmp_path)
     html = (tmp_path / "report.html").read_text()
-    assert "Why the grade is" in html and "Meet the methods" in html
+    assert "Why the grade is" in html and "Meet the methods" in html and "The data" in html
+    assert r["data_overview"]["rows"] == 4000
 
 
 def test_not_identifiable(tmp_path):

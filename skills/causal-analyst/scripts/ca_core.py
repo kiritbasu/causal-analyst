@@ -546,3 +546,51 @@ def aipw_tabpfn(X, t, y, estimand="ATE", folds=5, seed=0, max_train=10000):
     r.pop("pseudo_outcomes", None)
     r["note"] = "Doubly robust with TabPFN models (hosted by Prior Labs; data was sent to their API)."
     return r
+
+
+# ----------------------------------------------------------------------------
+# Data overview for the report
+# ----------------------------------------------------------------------------
+
+def data_overview(df: pd.DataFrame, spec: dict, sample_rows: int = 5, max_cols: int = 30) -> dict:
+    """Shape, per-column role/type/missingness/summary, and a few sample rows."""
+    T, Y = spec.get("treatment"), spec.get("outcome")
+    roles = {T: "action", Y: "outcome"}
+    for c in spec.get("confounders", []):
+        roles[c] = "control"
+    for c in spec.get("instruments", []):
+        roles[c] = "nudge"
+    for c in spec.get("mediators", []):
+        roles[c] = "middle step"
+    for c, why in spec.get("excluded", {}).items():
+        roles.setdefault(c, "left out")
+    order = {"action": 0, "outcome": 1, "control": 2, "nudge": 3, "middle step": 4, "left out": 5, "not used": 6}
+    cols = sorted(df.columns, key=lambda c: (order[roles.get(c, "not used")], list(df.columns).index(c)))[:max_cols]
+    out_cols = []
+    for c in cols:
+        s = df[c]
+        kind = _col_kind(s)
+        info = {"column": c, "role": roles.get(c, "not used"), "kind": kind,
+                "missing_pct": float(s.isna().mean() * 100), "n_unique": int(s.nunique(dropna=True))}
+        if c in spec.get("excluded", {}):
+            info["why_left_out"] = str(spec["excluded"][c])
+        if pd.api.types.is_numeric_dtype(s) and kind != "binary" and info["n_unique"] > 12:
+            v = s.dropna().astype(float)
+            counts, edges = np.histogram(v, bins=16)
+            info.update(summary="numeric", min=float(v.min()), median=float(v.median()), mean=float(v.mean()), max=float(v.max()),
+                        histogram={"counts": counts.tolist(), "edges": [float(x) for x in edges]})
+        else:
+            vc = s.astype(str).where(s.notna(), "(missing)").value_counts()
+            info.update(summary="categories", top=[{"value": str(k), "count": int(n)} for k, n in vc.head(4).items()],
+                        other=int(vc.iloc[4:].sum()))
+        out_cols.append(info)
+    sample = []
+    if sample_rows and sample_rows > 0:
+        show = [c for c in cols if roles.get(c) not in (None, "not used")][:10]
+        for _, row in df[show].head(int(sample_rows)).iterrows():
+            sample.append({c: (None if pd.isna(row[c]) else (row[c].item() if hasattr(row[c], "item") else str(row[c]))) for c in show})
+    t = df[T] if T in df else None
+    return {"rows": int(len(df)), "columns": int(df.shape[1]), "columns_shown": len(cols),
+            "treated_share": float((t == t.max()).mean()) if t is not None and t.nunique() == 2 else None,
+            "complete_rows_pct": float(df.notna().all(axis=1).mean() * 100),
+            "column_info": out_cols, "sample_rows": sample}

@@ -4,22 +4,29 @@
 
 ![Report headline: effect, trust grade and who gains most](docs/images/loyalty-headline.png)
 
-<p align="center"><a href="examples/loyalty-program/report.html">Loyalty program report</a> · <a href="examples/sales-calls/report.html">Sales calls report ("can't tell")</a> · <a href="#install">Install</a></p>
+<p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="#install">Install</a></p>
 
 ---
 
 ## Why this exists
 
-Frontier models are already good at the arithmetic of causal inference. Give Claude a clean dataset and the right controls, and it will usually estimate an effect well. In our tests, plain Claude matched the skill on the loyalty case to within a few percent.
+Good causal analysis needs two kinds of knowledge that rarely sit in one person:
 
-What goes wrong in practice is **judgment**, not arithmetic:
+- **Data science:** which methods to use, how to check them, and what the numbers can and can't support.
+- **Domain knowledge:** what happened before what, how people ended up getting the treatment, and what important factor isn't in the data.
 
-- **Controlling for the wrong thing.** "Points redeemed" is a *result* of joining a loyalty program. Adjust for it and a +$10 effect becomes −$22.
-- **Answering a question the data can't support.** If sales reps pick whom to call using a gut feel that isn't recorded, no amount of adjustment recovers the effect of a call.
-- **Choosing the method after seeing the results**, and quietly drifting toward the answer people hoped for.
-- **Overstating certainty.** In testing, plain Claude twice gave confident ranges that missed the true answer. On a benchmark case the data couldn't answer, it said the effect was "almost certainly about −0.27"; the true value was outside its range.
+The marketing lead knows that "points redeemed" only exists *after* someone joins, and that the program was pushed to big spenders. The data scientist knows that controlling for points will wreck the estimate, and that targeting big spenders creates a gap that isn't the program's doing. Usually it takes both people and a lot of back and forth. Often the domain expert simply ends up with a correlation.
 
-This skill wraps a tested numerical toolkit in a workflow that forces those judgments into the open: controls confirmed as pre-treatment, a causal diagram the expert signs off, a method fixed in advance, an explicit "we can't tell" grade, and sensitivity analysis that sizes the hidden-factor risk.
+**This skill lets the domain expert work directly with Claude.** Claude handles the modelling. It asks, in plain language, only the questions that need domain knowledge, turns the answers into a causal diagram the expert confirms, then runs and checks the analysis and explains the result. The expert supplies what only they know; the skill supplies the rest.
+
+It also guards against the ways capable models go wrong. Frontier models already get the arithmetic right: in our tests plain Claude matched the skill's estimate on a clean case to within a few percent. The failures are judgment calls:
+
+- **Controlling for the wrong thing.** Adjusting for "points redeemed" turns a +$10 effect into −$22.
+- **Answering a question the data can't support.** If reps pick whom to call using a gut feel that isn't recorded, no amount of adjustment recovers the effect of a call.
+- **Choosing the method after seeing the results**, and quietly drifting toward the hoped-for answer.
+- **Overstating certainty.** Plain Claude twice gave confident ranges that missed the true answer. On a benchmark case the data couldn't answer, it called the effect "almost certainly about −0.27", but the true value was outside its range.
+
+So the workflow puts those judgments in the open. Controls are confirmed as recorded before the treatment. The expert signs off the diagram. The method is fixed in advance. There's an explicit "we can't tell" grade, and the risk from hidden factors is sized.
 
 ## What you get
 
@@ -28,6 +35,7 @@ A self-contained HTML report (works offline, on a phone, and prints cleanly) wit
 | Section | What it answers |
 |---|---|
 | Headline + trust grade (A–D) | What's the effect, how sure are we, who gains most |
+| The data | Size, each column's role (action, outcome, control, left out), distributions, the first few rows |
 | Where the raw gap comes from | How much of the naive difference is *who* got the action vs the action itself |
 | Methods side by side | Does the answer depend on the technique? |
 | Meet the methods | A timeline and plain-English guide to each method family |
@@ -37,6 +45,10 @@ A self-contained HTML report (works offline, on a phone, and prints cleanly) wit
 | Next steps and questions | A sized randomized test, and every assumption made on your behalf |
 
 <table>
+<tr>
+<td width="50%"><img src="docs/images/loyalty-data.png" alt="The data: shape, column roles and distributions"></td>
+<td width="50%"><img src="docs/images/loyalty-gap.png" alt="Where the raw gap comes from"><br><img src="docs/images/loyalty-segments.png" alt="Who benefits more"></td>
+</tr>
 <tr>
 <td width="50%"><img src="docs/images/loyalty-methods.png" alt="Nine methods side by side"></td>
 <td width="50%"><img src="docs/images/loyalty-trust.png" alt="Trust diagnostics"></td>
@@ -56,7 +68,7 @@ When the question can't be answered, the report leads with that and shows what *
 </tr>
 </table>
 
-Open the full reports: [loyalty program](examples/loyalty-program/report.html) (grade C) · [sales calls](examples/sales-calls/report.html) (grade D). GitHub shows HTML as source, so download them, or view them through a service like [htmlpreview](https://htmlpreview.github.io/).
+**Open the full reports in your browser:** [loyalty program](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html) (grade C) · [sales calls](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html) (grade D). The HTML files are in [`examples/`](examples/) if you'd rather download them.
 
 ## How it works
 
@@ -154,6 +166,7 @@ CausalPFN was more accurate, especially under poor overlap, but overconfident. T
 ## Data and privacy
 
 - Everything runs locally by default. **No data leaves your machine** unless you opt in.
+- The report includes the first 5 rows of the data so readers can see what the analysis stood on. For personal or sensitive data, set `"report_sample_rows": 0` in the plan.
 - The hosted TabPFN cross-check sends data to Prior Labs. It runs only when the analysis plan lists `"allow_external_services": ["tabpfn_api"]`, which the skill sets only after you agree. Its upload also needs `api.priorlabs.ai` and `storage.googleapis.com` reachable.
 - API keys are read from `TABPFN_TOKEN` or a file named by `TABPFN_TOKEN_FILE`. Never paste keys into chat.
 - CausalPFN weights (~75 MB) download from Hugging Face on first use, or point `CAUSALPFN_WEIGHTS` at a local copy.
@@ -171,6 +184,7 @@ CausalPFN was more accurate, especially under poor overlap, but overconfident. T
 - **SQL / warehouse layer:** a signed-off analysis becomes a versioned contract; models are fitted on a schedule in Databricks, Snowflake or ClickHouse; effects are answered in SQL in seconds, with the trust grade recomputed per query.
 - Difference-in-differences and synthetic control for before/after rollouts; regression discontinuity for score cutoffs.
 - A proper one-step correction for foundation-model cross-checks ([Melnychuk et al., 2026](https://arxiv.org/abs/2603.12037)), and GPU support.
+- **Realistic synthetic datasets for causal inference:** a generator for complex, real-world-like scenarios with a known answer. Think hidden drivers, post-treatment traps, weak overlap, effects that vary by group, rollouts over time, and messy data. Use it to test this skill, compare methods, and train people.
 - Broader evals, including real-world benchmarks such as CausalReasoningBenchmark.
 
 ## Repository layout
