@@ -1,0 +1,1462 @@
+{
+ "spec": {
+  "data": "data.csv",
+  "treatment": "flag_t",
+  "outcome": "out_m",
+  "treatment_type": "binary",
+  "estimand": "ATE",
+  "confounders": [
+   "cohort",
+   "yrs",
+   "q_score"
+  ],
+  "outcome_baseline": "q_score",
+  "instruments": [
+   "slot_open"
+  ],
+  "excluded": {
+   "emp": "identifier",
+   "usage_idx": "post-treatment: AI-tool use during the quarter, after the course; part of how training works, not a background trait",
+   "kudos": "post-treatment and a collider: recognition is given partly for completing training and partly for good output, so it is caused by both the action and the outcome",
+   "slot_open": "instrument (random seat draw); used only for the complier-effect cross-check, not as a control"
+  },
+  "hidden_confounding": "none_known",
+  "hidden_driver_note": "Brief says taking the course was voluntary and managers nudged people with a weak previous quarter; that driver (previous-quarter output) is recorded. Personal motivation to take the course is not recorded; the brief does not name it, so it is sized by the sensitivity analysis and checked against the random seat draw.",
+  "alternatives": [
+   {
+    "name": "Treat AI-tool use as a control",
+    "why": "only right if usage_idx were recorded before the course; the brief says it was after",
+    "add": [
+     "usage_idx"
+    ],
+    "illustrative": true
+   },
+   {
+    "name": "Treat recognition points as a control",
+    "why": "only right if kudos were a background trait; the brief says they partly reward training and output",
+    "add": [
+     "kudos"
+    ],
+    "illustrative": true
+   },
+   {
+    "name": "Ignore last quarter's output",
+    "why": "shows how much the manager nudging of weak performers matters",
+    "remove": [
+     "q_score"
+    ],
+    "illustrative": true
+   },
+   {
+    "name": "Add the seat draw as a control",
+    "why": "if seat availability also tracked something about time zones that affects output",
+    "add": [
+     "slot_open"
+    ]
+   }
+  ],
+  "segments": [
+   "cohort=='eng'",
+   "cohort=='sales'",
+   "q_score<50"
+  ],
+  "budget": "standard",
+  "seed": 1729,
+  "labels": {
+   "flag_t": "Took AI training",
+   "out_m": "Output score this quarter",
+   "q_score": "Output score last quarter",
+   "yrs": "Years at company",
+   "cohort": "Department",
+   "slot_open": "Seat open in time zone (random draw)",
+   "usage_idx": "AI-tool use (after course)",
+   "kudos": "Recognition points",
+   "emp": "Employee number"
+  },
+  "codebook": {
+   "emp": {
+    "meaning": "Employee number (identifier)",
+    "recorded": "n/a",
+    "confirmed": false
+   },
+   "cohort": {
+    "meaning": "Department: eng, sales or ops",
+    "recorded": "before (at hire)",
+    "confirmed": false
+   },
+   "yrs": {
+    "meaning": "Years at the company",
+    "recorded": "before (start of quarter)",
+    "confirmed": false
+   },
+   "q_score": {
+    "meaning": "Output score for the previous quarter, same scale as out_m (the before-the-course productivity measure)",
+    "recorded": "before the course",
+    "confirmed": false
+   },
+   "slot_open": {
+    "meaning": "1 if a course seat was open in the employee's time zone at sign-up; seats allocated by random draw (a random nudge to take the course)",
+    "recorded": "at sign-up, before the course",
+    "confirmed": false
+   },
+   "flag_t": {
+    "meaning": "1 = took the AI-tools training course (the action)",
+    "recorded": "during the quarter",
+    "confirmed": false
+   },
+   "usage_idx": {
+    "meaning": "How much the employee used AI tools, from tool logs",
+    "recorded": "during the quarter, after the course (a consequence of training)",
+    "confirmed": false
+   },
+   "kudos": {
+    "meaning": "Recognition points from peers and managers; partly for good output, partly for completing training",
+    "recorded": "end of quarter (after the course and the outcome)",
+    "confirmed": false
+   },
+   "out_m": {
+    "meaning": "Output score this quarter (the productivity measure)",
+    "recorded": "end of quarter (the outcome)",
+    "confirmed": false
+   }
+  },
+  "extra_edges": [
+   [
+    "usage_idx",
+    "out_m"
+   ],
+   [
+    "out_m",
+    "kudos"
+   ]
+  ]
+ },
+ "dag": {
+  "nodes": [
+   {
+    "id": "flag_t",
+    "label": "Took AI training",
+    "role": "action"
+   },
+   {
+    "id": "out_m",
+    "label": "Output score this quarter",
+    "role": "outcome"
+   },
+   {
+    "id": "cohort",
+    "label": "Department",
+    "role": "control"
+   },
+   {
+    "id": "yrs",
+    "label": "Years at company",
+    "role": "control"
+   },
+   {
+    "id": "q_score",
+    "label": "Output score last quarter",
+    "role": "control"
+   },
+   {
+    "id": "slot_open",
+    "label": "Seat open in time zone (random draw)",
+    "role": "nudge (instrument)"
+   },
+   {
+    "id": "usage_idx",
+    "label": "AI-tool use (after course)",
+    "role": "after the action"
+   },
+   {
+    "id": "kudos",
+    "label": "Recognition points",
+    "role": "after the action"
+   }
+  ],
+  "edges": [
+   {
+    "from": "flag_t",
+    "to": "out_m",
+    "kind": "assumed"
+   },
+   {
+    "from": "cohort",
+    "to": "flag_t",
+    "kind": "assumed"
+   },
+   {
+    "from": "cohort",
+    "to": "out_m",
+    "kind": "assumed"
+   },
+   {
+    "from": "yrs",
+    "to": "flag_t",
+    "kind": "assumed"
+   },
+   {
+    "from": "yrs",
+    "to": "out_m",
+    "kind": "assumed"
+   },
+   {
+    "from": "q_score",
+    "to": "flag_t",
+    "kind": "assumed"
+   },
+   {
+    "from": "q_score",
+    "to": "out_m",
+    "kind": "assumed"
+   },
+   {
+    "from": "slot_open",
+    "to": "flag_t",
+    "kind": "assumed"
+   },
+   {
+    "from": "flag_t",
+    "to": "usage_idx",
+    "kind": "after"
+   },
+   {
+    "from": "flag_t",
+    "to": "kudos",
+    "kind": "after"
+   },
+   {
+    "from": "usage_idx",
+    "to": "out_m",
+    "kind": "sme"
+   },
+   {
+    "from": "out_m",
+    "to": "kudos",
+    "kind": "sme"
+   }
+  ],
+  "treatment": "flag_t",
+  "outcome": "out_m",
+  "warnings": []
+ },
+ "data_overview": {
+  "rows": 4000,
+  "columns": 9,
+  "columns_shown": 9,
+  "treated_share": 0.59325,
+  "complete_rows_pct": 100.0,
+  "column_info": [
+   {
+    "column": "flag_t",
+    "role": "action",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = took the AI-tools training course (the action)",
+    "recorded": "during the quarter",
+    "confirmed": false,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "1",
+      "count": 2373
+     },
+     {
+      "value": "0",
+      "count": 1627
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "out_m",
+    "role": "outcome",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 565,
+    "meaning": "Output score this quarter (the productivity measure)",
+    "recorded": "end of quarter (the outcome)",
+    "confirmed": false,
+    "summary": "numeric",
+    "min": 23.0,
+    "median": 72.5,
+    "mean": 72.56815,
+    "max": 117.0,
+    "histogram": {
+     "counts": [
+      1,
+      3,
+      6,
+      23,
+      101,
+      256,
+      493,
+      747,
+      850,
+      698,
+      474,
+      223,
+      84,
+      29,
+      10,
+      2
+     ],
+     "edges": [
+      23.0,
+      28.875,
+      34.75,
+      40.625,
+      46.5,
+      52.375,
+      58.25,
+      64.125,
+      70.0,
+      75.875,
+      81.75,
+      87.625,
+      93.5,
+      99.375,
+      105.25,
+      111.125,
+      117.0
+     ]
+    }
+   },
+   {
+    "column": "cohort",
+    "role": "control",
+    "kind": "category",
+    "missing_pct": 0.0,
+    "n_unique": 3,
+    "meaning": "Department: eng, sales or ops",
+    "recorded": "before (at hire)",
+    "confirmed": false,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "eng",
+      "count": 1602
+     },
+     {
+      "value": "sales",
+      "count": 1420
+     },
+     {
+      "value": "ops",
+      "count": 978
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "yrs",
+    "role": "control",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 189,
+    "meaning": "Years at the company",
+    "recorded": "before (start of quarter)",
+    "confirmed": false,
+    "summary": "numeric",
+    "min": 0.1,
+    "median": 4.2,
+    "mean": 4.979025,
+    "max": 27.8,
+    "histogram": {
+     "counts": [
+      714,
+      962,
+      816,
+      589,
+      377,
+      238,
+      129,
+      77,
+      49,
+      15,
+      16,
+      9,
+      4,
+      0,
+      4,
+      1
+     ],
+     "edges": [
+      0.1,
+      1.83125,
+      3.5625,
+      5.293749999999999,
+      7.0249999999999995,
+      8.75625,
+      10.487499999999999,
+      12.21875,
+      13.95,
+      15.681249999999999,
+      17.4125,
+      19.14375,
+      20.875,
+      22.60625,
+      24.337500000000002,
+      26.06875,
+      27.8
+     ]
+    }
+   },
+   {
+    "column": "q_score",
+    "role": "control",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 526,
+    "meaning": "Output score for the previous quarter, same scale as out_m (the before-the-course productivity measure)",
+    "recorded": "before the course",
+    "confirmed": false,
+    "summary": "numeric",
+    "min": 17.4,
+    "median": 53.7,
+    "mean": 53.666925,
+    "max": 89.9,
+    "histogram": {
+     "counts": [
+      6,
+      13,
+      39,
+      116,
+      235,
+      377,
+      581,
+      625,
+      662,
+      548,
+      381,
+      241,
+      121,
+      34,
+      15,
+      6
+     ],
+     "edges": [
+      17.4,
+      21.93125,
+      26.4625,
+      30.99375,
+      35.525,
+      40.05625,
+      44.5875,
+      49.11875,
+      53.65,
+      58.18125,
+      62.7125,
+      67.24375,
+      71.775,
+      76.30625,
+      80.8375,
+      85.36875,
+      89.9
+     ]
+    }
+   },
+   {
+    "column": "slot_open",
+    "role": "nudge",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "why_left_out": "instrument (random seat draw); used only for the complier-effect cross-check, not as a control",
+    "meaning": "1 if a course seat was open in the employee's time zone at sign-up; seats allocated by random draw (a random nudge to take the course)",
+    "recorded": "at sign-up, before the course",
+    "confirmed": false,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 2010
+     },
+     {
+      "value": "1",
+      "count": 1990
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "emp",
+    "role": "left out",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 4000,
+    "why_left_out": "identifier",
+    "meaning": "Employee number (identifier)",
+    "recorded": "n/a",
+    "confirmed": false,
+    "summary": "numeric",
+    "min": 70001.0,
+    "median": 72000.5,
+    "mean": 72000.5,
+    "max": 74000.0,
+    "histogram": {
+     "counts": [
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250
+     ],
+     "edges": [
+      70001.0,
+      70250.9375,
+      70500.875,
+      70750.8125,
+      71000.75,
+      71250.6875,
+      71500.625,
+      71750.5625,
+      72000.5,
+      72250.4375,
+      72500.375,
+      72750.3125,
+      73000.25,
+      73250.1875,
+      73500.125,
+      73750.0625,
+      74000.0
+     ]
+    }
+   },
+   {
+    "column": "usage_idx",
+    "role": "left out",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 744,
+    "why_left_out": "post-treatment: AI-tool use during the quarter, after the course; part of how training works, not a background trait",
+    "meaning": "How much the employee used AI tools, from tool logs",
+    "recorded": "during the quarter, after the course (a consequence of training)",
+    "confirmed": false,
+    "summary": "numeric",
+    "min": -1.51,
+    "median": 4.04,
+    "mean": 3.8231775,
+    "max": 8.54,
+    "histogram": {
+     "counts": [
+      3,
+      8,
+      55,
+      155,
+      301,
+      421,
+      378,
+      345,
+      415,
+      492,
+      581,
+      476,
+      237,
+      91,
+      35,
+      7
+     ],
+     "edges": [
+      -1.51,
+      -0.8818750000000001,
+      -0.25375000000000014,
+      0.3743749999999999,
+      1.0024999999999997,
+      1.6306249999999995,
+      2.25875,
+      2.886875,
+      3.5149999999999997,
+      4.1431249999999995,
+      4.771249999999999,
+      5.399374999999999,
+      6.0275,
+      6.655624999999999,
+      7.2837499999999995,
+      7.911874999999998,
+      8.54
+     ]
+    }
+   },
+   {
+    "column": "kudos",
+    "role": "left out",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 281,
+    "why_left_out": "post-treatment and a collider: recognition is given partly for completing training and partly for good output, so it is caused by both the action and the outcome",
+    "meaning": "Recognition points from peers and managers; partly for good output, partly for completing training",
+    "recorded": "end of quarter (after the course and the outcome)",
+    "confirmed": false,
+    "summary": "numeric",
+    "min": -0.1,
+    "median": 24.2,
+    "mean": 24.2135,
+    "max": 40.5,
+    "histogram": {
+     "counts": [
+      1,
+      0,
+      3,
+      9,
+      31,
+      98,
+      275,
+      445,
+      649,
+      825,
+      708,
+      483,
+      293,
+      136,
+      33,
+      11
+     ],
+     "edges": [
+      -0.1,
+      2.4375,
+      4.9750000000000005,
+      7.512500000000001,
+      10.05,
+      12.5875,
+      15.125000000000002,
+      17.662499999999998,
+      20.2,
+      22.7375,
+      25.275,
+      27.8125,
+      30.35,
+      32.8875,
+      35.425,
+      37.9625,
+      40.5
+     ]
+    }
+   }
+  ],
+  "sample_rows": [
+   {
+    "flag_t": "1",
+    "out_m": "89.1",
+    "cohort": "eng",
+    "yrs": "18.2",
+    "q_score": "72.8",
+    "slot_open": "0",
+    "emp": "70001",
+    "usage_idx": "4.58",
+    "kudos": "30.2"
+   },
+   {
+    "flag_t": "1",
+    "out_m": "75.1",
+    "cohort": "sales",
+    "yrs": "12.5",
+    "q_score": "45.8",
+    "slot_open": "0",
+    "emp": "70002",
+    "usage_idx": "6.35",
+    "kudos": "25.6"
+   },
+   {
+    "flag_t": "0",
+    "out_m": "61.0",
+    "cohort": "sales",
+    "yrs": "5.9",
+    "q_score": "47.4",
+    "slot_open": "1",
+    "emp": "70003",
+    "usage_idx": "0.0",
+    "kudos": "23.2"
+   },
+   {
+    "flag_t": "1",
+    "out_m": "76.0",
+    "cohort": "eng",
+    "yrs": "2.7",
+    "q_score": "50.6",
+    "slot_open": "1",
+    "emp": "70004",
+    "usage_idx": "5.15",
+    "kudos": "23.7"
+   },
+   {
+    "flag_t": "1",
+    "out_m": "104.0",
+    "cohort": "eng",
+    "yrs": "17.8",
+    "q_score": "79.5",
+    "slot_open": "1",
+    "emp": "70005",
+    "usage_idx": "7.01",
+    "kudos": "36.3"
+   }
+  ]
+ },
+ "identification": {
+  "treatment": "flag_t",
+  "outcome": "out_m",
+  "estimand": "ATE",
+  "assumptions": [
+   "All controls were measured before the treatment (none are consequences of it).",
+   "No important unrecorded factor drives both treatment and outcome (cannot be checked; will be sized).",
+   "Every kind of unit has some treated and some untreated examples (overlap; will be checked).",
+   "One unit's treatment does not change another unit's outcome."
+  ],
+  "identifiable": true,
+  "strategy": "adjust for measured confounders (backdoor)",
+  "adjustment_set": [
+   "cohort",
+   "yrs",
+   "q_score"
+  ],
+  "explanation": "Comparing like with like on the recorded pre-treatment traits identifies the effect, provided nothing important that drives both treatment and outcome is missing from the data.",
+  "dowhy": {
+   "backdoor_variables": [
+    "q_score",
+    "yrs",
+    "cohort"
+   ],
+   "instruments": [
+    "slot_open"
+   ],
+   "frontdoor": [],
+   "estimand": [
+    "Estimand type: EstimandType.NONPARAMETRIC_ATE",
+    "",
+    "### Estimand : 1",
+    "Estimand name: backdoor",
+    "Estimand expression:",
+    "   d                                 ",
+    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[out_m|q_score,yrs,cohort])",
+    "d[flag\u209c]                             ",
+    "Estimand assumption 1, Unconfoundedness: If U\u2192{flag_t} and U\u2192out_m then P(out_m|flag_t,q_score,yrs,cohort,U) = P(out_m|flag_t,q_score,yrs,cohort)",
+    "",
+    "### Estimand : 2",
+    "Estimand name: iv"
+   ]
+  }
+ },
+ "rows_used": 4000,
+ "rows_dropped_missing": 0,
+ "main_method": "aipw_gbm",
+ "main_result": {
+  "estimate": 7.551536656908372,
+  "se": 0.2847518297363792,
+  "ci": [
+   6.993423070625068,
+   8.109650243191675
+  ],
+  "per_seed": [
+   7.551536656908372,
+   7.523293582416187,
+   7.83238641490879
+  ]
+ },
+ "estimates": {
+  "naive_difference": {
+   "estimate": 3.6079734857756165,
+   "ci": [
+    2.915363682632517,
+    4.300583288918716
+   ],
+   "se": 0.3533723485423979
+  },
+  "regression_linear": {
+   "estimate": 7.374195868996756,
+   "se": 0.2060819903448821,
+   "ci": [
+    6.999360517260891,
+    7.795431938461427
+   ],
+   "n_boot": 200
+  },
+  "aipw_gbm": {
+   "estimate": 7.551536656908372,
+   "se": 0.2847518297363792,
+   "ci": [
+    6.993423070625068,
+    8.109650243191675
+   ],
+   "per_seed": [
+    7.551536656908372,
+    7.523293582416187,
+    7.83238641490879
+   ]
+  },
+  "aipw_spline": {
+   "estimate": 7.657984583990929,
+   "se": 0.33538357186202283,
+   "ci": [
+    7.000632783141365,
+    8.315336384840494
+   ]
+  },
+  "ipw_gbm": {
+   "estimate": 8.557929830663653,
+   "se": 0.5845249426767231,
+   "ci": [
+    7.685683194153664,
+    9.80871115968003
+   ],
+   "n_boot": 200
+  },
+  "regression_gbm": {
+   "estimate": 7.495913821745862
+  },
+  "double_ml": {
+   "estimate": 7.259480750057064,
+   "ci": [
+    6.851156432195549,
+    7.66780506791858
+   ]
+  },
+  "causal_forest": {
+   "estimate": 7.242138179330774,
+   "ci": [
+    5.881310369620684,
+    8.602965989040863
+   ]
+  },
+  "causalpfn": {
+   "estimate": 7.664971360206604,
+   "ci": [
+    7.31198263168335,
+    8.023910522460938
+   ],
+   "note": "Causal foundation model; interval is the model's own and tends to be too narrow."
+  }
+ },
+ "diagnostics": {
+  "optional_cross_checks": {
+   "causalpfn": {
+    "ran": true,
+    "weights": "causalpfn_v0.pt"
+   },
+   "tabpfn": {
+    "skipped": "no TABPFN_TOKEN / TABPFN_TOKEN_FILE"
+   }
+  },
+  "overlap": {
+   "propensity_quantiles": {
+    "0": 0.09531025258303488,
+    "0.01": 0.1789866704674422,
+    "0.05": 0.29138805533354895,
+    "0.5": 0.610597614268338,
+    "0.95": 0.8529066701046369,
+    "0.99": 0.9124592978315068,
+    "1": 0.9845126350708507
+   },
+   "share_below_0.05": 0.0,
+   "share_above_0.95": 0.00175,
+   "histogram": {
+    "bin_edges": [
+     0.0,
+     0.05,
+     0.1,
+     0.15000000000000002,
+     0.2,
+     0.25,
+     0.30000000000000004,
+     0.35000000000000003,
+     0.4,
+     0.45,
+     0.5,
+     0.55,
+     0.6000000000000001,
+     0.65,
+     0.7000000000000001,
+     0.75,
+     0.8,
+     0.8500000000000001,
+     0.9,
+     0.9500000000000001,
+     1.0
+    ],
+    "treated": [
+     0,
+     1,
+     4,
+     7,
+     17,
+     46,
+     71,
+     82,
+     117,
+     166,
+     196,
+     223,
+     296,
+     285,
+     251,
+     244,
+     199,
+     120,
+     45,
+     3
+    ],
+    "untreated": [
+     0,
+     0,
+     18,
+     26,
+     42,
+     63,
+     79,
+     120,
+     128,
+     152,
+     157,
+     183,
+     187,
+     158,
+     128,
+     75,
+     62,
+     29,
+     16,
+     4
+    ]
+   },
+   "trimmed_estimate": {
+    "estimate": 7.490240733888838,
+    "ci": [
+     6.9662418336685015,
+     8.014239634109174
+    ],
+    "share_kept": 0.99825,
+    "note": "effect among units with propensity 0.05-0.95 (a narrower population)"
+   }
+  },
+  "balance": [
+   {
+    "variable": "yrs",
+    "smd_before": 0.025457621382336388,
+    "smd_after_weighting": -0.009134217308492296
+   },
+   {
+    "variable": "q_score",
+    "smd_before": -0.46548010396847816,
+    "smd_after_weighting": 0.12392626369060097
+   },
+   {
+    "variable": "cohort_ops",
+    "smd_before": -0.1802284959229137,
+    "smd_after_weighting": 0.004774761048840347
+   },
+   {
+    "variable": "cohort_sales",
+    "smd_before": -0.007392370534908197,
+    "smd_after_weighting": -0.05769541647520715
+   }
+  ],
+  "max_abs_smd_after": 0.12392626369060097,
+  "placebo_permuted_treatment": {
+   "estimate": -0.010292037553266386,
+   "ci": [
+    -0.20930297354939253,
+    0.18871889844285977
+   ],
+   "shuffles": [
+    0.6331702509113557,
+    -0.11279418476922351,
+    -0.22417733002529963,
+    -0.02551641618032148,
+    -0.32214250770284303
+   ],
+   "passes": true
+  },
+  "random_common_cause": {
+   "estimate": 7.487810612128523,
+   "change": -0.06372604477984911
+  },
+  "subset_80pct_estimates": [
+   7.5169004295573325,
+   7.469357012302855,
+   7.928332147515023,
+   8.401218583659087,
+   7.68406013663801
+  ],
+  "segments": [
+   {
+    "segment": "cohort=='eng'",
+    "n": 1602,
+    "estimate": 7.582214987504253,
+    "ci": [
+     6.856391874341047,
+     8.30803810066746
+    ]
+   },
+   {
+    "segment": "not (cohort=='eng')",
+    "n": 2398,
+    "estimate": 7.531041792181682,
+    "ci": [
+     6.73620304902945,
+     8.325880535333914
+    ]
+   },
+   {
+    "segment": "difference: (cohort=='eng') minus rest",
+    "estimate": 0.05117319532257092,
+    "ci": [
+     -1.02520397798507,
+     1.1275503686302117
+    ]
+   },
+   {
+    "segment": "cohort=='sales'",
+    "n": 1420,
+    "estimate": 7.450416310104585,
+    "ci": [
+     6.408732708235773,
+     8.492099911973398
+    ]
+   },
+   {
+    "segment": "not (cohort=='sales')",
+    "n": 2580,
+    "estimate": 7.607192041583324,
+    "ci": [
+     6.958949721162699,
+     8.255434362003948
+    ]
+   },
+   {
+    "segment": "difference: (cohort=='sales') minus rest",
+    "estimate": -0.15677573147873858,
+    "ci": [
+     -1.3836917157199986,
+     1.0701402527625214
+    ]
+   },
+   {
+    "segment": "q_score<50",
+    "n": 1486,
+    "estimate": 7.583690257989567,
+    "ci": [
+     6.474438786642593,
+     8.692941729336543
+    ]
+   },
+   {
+    "segment": "not (q_score<50)",
+    "n": 2514,
+    "estimate": 7.53253098817064,
+    "ci": [
+     6.9334537307292505,
+     8.13160824561203
+    ]
+   },
+   {
+    "segment": "difference: (q_score<50) minus rest",
+    "estimate": 0.05115926981892738,
+    "ci": [
+     -1.2095279979318516,
+     1.3118465375697064
+    ]
+   }
+  ],
+  "forest_cate_spread": {
+   "p10": 6.28564989738627,
+   "p50": 7.282876141028527,
+   "p90": 8.150122669281588,
+   "share_positive": 1.0
+  },
+  "sensitivity": {
+   "linear_estimate": 7.38249060778639,
+   "robustness_value": 0.42952351986628745,
+   "robustness_value_significance": 0.4122067224811016,
+   "benchmarks": [
+    {
+     "confounder": "q_score",
+     "partial_r2_outcome": 0.6297899772288988,
+     "partial_r2_treatment": 0.07345594001609748,
+     "strength": 0.21508559875097494
+    },
+    {
+     "confounder": "cohort",
+     "partial_r2_outcome": 0.02477112223426282,
+     "partial_r2_treatment": 0.03209695333547417,
+     "strength": 0.028197119612124576
+    },
+    {
+     "confounder": "yrs",
+     "partial_r2_outcome": 0.022593239157239764,
+     "partial_r2_treatment": 0.004928627459782131,
+     "strength": 0.010552424314620636
+    }
+   ],
+   "strongest_measured": {
+    "confounder": "q_score",
+    "partial_r2_outcome": 0.6297899772288988,
+    "partial_r2_treatment": 0.07345594001609748,
+    "strength": 0.21508559875097494
+   }
+  },
+  "instrument": {
+   "complier_effect_2sls": {
+    "estimate": 7.889915822297132,
+    "ci": [
+     5.671542817477119,
+     10.108288827117144
+    ],
+    "first_stage_F": 136.25241336998275
+   },
+   "bounds_on_average_effect": {
+    "lower": -36.13275556888923,
+    "upper": 41.56418185454636,
+    "note": "Bounds on the average effect for everyone using only the instrument assumptions (no monotonicity). If lower>upper the instrument assumptions are contradicted by the data or sampling noise."
+   }
+  },
+  "bad_control_illustration": {
+   "correct_controls": {
+    "estimate": 7.38249060778639,
+    "ci": [
+     6.9818273764236105,
+     7.783153839149169
+    ],
+    "columns": [
+     "cohort",
+     "yrs",
+     "q_score"
+    ]
+   },
+   "also_controlling_for_excluded": {
+    "estimate": -1.3299160649116555,
+    "ci": [
+     -1.9329842017358465,
+     -0.7268479280874643
+    ],
+    "columns": [
+     "cohort",
+     "yrs",
+     "q_score",
+     "usage_idx",
+     "kudos"
+    ]
+   },
+   "excluded_columns": [
+    "usage_idx",
+    "kudos"
+   ],
+   "note": "Illustration only: shows how the answer changes if post-treatment columns are wrongly used as controls."
+  },
+  "derived": {
+   "share_of_raw_gap_from_selection": -1.0930133457688078,
+   "hidden_factor_strength_needed_vs_strongest_measured": 1.9969887447629058,
+   "outcome_sd": 11.187970693989254,
+   "outcome_mean_treated": 74.03569321533924,
+   "outcome_mean_untreated": 70.42771972956362
+  },
+  "codebook": {
+   "has_codebook": true,
+   "no_meaning": [],
+   "unconfirmed": [
+    "flag_t",
+    "out_m",
+    "cohort",
+    "yrs",
+    "q_score",
+    "slot_open"
+   ]
+  },
+  "alternatives": {
+   "user": [
+    {
+     "name": "Treat AI-tool use as a control",
+     "why": "only right if usage_idx were recorded before the course; the brief says it was after",
+     "confounders": [
+      "cohort",
+      "yrs",
+      "q_score",
+      "usage_idx"
+     ],
+     "illustrative": true,
+     "estimate": 5.275374117405181,
+     "ci": [
+      3.8033685127398345,
+      6.747379722070527
+     ]
+    },
+    {
+     "name": "Treat recognition points as a control",
+     "why": "only right if kudos were a background trait; the brief says they partly reward training and output",
+     "confounders": [
+      "cohort",
+      "yrs",
+      "q_score",
+      "kudos"
+     ],
+     "illustrative": true,
+     "estimate": 2.4972532655843844,
+     "ci": [
+      1.497687214103541,
+      3.4968193170652278
+     ]
+    },
+    {
+     "name": "Ignore last quarter's output",
+     "why": "shows how much the manager nudging of weak performers matters",
+     "confounders": [
+      "cohort",
+      "yrs"
+     ],
+     "illustrative": true,
+     "estimate": 2.8859185987587668,
+     "ci": [
+      2.1956172455032794,
+      3.576219952014254
+     ]
+    },
+    {
+     "name": "Add the seat draw as a control",
+     "why": "if seat availability also tracked something about time zones that affects output",
+     "confounders": [
+      "cohort",
+      "yrs",
+      "q_score",
+      "slot_open"
+     ],
+     "illustrative": false,
+     "estimate": 7.710652622496421,
+     "ci": [
+      7.055943216282635,
+      8.365362028710207
+     ]
+    }
+   ],
+   "leave_one_out": [
+    {
+     "column": "cohort",
+     "estimate": 7.733694378814771,
+     "ci": [
+      7.3334125510776405,
+      8.133976206551903
+     ],
+     "shift": 0.3512037710283815
+    },
+    {
+     "column": "yrs",
+     "estimate": 7.521054285473372,
+     "ci": [
+      7.116163051548149,
+      7.925945519398596
+     ],
+     "shift": 0.13856367768698252
+    },
+    {
+     "column": "q_score",
+     "estimate": 2.7934481931036887,
+     "ci": [
+      2.16266217207799,
+      3.4242342141293873
+     ],
+     "shift": -4.589042414682702
+    }
+   ],
+   "add_one": [
+    {
+     "column": "usage_idx",
+     "left_out_because": "post-treatment: AI-tool use during the quarter, after the course; part of how training works, not a background trait",
+     "estimate": 2.872306984029027,
+     "ci": [
+      2.22406718109089,
+      3.5205467869671643
+     ],
+     "shift": -4.510183623757363
+    },
+    {
+     "column": "kudos",
+     "left_out_because": "post-treatment and a collider: recognition is given partly for completing training and partly for good output, so it is caused by both the action and the outcome",
+     "estimate": 1.6497545281741335,
+     "ci": [
+      1.2104483013150413,
+      2.0890607550332256
+     ],
+     "shift": -5.732736079612256
+    }
+   ],
+   "linear_main_spec": {
+    "estimate": 7.38249060778639,
+    "ci": [
+     6.9818273764236105,
+     7.783153839149169
+    ]
+   }
+  },
+  "structure_check": {
+   "method": "PC-style search, Fisher-z partial correlations (linear), alpha 0.001, conditioning sets up to 2",
+   "columns": [
+    "flag_t",
+    "out_m",
+    "yrs",
+    "q_score",
+    "usage_idx",
+    "kudos",
+    "slot_open"
+   ],
+   "rows": 4000,
+   "edges": [
+    [
+     "flag_t",
+     "kudos"
+    ],
+    [
+     "flag_t",
+     "out_m"
+    ],
+    [
+     "flag_t",
+     "q_score"
+    ],
+    [
+     "flag_t",
+     "slot_open"
+    ],
+    [
+     "flag_t",
+     "usage_idx"
+    ],
+    [
+     "kudos",
+     "out_m"
+    ],
+    [
+     "out_m",
+     "q_score"
+    ],
+    [
+     "out_m",
+     "usage_idx"
+    ],
+    [
+     "out_m",
+     "yrs"
+    ]
+   ],
+   "v_structures": [
+    [
+     "out_m",
+     "flag_t",
+     "slot_open"
+    ],
+    [
+     "q_score",
+     "flag_t",
+     "slot_open"
+    ],
+    [
+     "flag_t",
+     "out_m",
+     "yrs"
+    ],
+    [
+     "yrs",
+     "out_m",
+     "usage_idx"
+    ],
+    [
+     "q_score",
+     "out_m",
+     "usage_idx"
+    ]
+   ],
+   "findings": [
+    {
+     "column": "usage_idx",
+     "kind": "linked to both",
+     "text": "usage_idx is linked to both the action and the outcome. It was left out on purpose (post-treatment), which fits if it is a consequence of the action; check that reason still holds."
+    },
+    {
+     "column": "kudos",
+     "kind": "linked to both",
+     "text": "kudos is linked to both the action and the outcome. It was left out on purpose (post-treatment and a collider), which fits if it is a consequence of the action; check that reason still holds."
+    }
+   ],
+   "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."
+  },
+  "simulation_check": {
+   "planted": 7.6,
+   "reps": 3,
+   "runs": [
+    {
+     "estimate": 8.098424387891074,
+     "ci": [
+      7.629229390742916,
+      8.567619385039231
+     ],
+     "covers": false,
+     "naive": 4.175788145613566
+    },
+    {
+     "estimate": 7.824408890893255,
+     "ci": [
+      7.37888600065166,
+      8.26993178113485
+     ],
+     "covers": true,
+     "naive": 3.9927501243220007
+    },
+    {
+     "estimate": 7.5842543179956845,
+     "ci": [
+      6.90433623167602,
+      8.264172404315348
+     ],
+     "covers": true,
+     "naive": 3.88264703482335
+    }
+   ],
+   "mean_estimate": 7.835695865593337,
+   "bias": 0.23569586559333722,
+   "coverage": 0.6666666666666666,
+   "naive_mean": 4.017061768252972,
+   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect. Tests the method on this data's structure, not hidden factors."
+  }
+ },
+ "trust_tier": "B",
+ "trust_reasons": [
+  "Observational data: rests on no important unrecorded factor (cannot be checked).",
+  "Some imbalance remains after weighting (max SMD 0.12); the doubly robust main method compensates, but treat with care.",
+  "The meaning of 6 column(s) used was assumed, not confirmed by you: flag_t, out_m, cohort, yrs, q_score, slot_open. A misread column can put the diagram, and the answer, wrong."
+ ],
+ "timings_sec": {
+  "naive_difference": 0.0,
+  "regression_linear": 0.3,
+  "aipw_gbm": 6.8,
+  "aipw_spline": 0.1,
+  "ipw_gbm": 0.0,
+  "regression_gbm": 0.0,
+  "double_ml": 2.4,
+  "causal_forest": 3.0,
+  "causalpfn": 45.6
+ },
+ "manifest": {
+  "fingerprint": "ds-5dcd13d2",
+  "seed": 1729,
+  "budget": "standard",
+  "versions": {
+   "numpy": "2.4.4",
+   "pandas": "2.3.3",
+   "scipy": "1.15.3",
+   "sklearn": "1.8.0",
+   "statsmodels": "0.15.0",
+   "econml": "0.17.0",
+   "dowhy": "0.14"
+  },
+  "run_at_utc": "2026-09-26T09:20:12",
+  "runtime_sec": 91.1
+ }
+}

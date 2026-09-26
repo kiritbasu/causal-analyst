@@ -4,7 +4,7 @@
 
 ![Report headline: effect, trust grade and who gains most](docs/images/loyalty-headline.png)
 
-<p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="#quick-start">Quick start</a></p>
+<p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/ai-training/report.html">AI training</a> (grade B, three traps) · <a href="#quick-start">Quick start</a></p>
 
 **Contents:** [Why this exists](#why-this-exists) · [What it's like to use](#what-its-like-to-use) · [The report](#the-report) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Does it work?](#does-it-work) · [Which model to use](#which-model-to-use) · [Data and privacy](#data-and-privacy) · [Limitations and roadmap](#limitations-and-roadmap)
 
@@ -40,15 +40,19 @@ You attach a file and ask in your own words. The skill takes it from there, stop
 
 > 4,000 customers, 9 columns. `points_redeemed` almost perfectly predicts who joined, which usually means it's a *result* of joining. And 44% of non-members have some points, which shouldn't happen. I'll flag that.
 
-**2. It asks what only you know**, one question at a time, as clickable options:
+**2. It confirms what each column means.** Column names mislead (is `usage_idx` measured before or after the training?), so Claude writes down its reading of every column and when it was recorded, and you correct it.
+
+**3. It asks what only you know**, one question at a time, as clickable options:
 
 > Were income, tenure, age, city and last quarter's spend all recorded *before* customers joined? ○ Yes ○ Some were later ○ Not sure
 >
 > Is there anything that affects both who joins and how much they spend that isn't in this file? ○ No ○ Yes: ___ ○ Not sure
+>
+> Could past spending have driven who joined, rather than only the other way round? ○ Yes, big spenders were targeted ○ No ○ Not sure
 
-**3. You confirm the diagram and the plan.** Claude draws how it thinks things work, you correct it, and the main method is fixed before anything runs.
+**4. You confirm the diagram and the plan.** Claude draws how it thinks things work, you correct it, and the main method is fixed before anything runs. Where you weren't sure, Claude writes down the alternative diagrams too.
 
-**4. You get the report** about a minute later. It gives the answer, how much to trust it and why, who benefits most, and the randomized test that would settle it.
+**5. You get the report** about a minute later. It gives the answer, how much to trust it and why, who benefits most, and the randomized test that would settle it.
 
 ## The report
 
@@ -62,10 +66,11 @@ A self-contained HTML page: it works offline, on a phone, and prints cleanly. It
 | 4 | Where the raw gap comes from | How much of the naive difference is *who* got the action vs the action itself |
 | 5 | Methods side by side | Does the answer depend on the technique? |
 | 6 | Meet the methods | A timeline and plain-English guide to each method family |
-| 7 | Who benefits more | Effects for the groups you asked about, with ranges |
-| 8 | Why the grade | Overlap, balance, hidden-factor strength, placebo and stability checks |
-| 9 | What this rests on | Every assumption and its status; the trap that was avoided; data issues |
-| 10 | Next steps and questions | A sized randomized test, and every assumption made on your behalf |
+| 7 | What if our diagram is wrong? | The answer under alternative diagrams, and what the data itself suggests about the structure |
+| 8 | Who benefits more | Effects for the groups you asked about, with ranges |
+| 9 | Why the grade | Overlap, balance, hidden-factor strength, a planted-effect test on your own data, placebo and stability checks |
+| 10 | What this rests on | Every assumption and its status; the trap that was avoided; data issues |
+| 11 | Next steps and questions | A sized randomized test, and every assumption made on your behalf |
 
 <table>
 <tr>
@@ -73,16 +78,20 @@ A self-contained HTML page: it works offline, on a phone, and prints cleanly. It
 <td width="50%"><b>3 · How we think it works</b><br><img src="docs/images/loyalty-dag.png" alt="The causal diagram, in a picture and in words"></td>
 </tr>
 <tr>
-<td><b>4 · Where the raw gap comes from</b><br><img src="docs/images/loyalty-gap.png" alt="Where the raw gap comes from"><br><b>7 · Who benefits more</b><br><img src="docs/images/loyalty-segments.png" alt="Who benefits more"></td>
+<td><b>4 · Where the raw gap comes from</b><br><img src="docs/images/loyalty-gap.png" alt="Where the raw gap comes from"><br><b>8 · Who benefits more</b><br><img src="docs/images/loyalty-segments.png" alt="Who benefits more"></td>
 <td><b>5 · Methods side by side</b><br><img src="docs/images/loyalty-methods.png" alt="Nine methods side by side"></td>
 </tr>
 <tr>
 <td><b>6 · Meet the methods</b><br><img src="docs/images/loyalty-meet-the-methods.png" alt="Meet the methods timeline and families"></td>
-<td><b>8 · Why the grade</b><br><img src="docs/images/loyalty-trust.png" alt="Trust diagnostics"></td>
+<td><b>7 · What if our diagram is wrong?</b><br><img src="docs/images/ai-training-alternatives.png" alt="Estimates under alternative diagrams (AI training example)"></td>
 </tr>
 <tr>
-<td><b>9 · What this rests on</b><br><img src="docs/images/loyalty-assumptions.png" alt="Assumptions, the trap avoided and a data issue"></td>
-<td><b>10 · Next steps and questions</b><br><img src="docs/images/loyalty-next-steps.png" alt="Next steps and open questions"></td>
+<td><b>9 · Why the grade</b><br><img src="docs/images/loyalty-trust.png" alt="Trust diagnostics"></td>
+<td><b>10 · What this rests on</b><br><img src="docs/images/loyalty-assumptions.png" alt="Assumptions, the trap avoided and a data issue"></td>
+</tr>
+<tr>
+<td><b>11 · Next steps and questions</b><br><img src="docs/images/loyalty-next-steps.png" alt="Next steps and open questions"></td>
+<td></td>
 </tr>
 </table>
 
@@ -96,7 +105,7 @@ A self-contained HTML page: it works offline, on a phone, and prints cleanly. It
 </tr>
 </table>
 
-**Open the full reports:** [loyalty program](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html) (grade C) · [sales calls](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html) (grade D). The HTML files, data and every intermediate file are in [`examples/`](examples/).
+**Open the full reports:** [loyalty program](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html) (grade C) · [sales calls](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html) (grade D) · [AI training](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/ai-training/report.html) (grade B: a misleadingly named mediator, a collider and reverse causation). The HTML files, data and every intermediate file are in [`examples/`](examples/).
 
 ## Quick start
 
@@ -128,11 +137,11 @@ python $S/ca.py report   results.json --narrative narrative.json --out report.ht
 
 ```mermaid
 flowchart LR
-  A[Your data + question] --> B[1. Profile<br/>flags IDs, impossible values,<br/>likely post-treatment columns]
+  A[Your data + question] --> B[1. Profile + codebook<br/>flags odd values; you confirm<br/>what each column means]
   B --> C[2. The question<br/>action, outcome, target,<br/>groups to compare]
-  C --> D[3. Assumptions interview<br/>timing, assignment,<br/>hidden drivers]
-  D --> E[4. Diagram + plan<br/>expert confirms the DAG;<br/>main method fixed]
-  E --> F[5. Run<br/>estimators, diagnostics,<br/>sensitivity, trust grade]
+  C --> D[3. Assumptions interview<br/>timing, assignment, hidden drivers,<br/>reverse causation, colliders]
+  D --> E[4. Diagram + plan<br/>expert confirms the DAG;<br/>alternatives named; method fixed]
+  E --> F[5. Run<br/>estimators, diagnostics, design checks,<br/>sensitivity, trust grade]
   F --> G[6. Report<br/>designed HTML page]
   E -. not identifiable .-> H[Grade D:<br/>bounds, complier effect,<br/>test sizing]
   H --> G
@@ -162,6 +171,15 @@ For amount treatments (e.g. discount size), the skill uses g-computation with th
 - a "bad control" illustration;
 - power calculations for a confirming experiment.
 
+**Checks on the diagram itself.** A correct method on the wrong diagram gives a confident wrong answer, so the run also tests the design:
+- **Column meanings:** a codebook of what each column is and when it was recorded, drafted by Claude and confirmed by you. Unconfirmed meanings lower the grade.
+- **Reverse causation:** the plan names a before-the-action measure of the outcome (last quarter's score, prior spend) and controls for it, or the report says why not.
+- **Alternative diagrams:** the answer is re-estimated under the alternatives you named, with each control dropped in turn, and with each left-out column added. If a plausible alternative moves the answer outside the range, the grade says so.
+- **Structure second opinion:** a light PC-algorithm search on the data flags controls that look like consequences (collider patterns) and unused columns linked to both action and outcome. Its findings become questions for you, never silent edits.
+- **Planted-effect test:** the main method is rerun on your real columns and real assignment with a simulated outcome carrying a known effect. If it can't find that effect, the grade drops.
+
+These loops were prompted by Adam Kucharski's ["Confounded by confounders"](https://substack.com/home/post/p-215351864) (2026), which shows AI models reasoning well about causal structure yet getting misled by column names into controlling for mediators and colliders.
+
 **Trust grades:** **A** randomized and checks pass · **B** observational, good overlap, robust to moderate hidden bias · **C** a weakness (weak overlap, fragile to hidden bias, methods disagree) · **D** the data can't answer this.
 
 ## Does it work?
@@ -173,8 +191,9 @@ We ran the [skill-creator](https://github.com/anthropics/skills) eval loop on th
 | Loyalty program with a post-treatment trap | +$9.17 | +$9.25 (7.43–11.07), grade C, trap excluded | +$9.50 (8.3–10.7), trap excluded, no grade |
 | Benchmark case with an unmeasured confounder (not identifiable) | null | null; bounds −0.295 to −0.214 contain the truth | null; bounds −0.281 to −0.261 **miss** the truth |
 | Sales calls chosen on an unrecorded "gut feel" | ≈ +5 per 100 | grade D; 0–25 per 100 contains the truth; test sized | no headline; "6 to 16 per 100" **misses** the truth |
+| AI training: misleading mediator name, a collider, reverse causation | +7.5 | +7.55 (7.0–8.1), grade B, all three traps avoided, planted-effect test passed | +7.4 (7.0–7.8), all three traps avoided, no grade |
 
-Assertion pass rate: **100% with the skill vs 50–57% without**, at about 2–3 minutes and ~20% more tokens per run. Accuracy on clean cases is similar either way. The difference is honest ranges, abstention, pre-registration, and a report someone can act on.
+Assertion pass rate: **100% with the skill vs 50–57% without**, at about 2–3 minutes and ~20% more tokens per run. Accuracy on clean cases is similar either way; on the AI-training case both runs avoided every trap, which tells us current frontier models handle well-described traps. The skill's added value there is the checks and the audit trail: the report shows what the answer would have been under each wrong diagram. The difference is honest ranges, abstention, pre-registration, and a report someone can act on.
 
 The foundation-model cross-checks were benchmarked on 14 semi-synthetic datasets ([results](evals/foundation-models/)):
 
@@ -210,7 +229,7 @@ The model matters less for the numbers (they're scripted) and more for knowing w
 
 - **One yes/no or amount action at a time**, cross-sectional data. Difference-in-differences, regression discontinuity and multi-valued actions are not automated yet (the skill says so and offers a labelled one-off analysis).
 - **Hidden confounding can be sized, not removed.** Grades B and C still rest on "nothing important is missing". The report says exactly how strong a hidden factor would need to be.
-- **The diagram is only as good as the answers behind it.** If a column's name is misleading and nobody catches it, the diagram, and the answer, will be wrong. That's why the skill asks and the expert confirms.
+- **The diagram is only as good as the answers behind it.** If a column's name is misleading and nobody catches it, the diagram, and the answer, will be wrong. The codebook, alternative diagrams and structure check make this less likely, not impossible. The structure check uses linear tests and can miss nonlinear links.
 - **Front-door identification** is detected but not estimated in this version.
 - **Size:** comfortable up to a few hundred thousand rows on a laptop. Larger tables are what the warehouse version (below) is for.
 - **Tested on synthetic and semi-synthetic data** with known answers, plus one benchmark case. Real-world validation is ongoing.
@@ -227,9 +246,9 @@ The model matters less for the numbers (they're scripted) and more for knowing w
 
 ```
 skills/causal-analyst/     the skill: SKILL.md, scripts/, references/
-examples/                  two worked cases: data, brief, spec, results, narrative, report
+examples/                  three worked cases: data, brief, spec, results, narrative, report
 evals/                     eval scenarios, assertions, benchmark results, foundation-model study
-tests/                     smoke test (runs the full pipeline on both examples)
+tests/                     smoke test (runs the full pipeline on the examples)
 docs/images/               screenshots used in this README
 ```
 

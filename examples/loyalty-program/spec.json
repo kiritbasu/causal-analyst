@@ -1,38 +1,111 @@
 {
- "data": "data.csv",
- "treatment": "joined_loyalty",
- "outcome": "monthly_spend",
- "treatment_type": "binary",
- "estimand": "ATE",
- "confounders": [
-  "income_k",
-  "tenure_months",
-  "age",
-  "urban",
-  "prior_quarter_spend"
- ],
- "excluded": {
-  "points_redeemed": "post-treatment: recorded after joining, members only (confirmed by SME)",
-  "customer_id": "identifier"
- },
- "hidden_confounding": "none_known",
- "segments": [
-  "tenure_months<12"
- ],
- "main_method": "aipw_gbm",
- "budget": "standard",
- "seed": 1729,
- "labels": {
-  "joined_loyalty": "Joined loyalty program",
-  "monthly_spend": "Monthly spend ($)",
-  "income_k": "Household income",
-  "tenure_months": "Months as customer",
-  "age": "Age",
-  "urban": "Lives in a city",
-  "prior_quarter_spend": "Spend last quarter",
-  "points_redeemed": "Points redeemed"
- },
- "allow_external_services": [
-  "tabpfn_api"
- ]
+  "data": "data.csv",
+  "treatment": "joined_loyalty",
+  "outcome": "monthly_spend",
+  "treatment_type": "binary",
+  "estimand": "ATE",
+  "confounders": [
+    "income_k",
+    "tenure_months",
+    "age",
+    "urban",
+    "prior_quarter_spend"
+  ],
+  "excluded": {
+    "points_redeemed": "post-treatment: recorded after joining, members only (confirmed by SME)",
+    "customer_id": "identifier"
+  },
+  "hidden_confounding": "none_known",
+  "segments": [
+    "tenure_months<12"
+  ],
+  "main_method": "aipw_gbm",
+  "budget": "standard",
+  "seed": 1729,
+  "labels": {
+    "joined_loyalty": "Joined loyalty program",
+    "monthly_spend": "Monthly spend ($)",
+    "income_k": "Household income",
+    "tenure_months": "Months as customer",
+    "age": "Age",
+    "urban": "Lives in a city",
+    "prior_quarter_spend": "Spend last quarter",
+    "points_redeemed": "Points redeemed"
+  },
+  "allow_external_services": [
+    "tabpfn_api"
+  ],
+  "codebook": {
+    "customer_id": {
+      "meaning": "identifier",
+      "recorded": "-",
+      "confirmed": true
+    },
+    "income_k": {
+      "meaning": "household income, $k",
+      "recorded": "at account creation",
+      "confirmed": true
+    },
+    "tenure_months": {
+      "meaning": "months as a customer",
+      "recorded": "at the start of the period, before anyone joined",
+      "confirmed": true
+    },
+    "age": {
+      "meaning": "customer age",
+      "recorded": "at account creation",
+      "confirmed": true
+    },
+    "urban": {
+      "meaning": "1 = lives in an urban area",
+      "recorded": "at account creation",
+      "confirmed": true
+    },
+    "prior_quarter_spend": {
+      "meaning": "total spend in the quarter before the launch ($)",
+      "recorded": "before the program launched",
+      "confirmed": true
+    },
+    "joined_loyalty": {
+      "meaning": "1 = joined the loyalty program",
+      "recorded": "during the launch window",
+      "confirmed": true
+    },
+    "points_redeemed": {
+      "meaning": "loyalty points redeemed",
+      "recorded": "during the outcome month",
+      "confirmed": true
+    },
+    "monthly_spend": {
+      "meaning": "spend in the outcome month ($)",
+      "recorded": "the month after the launch window",
+      "confirmed": true
+    }
+  },
+  "outcome_baseline": "prior_quarter_spend",
+  "alternatives": [
+    {
+      "name": "Treat points redeemed as a control",
+      "why": "shows the trap: points are earned after joining, members only",
+      "add": [
+        "points_redeemed"
+      ],
+      "illustrative": true
+    },
+    {
+      "name": "Drop prior-quarter spend",
+      "why": "if past spending did not drive who joined (the brief says it did; shown to illustrate)",
+      "remove": [
+        "prior_quarter_spend"
+      ],
+      "illustrative": true
+    },
+    {
+      "name": "Drop age",
+      "why": "if age did not drive who joined",
+      "remove": [
+        "age"
+      ]
+    }
+  ]
 }

@@ -52,6 +52,20 @@ identifiers, impossible values, columns that are non-zero almost only for treate
 `--treatment/--outcome` once you know them so the post-treatment flags appear. Surface data
 problems to the SME; never silently fix them.
 
+**Read every column, then confirm the readings.** Misreading what a column *is* is the most
+damaging error in this work: a cryptic name like `kudos` or `usage_idx` can hide a consequence of
+the action, and a wrong reading puts the whole diagram wrong. Draft a codebook:
+
+```bash
+python scripts/ca.py codebook --data <file> --treatment <col> --outcome <col> --out <run>/codebook.json
+```
+
+Fill in, for each column, your one-line reading of what it is and when it is recorded relative to
+the action, from the brief and data dictionary first and the name last. Show the SME the readings
+as a short table and ask them to confirm or correct (one question: "Here's how I read your
+columns. Anything wrong?"). Copy the result into the spec's `codebook`, with `confirmed: true`
+only for readings the SME confirmed; unconfirmed readings are labelled "assumed" in the report.
+
 ### Step 2: ✋ The question
 
 Work out with the SME, in their words:
@@ -80,6 +94,12 @@ The essentials:
    but cannot affect the outcome otherwise; or a measured middle step all the effect flows through.
 5. **Interference:** Can one unit's treatment affect another's outcome? If yes, flag it; the
    standard methods assume not.
+6. **Reverse causation:** Could earlier results have driven who got the action (e.g. weaker
+   performers sent to training)? Ask for a measure of the outcome from *before* the action and
+   name it in `outcome_baseline` (and include it as a control). Without one, the report says so.
+7. **Colliders and consequences:** for each candidate control, "Could the action, or the outcome
+   itself, change this column?" Recognition that is partly *for* good results, or usage that follows
+   training, is a consequence, not a control. Move it to `excluded`.
 
 ### Step 4: ✋ Plan and approval
 
@@ -102,6 +122,14 @@ again until it looks right or they are unsure (then proceed and record it as an 
 - Something that happens after the action → move to `excluded` with reason "post-treatment".
 - An arrow between two other factors (e.g. income affects past spend) → `extra_edges`.
 - "The action can't affect X" or "X doesn't affect the outcome" → adjust accordingly and note it.
+
+**Name the plausible alternatives.** Wherever you or the SME were unsure (a column that might be a
+control or a consequence, a driver that might not matter), add an entry to `alternatives` in the
+spec, e.g. `{"name": "Treat tool use as a control", "why": "if it was recorded before the course",
+"add": ["usage_idx"]}`. The run re-estimates under each one, and automatically under "one
+left-out column added" and "one control dropped". The report then shows how much the answer
+depends on the diagram. The main result stays as planned. Alternatives you add only to show a trap
+that the brief already rules out get `"illustrative": true`, so they are drawn but don't lower the grade.
 
 Read the `warnings` the `dag` command prints (loops, a control the action affects, a nudge with
 another route to the outcome) and resolve them with the SME before running. `dag.mmd` holds the
@@ -126,6 +154,17 @@ The run prints progress lines to stderr. Tool calls often time out after about 2
 anything bigger than a few thousand rows start it in the background (`... &`, or your tool's
 background option) and check `run.log` until `results.json` appears, rather than re-running it.
 Do not start two runs at once on the same machine; they compete for CPU.
+
+The run also checks the design itself:
+- **alternative diagrams** (above);
+- a **structure check**: a data-driven search that flags controls that look like consequences,
+  controls with no link, and unused columns linked to both action and outcome. Take its findings
+  back to the SME as questions. On its own this kind of search is often wrong, so never let it
+  change the diagram by itself;
+- a **simulation check**: your real controls and real assignment, with a simulated outcome carrying
+  a known effect, to see whether the main method recovers it on this data's structure.
+Unconfirmed column meanings, a missing before-the-action outcome, alternatives that move the answer,
+collider-like patterns and a failed simulation check all appear in the trust reasons.
 
 `results.json` holds: identification, main result, every sensitivity estimate, overlap and
 balance, placebo, random-common-cause and 80%-subset checks, hidden-bias sensitivity

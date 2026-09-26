@@ -1,0 +1,105 @@
+{
+  "eyebrow": "AI-tools training course",
+  "title": "Did the AI-tools training raise productivity, and by how much?",
+  "answer_html": "Most likely yes: taking the course raised this quarter's output score by about <strong>7.6 points per employee</strong> (likely range 7.0 to 8.1). This rests on one key assumption: that nothing important about who signed up is missing from the data beyond department, tenure and last quarter's score. The random seat draw gives a separate check that lands in the same place.",
+  "decimals": 1,
+  "effect_label": "Effect of taking the course",
+  "unit": "output-score points per employee, this quarter",
+  "units": "employees",
+  "group_names": {
+    "treated": "took the course",
+    "untreated": "did not"
+  },
+  "labels": {
+    "cohort=='eng'": "Engineering",
+    "not (cohort=='eng')": "Sales and ops",
+    "cohort=='sales'": "Sales",
+    "not (cohort=='sales')": "Engineering and ops",
+    "q_score<50": "Weak last quarter (score under 50)",
+    "not (q_score<50)": "Last quarter 50 or more",
+    "flag_t": "Took AI training",
+    "out_m": "Output score this quarter",
+    "q_score": "Output score last quarter",
+    "yrs": "Years at company",
+    "cohort": "Department",
+    "slot_open": "Seat open in time zone (random draw)",
+    "usage_idx": "AI-tool use (after course)",
+    "kudos": "Recognition points"
+  },
+  "data_title": "The data",
+  "data_text": "4,000 employees, one row each: the course flag, this quarter's output score, and background traits recorded before the course. Column meanings come from your brief and were not confirmed with you.",
+  "dag_confirmed": false,
+  "dag_title": "How we think it works",
+  "dag_text": "Department, tenure and last quarter's score affect both who took the course and this quarter's output. The random seat draw only changes who could take it. AI-tool use and recognition points come after the course, so they are not treated as background traits.",
+  "dag_note": "Drawn from the brief; not yet confirmed by you.",
+  "caution_bullets": [
+    "Sign-up was voluntary. If something unrecorded, such as personal drive, pushed people both to sign up and to produce more, the number could be off. A hidden factor would need to be about twice as strong as last quarter's score, the strongest driver we measured, to erase the effect.",
+    "The random seat draw points the same way: for employees whose participation depended on getting a seat, the effect was about 7.9 points (range 5.7 to 10.1).",
+    "Every column meaning and the diagram were read from your brief and are not yet confirmed by you."
+  ],
+  "segment_card_title": "Who gained most",
+  "segment_card_note": "No clear differences: engineering, sales and ops, and employees with a weak last quarter all gained by about the same amount.",
+  "segment_title": "Did some groups gain more?",
+  "segment_text": "The gains look very similar across departments and for people who had a weak previous quarter. The differences between groups are well under one point and could easily be zero.",
+  "gap_title": "The raw gap understates the effect",
+  "gap_text": "Employees who took the course scored about 3.6 points more than those who didn't. But managers nudged people with a weak previous quarter to sign up, so the course group started lower. Comparing like with like, the effect is about twice the raw gap.",
+  "naive_label": "Raw gap (course takers started lower)",
+  "selection_label": "Who took the course",
+  "action_label": "The course",
+  "methods_title": "Do different methods agree?",
+  "methods_text": "All the adjusted methods land between about 7.2 and 8.6 points, and the estimate using only the random seat draw (about 7.9) agrees. The main method was fixed before any results were seen.",
+  "overlap_title": "Were there comparable people in both groups?",
+  "hidden_note": "A hidden factor would need to be about twice as strong as last quarter's output score to erase this. That is a high bar, and the random seat draw gives a check that does not rely on this assumption.",
+  "trust_title": "Why the grade is B, not A",
+  "trust_text": "The course was not randomly assigned, so the answer depends on having recorded what drove sign-up. The checks pass: a fake, randomly shuffled course flag showed no effect, as it should; the answer holds on random 80% slices of the data; and the random seat draw agrees. After reweighting the two groups look close to alike, with a small leftover difference the main method corrects for.",
+  "alternatives_title": "What if our diagram is wrong?",
+  "alternatives_text": "Three of the alternatives below are ones your brief rules out; we ran them to show how much the choice matters. Treating AI-tool use (about 5.3) or recognition points (about 2.5) as background traits would shrink the answer, because both come after the course. Ignoring last quarter's score (about 2.9) would miss that managers sent weaker performers to the course. The one genuinely open alternative, adding the seat draw as a control, gives about 7.7, in line with the main result.",
+  "trap_title": "Why we left AI-tool use and recognition points out",
+  "trap_text": "AI-tool use happens after the course and is likely part of how it works. Recognition points are given partly for finishing training and partly for good output, so they are caused by both. Controlling for both would turn the answer into a small negative number (about minus 1.3 points), which is an artefact, not a finding.",
+  "data_issues": [
+    {
+      "title": "23 negative AI-tool use values",
+      "text": "A usage index below zero looks impossible. It does not affect the main answer (the column is not used as a control), but worth checking in the tool logs."
+    },
+    {
+      "title": "Most non-participants also use AI tools",
+      "text": "Almost every employee who did not take the course still shows some AI-tool use. That is plausible, but it means the course is compared with 'using AI tools without training', not with 'no AI tools'."
+    }
+  ],
+  "next_steps": [
+    {
+      "title": "Use the seat draw again for the next rollout.",
+      "text": "The random seat draw worked as a natural experiment here. Keeping seat allocation random in the next wave, and recording who was offered a seat, would firm this up to an A-grade answer."
+    },
+    {
+      "title": "Check whether the gain lasts.",
+      "text": "This measures one quarter. Pull next quarter's output score for the same employees to see if the effect holds, grows or fades."
+    },
+    {
+      "title": "Treat 7.6 points as the effect for everyone, on average.",
+      "text": "It is the average across all employees. The group comparisons suggest similar gains for people who have not taken it yet, which supports offering it more widely."
+    }
+  ],
+  "questions": [
+    {
+      "title": "Did we read your columns correctly?",
+      "text": "All column meanings came from your brief (e.g. q_score is last quarter's output on the same scale, usage_idx and kudos are recorded after the course). You were unavailable, so these are assumed, not confirmed."
+    },
+    {
+      "title": "What else drove sign-up?",
+      "text": "Your brief says it was voluntary and that managers nudged weak performers. We assumed that last quarter's score captures the nudge and that no other unrecorded driver (like personal motivation) matters much. The sensitivity check and the seat draw both suggest this is reasonable, but please tell us if you know of one."
+    },
+    {
+      "title": "Is the seat draw truly random with respect to output?",
+      "text": "We assumed seat availability in a time zone affects output only through the course. If time zones differ in workload or team, that assumption weakens; adding the draw as a control barely moved the answer."
+    },
+    {
+      "title": "Average for everyone, or just for those who took it?",
+      "text": "We reported the average effect across all employees (the default), since leadership asked whether the training raises productivity. The group results suggest the two would be similar."
+    },
+    {
+      "title": "Is 'out_m' the right productivity measure?",
+      "text": "We used this quarter's output score as productivity, as the brief describes."
+    }
+  ]
+}

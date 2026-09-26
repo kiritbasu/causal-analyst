@@ -15,6 +15,12 @@ data already answers.
   on the units *not* treated today, who may respond less. Say so in the report; use `segments`
   or the untreated-group comparison where possible, and treat the average as an upper guide.
 
+## What each column is (ask first)
+- Show your codebook readings as a short table: column, what you think it is, when it's recorded.
+  "Here's how I read your columns. Anything wrong?" Options: All correct / Some are wrong / Not sure.
+- Why it matters: "A column that is really a result of the action, or of the outcome, will quietly
+  skew the answer if I treat it as a background trait."
+
 ## Timing (the most important question)
 - "Were {list} all recorded before {treatment happened}?" Options: Yes, all before / Some
   were recorded later / Not sure.
@@ -22,6 +28,13 @@ data already answers.
   would hide part of the effect, or even reverse it."
 - For any column flagged as non-zero mostly for treated units: "Can {column} happen without
   {treatment}? When is it recorded?"
+
+## Reverse causation and consequences
+- "Could earlier results have affected who got {treatment}? For example, were people doing worse
+  more likely to get it?" If yes or not sure: "Do you have {outcome} from before {treatment}?"
+  (becomes `outcome_baseline` and a control).
+- For any column that could be a reward or a by-product: "Could {treatment}, or {outcome} itself,
+  change {column}?" If yes, it's a consequence; leave it out.
 
 ## Assignment and hidden drivers
 - "How did {units} end up with {treatment}? Options: Picked at random / They chose it /

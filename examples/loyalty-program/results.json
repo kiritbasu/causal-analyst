@@ -35,6 +35,79 @@
   },
   "allow_external_services": [
    "tabpfn_api"
+  ],
+  "codebook": {
+   "customer_id": {
+    "meaning": "identifier",
+    "recorded": "-",
+    "confirmed": true
+   },
+   "income_k": {
+    "meaning": "household income, $k",
+    "recorded": "at account creation",
+    "confirmed": true
+   },
+   "tenure_months": {
+    "meaning": "months as a customer",
+    "recorded": "at the start of the period, before anyone joined",
+    "confirmed": true
+   },
+   "age": {
+    "meaning": "customer age",
+    "recorded": "at account creation",
+    "confirmed": true
+   },
+   "urban": {
+    "meaning": "1 = lives in an urban area",
+    "recorded": "at account creation",
+    "confirmed": true
+   },
+   "prior_quarter_spend": {
+    "meaning": "total spend in the quarter before the launch ($)",
+    "recorded": "before the program launched",
+    "confirmed": true
+   },
+   "joined_loyalty": {
+    "meaning": "1 = joined the loyalty program",
+    "recorded": "during the launch window",
+    "confirmed": true
+   },
+   "points_redeemed": {
+    "meaning": "loyalty points redeemed",
+    "recorded": "during the outcome month",
+    "confirmed": true
+   },
+   "monthly_spend": {
+    "meaning": "spend in the outcome month ($)",
+    "recorded": "the month after the launch window",
+    "confirmed": true
+   }
+  },
+  "outcome_baseline": "prior_quarter_spend",
+  "alternatives": [
+   {
+    "name": "Treat points redeemed as a control",
+    "why": "shows the trap: points are earned after joining, members only",
+    "add": [
+     "points_redeemed"
+    ],
+    "illustrative": true
+   },
+   {
+    "name": "Drop prior-quarter spend",
+    "why": "if past spending did not drive who joined (the brief says it did; shown to illustrate)",
+    "remove": [
+     "prior_quarter_spend"
+    ],
+    "illustrative": true
+   },
+   {
+    "name": "Drop age",
+    "why": "if age did not drive who joined",
+    "remove": [
+     "age"
+    ]
+   }
   ]
  },
  "dag": {
@@ -146,6 +219,496 @@
   "outcome": "monthly_spend",
   "warnings": []
  },
+ "data_overview": {
+  "rows": 4000,
+  "columns": 9,
+  "columns_shown": 9,
+  "treated_share": 0.44525,
+  "complete_rows_pct": 100.0,
+  "column_info": [
+   {
+    "column": "joined_loyalty",
+    "role": "action",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = joined the loyalty program",
+    "recorded": "during the launch window",
+    "confirmed": true,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 2219
+     },
+     {
+      "value": "1",
+      "count": 1781
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "monthly_spend",
+    "role": "outcome",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 3328,
+    "meaning": "spend in the outcome month ($)",
+    "recorded": "the month after the launch window",
+    "confirmed": true,
+    "summary": "numeric",
+    "min": 0.0,
+    "median": 86.29,
+    "mean": 88.3711325,
+    "max": 223.24,
+    "histogram": {
+     "counts": [
+      13,
+      39,
+      158,
+      381,
+      599,
+      682,
+      653,
+      545,
+      403,
+      301,
+      151,
+      58,
+      12,
+      2,
+      2,
+      1
+     ],
+     "edges": [
+      0.0,
+      13.9525,
+      27.905,
+      41.8575,
+      55.81,
+      69.7625,
+      83.715,
+      97.6675,
+      111.62,
+      125.5725,
+      139.525,
+      153.47750000000002,
+      167.43,
+      181.3825,
+      195.335,
+      209.28750000000002,
+      223.24
+     ]
+    }
+   },
+   {
+    "column": "income_k",
+    "role": "control",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 159,
+    "meaning": "household income, $k",
+    "recorded": "at account creation",
+    "confirmed": true,
+    "summary": "numeric",
+    "min": 14.0,
+    "median": 59.5,
+    "mean": 64.8505,
+    "max": 216.0,
+    "histogram": {
+     "counts": [
+      77,
+      507,
+      818,
+      938,
+      622,
+      401,
+      275,
+      151,
+      82,
+      60,
+      29,
+      17,
+      16,
+      3,
+      1,
+      3
+     ],
+     "edges": [
+      14.0,
+      26.625,
+      39.25,
+      51.875,
+      64.5,
+      77.125,
+      89.75,
+      102.375,
+      115.0,
+      127.625,
+      140.25,
+      152.875,
+      165.5,
+      178.125,
+      190.75,
+      203.375,
+      216.0
+     ]
+    }
+   },
+   {
+    "column": "tenure_months",
+    "role": "control",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 119,
+    "meaning": "months as a customer",
+    "recorded": "at the start of the period, before anyone joined",
+    "confirmed": true,
+    "summary": "numeric",
+    "min": 0.0,
+    "median": 17.0,
+    "mean": 24.04125,
+    "max": 120.0,
+    "histogram": {
+     "counts": [
+      1055,
+      736,
+      631,
+      411,
+      324,
+      224,
+      163,
+      105,
+      103,
+      65,
+      49,
+      33,
+      28,
+      17,
+      16,
+      40
+     ],
+     "edges": [
+      0.0,
+      7.5,
+      15.0,
+      22.5,
+      30.0,
+      37.5,
+      45.0,
+      52.5,
+      60.0,
+      67.5,
+      75.0,
+      82.5,
+      90.0,
+      97.5,
+      105.0,
+      112.5,
+      120.0
+     ]
+    }
+   },
+   {
+    "column": "age",
+    "role": "control",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 64,
+    "meaning": "customer age",
+    "recorded": "at account creation",
+    "confirmed": true,
+    "summary": "numeric",
+    "min": 18.0,
+    "median": 40.0,
+    "mean": 40.2875,
+    "max": 85.0,
+    "histogram": {
+     "counts": [
+      385,
+      228,
+      288,
+      421,
+      523,
+      597,
+      429,
+      361,
+      290,
+      209,
+      132,
+      68,
+      36,
+      19,
+      8,
+      6
+     ],
+     "edges": [
+      18.0,
+      22.1875,
+      26.375,
+      30.5625,
+      34.75,
+      38.9375,
+      43.125,
+      47.3125,
+      51.5,
+      55.6875,
+      59.875,
+      64.0625,
+      68.25,
+      72.4375,
+      76.625,
+      80.8125,
+      85.0
+     ]
+    }
+   },
+   {
+    "column": "urban",
+    "role": "control",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = lives in an urban area",
+    "recorded": "at account creation",
+    "confirmed": true,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "1",
+      "count": 2387
+     },
+     {
+      "value": "0",
+      "count": 1613
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "prior_quarter_spend",
+    "role": "control",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 3481,
+    "meaning": "total spend in the quarter before the launch ($)",
+    "recorded": "before the program launched",
+    "confirmed": true,
+    "summary": "numeric",
+    "min": 1.22,
+    "median": 65.63499999999999,
+    "mean": 75.2114,
+    "max": 330.47,
+    "histogram": {
+     "counts": [
+      320,
+      766,
+      803,
+      696,
+      516,
+      331,
+      232,
+      147,
+      92,
+      40,
+      21,
+      14,
+      5,
+      8,
+      5,
+      4
+     ],
+     "edges": [
+      1.22,
+      21.798125,
+      42.37625,
+      62.954375,
+      83.5325,
+      104.110625,
+      124.68875,
+      145.266875,
+      165.845,
+      186.423125,
+      207.00125,
+      227.579375,
+      248.1575,
+      268.735625,
+      289.31375,
+      309.891875,
+      330.47
+     ]
+    }
+   },
+   {
+    "column": "customer_id",
+    "role": "left out",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 4000,
+    "why_left_out": "identifier",
+    "meaning": "identifier",
+    "recorded": "-",
+    "confirmed": true,
+    "summary": "numeric",
+    "min": 100001.0,
+    "median": 102000.5,
+    "mean": 102000.5,
+    "max": 104000.0,
+    "histogram": {
+     "counts": [
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250
+     ],
+     "edges": [
+      100001.0,
+      100250.9375,
+      100500.875,
+      100750.8125,
+      101000.75,
+      101250.6875,
+      101500.625,
+      101750.5625,
+      102000.5,
+      102250.4375,
+      102500.375,
+      102750.3125,
+      103000.25,
+      103250.1875,
+      103500.125,
+      103750.0625,
+      104000.0
+     ]
+    }
+   },
+   {
+    "column": "points_redeemed",
+    "role": "left out",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 64,
+    "why_left_out": "post-treatment: recorded after joining, members only (confirmed by SME)",
+    "meaning": "loyalty points redeemed",
+    "recorded": "during the outcome month",
+    "confirmed": true,
+    "summary": "numeric",
+    "min": 0.0,
+    "median": 4.0,
+    "mean": 15.9,
+    "max": 66.0,
+    "histogram": {
+     "counts": [
+      2074,
+      145,
+      11,
+      32,
+      88,
+      117,
+      219,
+      270,
+      374,
+      284,
+      216,
+      108,
+      40,
+      13,
+      7,
+      2
+     ],
+     "edges": [
+      0.0,
+      4.125,
+      8.25,
+      12.375,
+      16.5,
+      20.625,
+      24.75,
+      28.875,
+      33.0,
+      37.125,
+      41.25,
+      45.375,
+      49.5,
+      53.625,
+      57.75,
+      61.875,
+      66.0
+     ]
+    }
+   }
+  ],
+  "sample_rows": [
+   {
+    "joined_loyalty": 0.0,
+    "monthly_spend": 80.99,
+    "income_k": 60.0,
+    "tenure_months": 4.0,
+    "age": 60.0,
+    "urban": 1.0,
+    "prior_quarter_spend": 42.43,
+    "customer_id": 100001.0,
+    "points_redeemed": 0.0
+   },
+   {
+    "joined_loyalty": 1.0,
+    "monthly_spend": 97.85,
+    "income_k": 68.0,
+    "tenure_months": 16.0,
+    "age": 36.0,
+    "urban": 0.0,
+    "prior_quarter_spend": 109.41,
+    "customer_id": 100002.0,
+    "points_redeemed": 32.0
+   },
+   {
+    "joined_loyalty": 1.0,
+    "monthly_spend": 129.24,
+    "income_k": 54.0,
+    "tenure_months": 70.0,
+    "age": 42.0,
+    "urban": 1.0,
+    "prior_quarter_spend": 164.11,
+    "customer_id": 100003.0,
+    "points_redeemed": 41.0
+   },
+   {
+    "joined_loyalty": 0.0,
+    "monthly_spend": 28.3,
+    "income_k": 42.0,
+    "tenure_months": 5.0,
+    "age": 56.0,
+    "urban": 1.0,
+    "prior_quarter_spend": 10.74,
+    "customer_id": 100004.0,
+    "points_redeemed": 0.0
+   },
+   {
+    "joined_loyalty": 0.0,
+    "monthly_spend": 51.89,
+    "income_k": 50.0,
+    "tenure_months": 41.0,
+    "age": 66.0,
+    "urban": 0.0,
+    "prior_quarter_spend": 52.83,
+    "customer_id": 100005.0,
+    "points_redeemed": 0.0
+   }
+  ]
+ },
  "identification": {
   "treatment": "joined_loyalty",
   "outcome": "monthly_spend",
@@ -168,11 +731,11 @@
   "explanation": "Comparing like with like on the recorded pre-treatment traits identifies the effect, provided nothing important that drives both treatment and outcome is missing from the data.",
   "dowhy": {
    "backdoor_variables": [
-    "tenure_months",
-    "age",
     "income_k",
+    "prior_quarter_spend",
     "urban",
-    "prior_quarter_spend"
+    "age",
+    "tenure_months"
    ],
    "instruments": [],
    "frontdoor": [],
@@ -183,11 +746,11 @@
     "Estimand name: backdoor",
     "Estimand expression:",
     "        d                                                                      \u21aa",
-    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[monthly_spend|tenure_months,age,income_k,urban,prior_quart \u21aa",
+    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[monthly_spend|income_k,prior_quarter_spend,urban,age,tenur \u21aa",
     "d[joined_loyalty]                                                              \u21aa",
     "",
     "\u21aa           ",
-    "\u21aa er_spend])",
+    "\u21aa e_months])",
     "\u21aa           "
    ]
   }
@@ -276,8 +839,8 @@
   "causalpfn": {
    "estimate": 8.766945756912232,
    "ci": [
-    8.03194808959961,
-    9.466191291809082
+    8.048670768737793,
+    9.458099365234375
    ],
    "note": "Causal foundation model; interval is the model's own and tends to be too narrow."
   },
@@ -422,23 +985,30 @@
   ],
   "max_abs_smd_after": 0.06409609888337302,
   "placebo_permuted_treatment": {
-   "estimate": -0.8671311014399131,
+   "estimate": -0.3610764567932233,
    "ci": [
-    -1.88027711476064,
-    0.14601491188081372
+    -0.8139133979278907,
+    0.09176048434144418
+   ],
+   "shuffles": [
+    -0.8671311014399131,
+    -0.2481024337450334,
+    -0.019793426168331896,
+    0.10548017659829458,
+    -0.7758354992111327
    ],
    "passes": true
   },
   "random_common_cause": {
-   "estimate": 9.343219730696969,
-   "change": 0.09041516663062055
+   "estimate": 8.884002307431132,
+   "change": -0.3688022566352167
   },
   "subset_80pct_estimates": [
-   8.95876826402167,
-   8.580891260916964,
-   8.271522023264847,
-   9.343651299039003,
-   9.677055045079854
+   10.488536446857884,
+   8.554594185495482,
+   8.63677897526542,
+   8.713218102652629,
+   9.173612975104815
   ],
   "segments": [
    {
@@ -469,7 +1039,7 @@
    }
   ],
   "forest_cate_spread": {
-   "p10": 4.539380429705869,
+   "p10": 4.539380429705868,
    "p50": 7.076005970022962,
    "p90": 12.277377374109788,
    "share_positive": 1.0
@@ -558,6 +1128,243 @@
    "outcome_sd": 30.95245579792376,
    "outcome_mean_treated": 107.65747332959013,
    "outcome_mean_untreated": 72.89164939161785
+  },
+  "codebook": {
+   "has_codebook": true,
+   "no_meaning": [],
+   "unconfirmed": []
+  },
+  "alternatives": {
+   "user": [
+    {
+     "name": "Treat points redeemed as a control",
+     "why": "shows the trap: points are earned after joining, members only",
+     "confounders": [
+      "income_k",
+      "tenure_months",
+      "age",
+      "urban",
+      "prior_quarter_spend",
+      "points_redeemed"
+     ],
+     "illustrative": true,
+     "estimate": -13.977313737102598,
+     "ci": [
+      -17.590934158114948,
+      -10.363693316090247
+     ]
+    },
+    {
+     "name": "Drop prior-quarter spend",
+     "why": "if past spending did not drive who joined (the brief says it did; shown to illustrate)",
+     "confounders": [
+      "income_k",
+      "tenure_months",
+      "age",
+      "urban"
+     ],
+     "illustrative": true,
+     "estimate": 33.14890133217699,
+     "ci": [
+      31.200075062536243,
+      35.09772760181774
+     ]
+    },
+    {
+     "name": "Drop age",
+     "why": "if age did not drive who joined",
+     "confounders": [
+      "income_k",
+      "tenure_months",
+      "urban",
+      "prior_quarter_spend"
+     ],
+     "illustrative": false,
+     "estimate": 9.440487353626008,
+     "ci": [
+      7.894190061374028,
+      10.986784645877988
+     ]
+    }
+   ],
+   "leave_one_out": [
+    {
+     "column": "income_k",
+     "estimate": 12.829898526584326,
+     "ci": [
+      11.548936913340082,
+      14.11086013982857
+     ],
+     "shift": 2.6987370627964236
+    },
+    {
+     "column": "tenure_months",
+     "estimate": 9.931004543307004,
+     "ci": [
+      8.761325234752002,
+      11.100683851862007
+     ],
+     "shift": -0.2001569204808984
+    },
+    {
+     "column": "age",
+     "estimate": 10.142294563759286,
+     "ci": [
+      8.974114657540031,
+      11.31047446997854
+     ],
+     "shift": 0.011133099971383231
+    },
+    {
+     "column": "urban",
+     "estimate": 10.91136743615114,
+     "ci": [
+      9.767212804401023,
+      12.055522067901258
+     ],
+     "shift": 0.7802059723632375
+    },
+    {
+     "column": "prior_quarter_spend",
+     "estimate": 33.491305884767016,
+     "ci": [
+      31.86547893673088,
+      35.11713283280315
+     ],
+     "shift": 23.36014442097911
+    }
+   ],
+   "add_one": [
+    {
+     "column": "points_redeemed",
+     "left_out_because": "post-treatment: recorded after joining, members only (confirmed by SME)",
+     "estimate": -22.00665945558051,
+     "ci": [
+      -25.503707267742108,
+      -18.509611643418914
+     ],
+     "shift": -32.137820919368416
+    }
+   ],
+   "linear_main_spec": {
+    "estimate": 10.131161463787903,
+    "ci": [
+     8.96239299916969,
+     11.299929928406115
+    ]
+   }
+  },
+  "structure_check": {
+   "method": "PC-style search, Fisher-z partial correlations (linear), alpha 0.001, conditioning sets up to 2",
+   "columns": [
+    "joined_loyalty",
+    "monthly_spend",
+    "income_k",
+    "tenure_months",
+    "age",
+    "urban",
+    "prior_quarter_spend",
+    "points_redeemed"
+   ],
+   "rows": 4000,
+   "edges": [
+    [
+     "income_k",
+     "monthly_spend"
+    ],
+    [
+     "joined_loyalty",
+     "monthly_spend"
+    ],
+    [
+     "joined_loyalty",
+     "points_redeemed"
+    ],
+    [
+     "joined_loyalty",
+     "prior_quarter_spend"
+    ],
+    [
+     "monthly_spend",
+     "points_redeemed"
+    ],
+    [
+     "monthly_spend",
+     "prior_quarter_spend"
+    ],
+    [
+     "points_redeemed",
+     "prior_quarter_spend"
+    ]
+   ],
+   "v_structures": [
+    [
+     "income_k",
+     "monthly_spend",
+     "prior_quarter_spend"
+    ]
+   ],
+   "findings": [
+    {
+     "column": "tenure_months",
+     "kind": "no link",
+     "text": "No direct link from tenure_months to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."
+    },
+    {
+     "column": "age",
+     "kind": "no link",
+     "text": "No direct link from age to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."
+    },
+    {
+     "column": "urban",
+     "kind": "no link",
+     "text": "No direct link from urban to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."
+    },
+    {
+     "column": "points_redeemed",
+     "kind": "linked to both",
+     "text": "points_redeemed is linked to both the action and the outcome. It was left out on purpose (post-treatment), which fits if it is a consequence of the action; check that reason still holds."
+    }
+   ],
+   "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."
+  },
+  "simulation_check": {
+   "planted": 9.3,
+   "reps": 3,
+   "runs": [
+    {
+     "estimate": 9.47915124471069,
+     "ci": [
+      8.102039041543373,
+      10.856263447878009
+     ],
+     "covers": true,
+     "naive": 32.974169989163855
+    },
+    {
+     "estimate": 7.504251650563365,
+     "ci": [
+      5.878358452787207,
+      9.130144848339523
+     ],
+     "covers": false,
+     "naive": 31.74122281375675
+    },
+    {
+     "estimate": 9.694652372770786,
+     "ci": [
+      7.4646685365421135,
+      11.924636208999459
+     ],
+     "covers": true,
+     "naive": 32.093652853537094
+    }
+   ],
+   "mean_estimate": 8.89268508934828,
+   "bias": -0.40731491065172065,
+   "coverage": 0.6666666666666666,
+   "naive_mean": 32.2696818854859,
+   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect. Tests the method on this data's structure, not hidden factors."
   }
  },
  "trust_tier": "C",
@@ -569,14 +1376,14 @@
  "timings_sec": {
   "naive_difference": 0.0,
   "regression_linear": 0.3,
-  "aipw_gbm": 6.7,
-  "aipw_spline": 0.1,
+  "aipw_gbm": 8.6,
+  "aipw_spline": 0.2,
   "ipw_gbm": 0.0,
   "regression_gbm": 0.0,
-  "double_ml": 3.1,
-  "causal_forest": 3.5,
-  "causalpfn": 51.6,
-  "aipw_tabpfn": 72.7
+  "double_ml": 2.7,
+  "causal_forest": 4.5,
+  "causalpfn": 94.7,
+  "aipw_tabpfn": 69.6
  },
  "manifest": {
   "fingerprint": "ds-6e68072e",
@@ -591,470 +1398,7 @@
    "econml": "0.17.0",
    "dowhy": "0.14"
   },
-  "run_at_utc": "2026-09-26T06:45:29",
-  "runtime_sec": 158.9
- },
- "data_overview": {
-  "rows": 4000,
-  "columns": 9,
-  "columns_shown": 9,
-  "treated_share": 0.44525,
-  "complete_rows_pct": 100.0,
-  "column_info": [
-   {
-    "column": "joined_loyalty",
-    "role": "action",
-    "kind": "binary",
-    "missing_pct": 0.0,
-    "n_unique": 2,
-    "summary": "categories",
-    "top": [
-     {
-      "value": "0",
-      "count": 2219
-     },
-     {
-      "value": "1",
-      "count": 1781
-     }
-    ],
-    "other": 0
-   },
-   {
-    "column": "monthly_spend",
-    "role": "outcome",
-    "kind": "number",
-    "missing_pct": 0.0,
-    "n_unique": 3328,
-    "summary": "numeric",
-    "min": 0.0,
-    "median": 86.29,
-    "mean": 88.3711325,
-    "max": 223.24,
-    "histogram": {
-     "counts": [
-      13,
-      39,
-      158,
-      381,
-      599,
-      682,
-      653,
-      545,
-      403,
-      301,
-      151,
-      58,
-      12,
-      2,
-      2,
-      1
-     ],
-     "edges": [
-      0.0,
-      13.9525,
-      27.905,
-      41.8575,
-      55.81,
-      69.7625,
-      83.715,
-      97.6675,
-      111.62,
-      125.5725,
-      139.525,
-      153.47750000000002,
-      167.43,
-      181.3825,
-      195.335,
-      209.28750000000002,
-      223.24
-     ]
-    }
-   },
-   {
-    "column": "income_k",
-    "role": "control",
-    "kind": "number",
-    "missing_pct": 0.0,
-    "n_unique": 159,
-    "summary": "numeric",
-    "min": 14.0,
-    "median": 59.5,
-    "mean": 64.8505,
-    "max": 216.0,
-    "histogram": {
-     "counts": [
-      77,
-      507,
-      818,
-      938,
-      622,
-      401,
-      275,
-      151,
-      82,
-      60,
-      29,
-      17,
-      16,
-      3,
-      1,
-      3
-     ],
-     "edges": [
-      14.0,
-      26.625,
-      39.25,
-      51.875,
-      64.5,
-      77.125,
-      89.75,
-      102.375,
-      115.0,
-      127.625,
-      140.25,
-      152.875,
-      165.5,
-      178.125,
-      190.75,
-      203.375,
-      216.0
-     ]
-    }
-   },
-   {
-    "column": "tenure_months",
-    "role": "control",
-    "kind": "number",
-    "missing_pct": 0.0,
-    "n_unique": 119,
-    "summary": "numeric",
-    "min": 0.0,
-    "median": 17.0,
-    "mean": 24.04125,
-    "max": 120.0,
-    "histogram": {
-     "counts": [
-      1055,
-      736,
-      631,
-      411,
-      324,
-      224,
-      163,
-      105,
-      103,
-      65,
-      49,
-      33,
-      28,
-      17,
-      16,
-      40
-     ],
-     "edges": [
-      0.0,
-      7.5,
-      15.0,
-      22.5,
-      30.0,
-      37.5,
-      45.0,
-      52.5,
-      60.0,
-      67.5,
-      75.0,
-      82.5,
-      90.0,
-      97.5,
-      105.0,
-      112.5,
-      120.0
-     ]
-    }
-   },
-   {
-    "column": "age",
-    "role": "control",
-    "kind": "number",
-    "missing_pct": 0.0,
-    "n_unique": 64,
-    "summary": "numeric",
-    "min": 18.0,
-    "median": 40.0,
-    "mean": 40.2875,
-    "max": 85.0,
-    "histogram": {
-     "counts": [
-      385,
-      228,
-      288,
-      421,
-      523,
-      597,
-      429,
-      361,
-      290,
-      209,
-      132,
-      68,
-      36,
-      19,
-      8,
-      6
-     ],
-     "edges": [
-      18.0,
-      22.1875,
-      26.375,
-      30.5625,
-      34.75,
-      38.9375,
-      43.125,
-      47.3125,
-      51.5,
-      55.6875,
-      59.875,
-      64.0625,
-      68.25,
-      72.4375,
-      76.625,
-      80.8125,
-      85.0
-     ]
-    }
-   },
-   {
-    "column": "urban",
-    "role": "control",
-    "kind": "binary",
-    "missing_pct": 0.0,
-    "n_unique": 2,
-    "summary": "categories",
-    "top": [
-     {
-      "value": "1",
-      "count": 2387
-     },
-     {
-      "value": "0",
-      "count": 1613
-     }
-    ],
-    "other": 0
-   },
-   {
-    "column": "prior_quarter_spend",
-    "role": "control",
-    "kind": "number",
-    "missing_pct": 0.0,
-    "n_unique": 3481,
-    "summary": "numeric",
-    "min": 1.22,
-    "median": 65.63499999999999,
-    "mean": 75.2114,
-    "max": 330.47,
-    "histogram": {
-     "counts": [
-      320,
-      766,
-      803,
-      696,
-      516,
-      331,
-      232,
-      147,
-      92,
-      40,
-      21,
-      14,
-      5,
-      8,
-      5,
-      4
-     ],
-     "edges": [
-      1.22,
-      21.798125,
-      42.37625,
-      62.954375,
-      83.5325,
-      104.110625,
-      124.68875,
-      145.266875,
-      165.845,
-      186.423125,
-      207.00125,
-      227.579375,
-      248.1575,
-      268.735625,
-      289.31375,
-      309.891875,
-      330.47
-     ]
-    }
-   },
-   {
-    "column": "customer_id",
-    "role": "left out",
-    "kind": "number",
-    "missing_pct": 0.0,
-    "n_unique": 4000,
-    "why_left_out": "identifier",
-    "summary": "numeric",
-    "min": 100001.0,
-    "median": 102000.5,
-    "mean": 102000.5,
-    "max": 104000.0,
-    "histogram": {
-     "counts": [
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250,
-      250
-     ],
-     "edges": [
-      100001.0,
-      100250.9375,
-      100500.875,
-      100750.8125,
-      101000.75,
-      101250.6875,
-      101500.625,
-      101750.5625,
-      102000.5,
-      102250.4375,
-      102500.375,
-      102750.3125,
-      103000.25,
-      103250.1875,
-      103500.125,
-      103750.0625,
-      104000.0
-     ]
-    }
-   },
-   {
-    "column": "points_redeemed",
-    "role": "left out",
-    "kind": "number",
-    "missing_pct": 0.0,
-    "n_unique": 64,
-    "why_left_out": "post-treatment: recorded after joining, members only (confirmed by SME)",
-    "summary": "numeric",
-    "min": 0.0,
-    "median": 4.0,
-    "mean": 15.9,
-    "max": 66.0,
-    "histogram": {
-     "counts": [
-      2074,
-      145,
-      11,
-      32,
-      88,
-      117,
-      219,
-      270,
-      374,
-      284,
-      216,
-      108,
-      40,
-      13,
-      7,
-      2
-     ],
-     "edges": [
-      0.0,
-      4.125,
-      8.25,
-      12.375,
-      16.5,
-      20.625,
-      24.75,
-      28.875,
-      33.0,
-      37.125,
-      41.25,
-      45.375,
-      49.5,
-      53.625,
-      57.75,
-      61.875,
-      66.0
-     ]
-    }
-   }
-  ],
-  "sample_rows": [
-   {
-    "joined_loyalty": 0.0,
-    "monthly_spend": 80.99,
-    "income_k": 60.0,
-    "tenure_months": 4.0,
-    "age": 60.0,
-    "urban": 1.0,
-    "prior_quarter_spend": 42.43,
-    "customer_id": 100001.0,
-    "points_redeemed": 0.0
-   },
-   {
-    "joined_loyalty": 1.0,
-    "monthly_spend": 97.85,
-    "income_k": 68.0,
-    "tenure_months": 16.0,
-    "age": 36.0,
-    "urban": 0.0,
-    "prior_quarter_spend": 109.41,
-    "customer_id": 100002.0,
-    "points_redeemed": 32.0
-   },
-   {
-    "joined_loyalty": 1.0,
-    "monthly_spend": 129.24,
-    "income_k": 54.0,
-    "tenure_months": 70.0,
-    "age": 42.0,
-    "urban": 1.0,
-    "prior_quarter_spend": 164.11,
-    "customer_id": 100003.0,
-    "points_redeemed": 41.0
-   },
-   {
-    "joined_loyalty": 0.0,
-    "monthly_spend": 28.3,
-    "income_k": 42.0,
-    "tenure_months": 5.0,
-    "age": 56.0,
-    "urban": 1.0,
-    "prior_quarter_spend": 10.74,
-    "customer_id": 100004.0,
-    "points_redeemed": 0.0
-   },
-   {
-    "joined_loyalty": 0.0,
-    "monthly_spend": 51.89,
-    "income_k": 50.0,
-    "tenure_months": 41.0,
-    "age": 66.0,
-    "urban": 0.0,
-    "prior_quarter_spend": 52.83,
-    "customer_id": 100005.0,
-    "points_redeemed": 0.0
-   }
-  ]
+  "run_at_utc": "2026-09-26T09:18:19",
+  "runtime_sec": 212.8
  }
 }

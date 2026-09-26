@@ -2,6 +2,7 @@
 """causal-analyst command line.
 
   python ca.py profile  --data FILE [--treatment COL] [--outcome COL] --out profile.json
+  python ca.py codebook --data FILE --out codebook.json    (draft column meanings for Claude to fill and the SME to confirm)
   python ca.py dag      SPEC.json --outdir DIR               (causal diagram: dag.png, dag.mmd, dag.json)
   python ca.py identify SPEC.json --out identification.json
   python ca.py run      SPEC.json --out results.json      (estimates + diagnostics + trust tier)
@@ -36,11 +37,12 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
 import ca_core as core  # noqa: E402
+import ca_checks as checks  # noqa: E402
 
 BUDGETS = {
-    "quick": {"boot": 100, "seeds": 1, "forest": False, "dml": True, "subsets": 3},
-    "standard": {"boot": 200, "seeds": 3, "forest": True, "dml": True, "subsets": 5},
-    "thorough": {"boot": 500, "seeds": 5, "forest": True, "dml": True, "subsets": 10},
+    "quick": {"boot": 100, "seeds": 1, "forest": False, "dml": True, "subsets": 3, "sim_reps": 1},
+    "standard": {"boot": 200, "seeds": 3, "forest": True, "dml": True, "subsets": 5, "sim_reps": 3},
+    "thorough": {"boot": 500, "seeds": 5, "forest": True, "dml": True, "subsets": 10, "sim_reps": 10},
 }
 
 
@@ -108,6 +110,10 @@ def identify(spec) -> dict:
 
     out.update(identifiable=True, strategy="adjust for measured confounders (backdoor)", adjustment_set=conf,
                explanation="Comparing like with like on the recorded pre-treatment traits identifies the effect, provided nothing important that drives both treatment and outcome is missing from the data.")
+    if not spec.get("outcome_baseline"):
+        out["assumptions"].append("Earlier values of the outcome did not drive who got the treatment (no before-the-action measure of the outcome was named, so reverse causation can't be ruled out by adjustment).")
+    elif spec["outcome_baseline"] not in conf:
+        out["assumptions"].append(f"The earlier outcome measure '{spec['outcome_baseline']}' should be a control but is not in the controls.")
     out["assumptions"] += [
         "All controls were measured before the treatment (none are consequences of it).",
         "No important unrecorded factor drives both treatment and outcome (cannot be checked; will be sized).",
@@ -269,11 +275,18 @@ def run_binary(df, spec, B):
         diag["balance"] = bal
         diag["max_abs_smd_after"] = max([abs(b["smd_after_weighting"]) for b in bal], default=0.0)
         # placebo: permuted treatment should give ~0
+        # 5 independent shuffles; pass unless their average sits > 3 standard errors from zero
+        # (a single shuffle fails 1 time in 20 by chance alone)
         r = np.random.default_rng(seed)
-        tp = r.permutation(t)
-        ep, m0p, m1p = core.crossfit_nuisances(X, tp, y, "linear", 5, seed)
-        pl = core.aipw(y, tp, ep, m0p, m1p, estimand)
-        diag["placebo_permuted_treatment"] = {"estimate": pl["estimate"], "ci": pl["ci"], "passes": bool(pl["ci"][0] <= 0 <= pl["ci"][1])}
+        pls = []
+        for k in range(5):
+            tp = r.permutation(t)
+            ep, m0p, m1p = core.crossfit_nuisances(X, tp, y, "linear", 5, seed + k)
+            pls.append(core.aipw(y, tp, ep, m0p, m1p, estimand))
+        pm = float(np.mean([p_["estimate"] for p_ in pls]))
+        pse = float(np.mean([p_["se"] for p_ in pls]) / math.sqrt(len(pls)))
+        diag["placebo_permuted_treatment"] = {"estimate": pm, "ci": [pm - 1.96 * pse, pm + 1.96 * pse], "shuffles": [p_["estimate"] for p_ in pls],
+                                              "passes": bool(abs(pm) <= 3 * pse)}
         # random common cause
         Xr = np.column_stack([X, r.normal(size=n)])
         er, m0r, m1r = core.crossfit_nuisances(Xr, t, y, "gbm", 5, seed)
@@ -371,6 +384,31 @@ def trust_tier(ident, res, diag, main_key, spec):
         fr = res.get(fm, {})
         if main.get("ci") and fr.get("estimate") is not None and not (main["ci"][0] <= fr["estimate"] <= main["ci"][1]):
             reasons.append(f"The {fname} foundation-model cross-check ({fr['estimate']:.3g}) falls outside the main 95% range; treat the size of the effect with extra care, especially where overlap is weak.")
+    cb = diag.get("codebook") or {}
+    if cb.get("no_meaning") or cb.get("unconfirmed"):
+        cols = (cb.get("no_meaning") or []) + (cb.get("unconfirmed") or [])
+        reasons.append(f"The meaning of {len(cols)} column(s) used was assumed, not confirmed by you: {', '.join(cols[:6])}. A misread column can put the diagram, and the answer, wrong.")
+    if not spec.get("randomized") and not spec.get("outcome_baseline"):
+        reasons.append("No before-the-action measure of the outcome was named, so if past results drove who got the action (reverse causation), the estimate may be off.")
+    alt = diag.get("alternatives") or {}
+    if main.get("ci") and est is not None:
+        lo_, hi_ = main["ci"]
+        movers = [a for a in alt.get("user", []) if a.get("estimate") is not None and not a.get("illustrative") and not (lo_ <= a["estimate"] <= hi_)]
+        if movers:
+            flips = [a for a in movers if a["estimate"] * est < 0]
+            if flips and tier in ("A", "B"):
+                tier = "C"
+            reasons.append("Under an alternative diagram the answer moves outside the main range: " + "; ".join(f"{a['name']} gives {a['estimate']:.3g}" for a in movers[:3]) + ". The result depends on which diagram is right.")
+    sc = diag.get("structure_check") or {}
+    cons = [f_["column"] for f_ in sc.get("findings", []) if f_["kind"] == "possible consequence"]
+    if cons:
+        reasons.append(f"The data pattern suggests {', '.join(cons)} may be influenced by the action or the outcome (collider-like). Confirm timing; if so, it should not be a control.")
+    sim = diag.get("simulation_check") or {}
+    if sim.get("reps"):
+        rel = abs(sim["bias"]) / abs(sim["planted"]) if sim["planted"] else 0
+        if sim["coverage"] < 0.5 or rel > 0.25:
+            tier = "C" if tier in ("A", "B") else tier
+            reasons.append(f"On your data with a planted effect of {sim['planted']:.3g}, the main method recovered {sim['mean_estimate']:.3g} ({sim['coverage']:.0%} of ranges contained it). It struggles with this data's structure.")
     if main.get("ci") and est is not None and main["ci"][0] <= 0 <= main["ci"][1]:
         reasons.append("The 95% range includes zero: the data are consistent with no effect.")
     return tier, reasons
@@ -432,6 +470,29 @@ def cmd_run(a):
         tt = df[spec["treatment"]] == df[spec["treatment"]].max()
         derived["outcome_mean_treated"] = float(y_all[tt].mean()); derived["outcome_mean_untreated"] = float(y_all[~tt].mean())
     diag["derived"] = derived
+    # checks on the design itself
+    binary_t = df[spec["treatment"]].nunique() == 2
+    id_like = [c["column"] for c in overview["column_info"] if c["n_unique"] == overview["rows"] and c["kind"] in ("number", "text/id")]
+    diag["codebook"] = checks.codebook_status(spec)
+    if binary_t:
+        log("design checks: alternative diagrams, structure check")
+        try:
+            diag["alternatives"] = checks.alternative_diagrams(df, spec, int(spec.get("seed", 1729)), id_like)
+        except Exception as ex:
+            diag["alternatives"] = {"error": str(ex)[:200]}
+        try:
+            diag["structure_check"] = checks.structure_check(df, spec, id_like=id_like)
+        except Exception as ex:
+            diag["structure_check"] = {"error": str(ex)[:200]}
+        if ident.get("identifiable") and BUD.get("sim_reps") and (res.get(main_key) or {}).get("estimate") is not None:
+            log("simulation check: planting a known effect in your data")
+            m = res[main_key]["estimate"]
+            planted = float(f"{m:.2g}") if m else None
+            try:
+                diag["simulation_check"] = checks.simulation_check(df, spec, planted, BUD["sim_reps"], int(spec.get("seed", 1729)))
+            except Exception as ex:
+                diag["simulation_check"] = {"error": str(ex)[:200]}
+
     tier, reasons = trust_tier(ident, res, diag, main_key, spec)
     main_result = res.get(main_key)
     if not ident.get("identifiable"):
@@ -504,6 +565,11 @@ def cmd_figures(a):
         print(f"wrote {outdir / 'dag.png'}")
 
 
+def cmd_codebook(a):
+    df = core.load_data(a.data)
+    dump(checks.codebook_draft(df, a.treatment, a.outcome), a.out)
+
+
 def cmd_report(a):
     import ca_report
     ca_report.main(a.results, a.narrative, a.out)
@@ -529,6 +595,7 @@ def main():
     p = sub.add_parser("dag"); p.add_argument("spec"); p.add_argument("--outdir", default="."); p.set_defaults(f=cmd_dag)
     p = sub.add_parser("run"); p.add_argument("spec"); p.add_argument("--out", default="results.json"); p.set_defaults(f=cmd_run)
     p = sub.add_parser("figures"); p.add_argument("results"); p.add_argument("--outdir", default="."); p.set_defaults(f=cmd_figures)
+    p = sub.add_parser("codebook"); p.add_argument("--data", required=True); p.add_argument("--treatment"); p.add_argument("--outcome"); p.add_argument("--out", default="codebook.json"); p.set_defaults(f=cmd_codebook)
     p = sub.add_parser("report"); p.add_argument("results"); p.add_argument("--narrative"); p.add_argument("--out", default="report.html"); p.set_defaults(f=cmd_report)
     p = sub.add_parser("power"); p.add_argument("--lift", type=float, required=True); p.add_argument("--baseline", type=float); p.add_argument("--sd", type=float)
     p.add_argument("--alpha", type=float, default=0.05); p.add_argument("--power", type=float, default=0.8); p.add_argument("--ratio", type=float, default=1.0); p.add_argument("--out"); p.add_argument("--results", help="also store the result in results.json for the report"); p.set_defaults(f=cmd_power)

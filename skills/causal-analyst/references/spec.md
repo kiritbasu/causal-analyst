@@ -24,6 +24,9 @@ Paths may be absolute or relative to where you run `ca.py`.
 | `allow_external_services` | no | `["tabpfn_api"]` to allow the hosted TabPFN cross-check (sends data to Prior Labs). Only with the SME's consent. |
 | `causalpfn_max_rows` | no | Row cap for the local CausalPFN cross-check (default 20000) |
 | `report_sample_rows` | no | Rows of raw data shown in the report's data section (default 5). Set `0` for sensitive data. |
+| `codebook` | recommended | `{column: {"meaning", "recorded", "confirmed"}}`: your reading of each column and whether the SME confirmed it. Draft with `ca.py codebook`. |
+| `outcome_baseline` | recommended | Column holding the outcome measured before the action (guards against reverse causation); also list it in `confounders` |
+| `alternatives` | recommended | `[{"name", "why", "add": [...], "remove": [...]}]` or `{"name","why","confounders":[...]}`: plausible other diagrams to re-estimate under. Add `"illustrative": true` to one you include only to show a trap (e.g. controlling for a known consequence); it is drawn but does not lower the grade |
 | `segments` | no | Pandas query strings for "who benefits more", e.g. `"tenure_months<12"`, `"urban==1"`. Each is compared automatically with the rest; don't also list the complement. |
 | `main_method` | no | Default `"aipw_gbm"` (binary). Continuous main model is chosen by cross-validation automatically. |
 | `budget` | no | `"quick"`, `"standard"` (default), `"thorough"` |

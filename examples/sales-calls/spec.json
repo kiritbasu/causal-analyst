@@ -1,32 +1,81 @@
 {
- "data": "data.csv",
- "treatment": "got_sales_call",
- "outcome": "purchased_90d",
- "treatment_type": "binary",
- "estimand": "ATE",
- "confounders": [
-  "account_size",
-  "past_purchases",
-  "industry"
- ],
- "excluded": {
-  "account_id": "identifier"
- },
- "randomized": false,
- "hidden_confounding": "named_driver",
- "hidden_driver_note": "Reps decide who to call and pick accounts they feel are 'warm' / ready to buy, based on conversations, emails and gut feel. That judgement is not recorded anywhere.",
- "hidden_driver_label": "rep's sense the account is warm",
- "outcome_range": [
-  0,
-  1
- ],
- "budget": "standard",
- "seed": 1729,
- "labels": {
-  "got_sales_call": "Sales call this quarter",
-  "purchased_90d": "Purchased within 90 days",
-  "account_size": "Account size",
-  "past_purchases": "Purchases last year",
-  "industry": "Industry"
- }
+  "data": "data.csv",
+  "treatment": "got_sales_call",
+  "outcome": "purchased_90d",
+  "treatment_type": "binary",
+  "estimand": "ATE",
+  "confounders": [
+    "account_size",
+    "past_purchases",
+    "industry"
+  ],
+  "excluded": {
+    "account_id": "identifier"
+  },
+  "randomized": false,
+  "hidden_confounding": "named_driver",
+  "hidden_driver_note": "Reps decide who to call and pick accounts they feel are 'warm' / ready to buy, based on conversations, emails and gut feel. That judgement is not recorded anywhere.",
+  "hidden_driver_label": "rep's sense the account is warm",
+  "outcome_range": [
+    0,
+    1
+  ],
+  "budget": "standard",
+  "seed": 1729,
+  "labels": {
+    "got_sales_call": "Sales call this quarter",
+    "purchased_90d": "Purchased within 90 days",
+    "account_size": "Account size",
+    "past_purchases": "Purchases last year",
+    "industry": "Industry"
+  },
+  "codebook": {
+    "account_id": {
+      "meaning": "identifier",
+      "recorded": "-",
+      "confirmed": true
+    },
+    "account_size": {
+      "meaning": "small / mid / large",
+      "recorded": "at the start of the quarter",
+      "confirmed": true
+    },
+    "past_purchases": {
+      "meaning": "purchases in the previous year",
+      "recorded": "before the quarter",
+      "confirmed": true
+    },
+    "industry": {
+      "meaning": "account's industry",
+      "recorded": "at the start of the quarter",
+      "confirmed": true
+    },
+    "got_sales_call": {
+      "meaning": "1 = a rep called the account this quarter",
+      "recorded": "during the quarter",
+      "confirmed": true
+    },
+    "purchased_90d": {
+      "meaning": "1 = the account bought within 90 days of the quarter start",
+      "recorded": "end of the quarter",
+      "confirmed": true
+    }
+  },
+  "outcome_baseline": "past_purchases",
+  "alternatives": [
+    {
+      "name": "Drop past purchases",
+      "why": "if reps ignored purchase history when choosing whom to call",
+      "remove": [
+        "past_purchases"
+      ]
+    },
+    {
+      "name": "Drop industry",
+      "why": "if industry does not affect buying",
+      "remove": [
+        "industry"
+      ]
+    }
+  ]
 }

@@ -390,7 +390,8 @@ def chart_hidden(sens, labels):
         elif w > 0:
             out.append(f'<rect x="170" y="{y - 10}" width="{w:.1f}" height="20" fill="{GREY}"><title>{b["strength"]:.3f}</title></rect>')
     out.append(f'<line x1="{X(rv):.1f}" y1="8" x2="{X(rv):.1f}" y2="{ay}" stroke="{CRIT}" stroke-width="2" stroke-dasharray="5 4"/>')
-    out.append(f'<text x="{X(rv) + 6:.1f}" y="{ay - 8}" font-size="13" fill="{INK}">Needed to erase: {rv:.2f}</text>')
+    anchor, tx = ("end", X(rv) - 6) if X(rv) > 360 else ("start", X(rv) + 6)
+    out.append(f'<text x="{tx:.1f}" y="{ay - 8}" font-size="13" fill="{INK}" text-anchor="{anchor}">Needed to erase: {rv:.2f}</text>')
     out.append(f'<line x1="170" y1="{ay}" x2="460" y2="{ay}" stroke="{BASE}"/>')
     for t in nice_ticks(0, top, 4):
         if t <= top:
@@ -432,56 +433,108 @@ def _box_text(cx, cy, text, width_chars, size, fill, weight="400"):
     return "".join(f'<text x="{cx:.1f}" y="{y0 + i * size * 1.2:.1f}" font-size="{size}" font-weight="{weight}" text-anchor="middle" fill="{fill}">{e(l)}</text>' for i, l in enumerate(lines))
 
 
-def chart_dag(dag, W=508):
+def _clip(a, b, gap=3):
+    """Segment between the borders of boxes a and b (x, y, w, h)."""
+    ax, ay = a[0] + a[2] / 2, a[1] + a[3] / 2
+    bx, by = b[0] + b[2] / 2, b[1] + b[3] / 2
+    dx, dy = bx - ax, by - ay
+    def t(box):
+        tx = (box[2] / 2) / abs(dx) if dx else 9e9
+        ty = (box[3] / 2) / abs(dy) if dy else 9e9
+        return min(tx, ty)
+    L = math.hypot(dx, dy) or 1
+    ta, tb = t(a) + gap / L, t(b) + gap / L
+    return ax + dx * ta, ay + dy * ta, bx - dx * tb, by - dy * tb
+
+
+EDGE_STYLE = {"assumed": ('#6b6964', '1.3', '', 'ah'), "effect": (INK, '2.4', '', 'ahb'),
+              "hidden": ('#b5542c', '1.4', ' stroke-dasharray="5 4"', 'ahr'),
+              "after": ('#8a8883', '1.5', ' stroke-dasharray="2 4"', 'ah'),
+              "sme": ('#4a3aa7', '1.6', '', 'ahp')}
+
+
+def chart_dag(dag, W=960):
+    """Layered diagram: recorded controls on top, action -> outcome in the middle, things that
+    happen after the action and unrecorded factors below. Draws every node and every edge."""
     nodes = {n["id"]: n for n in dag["nodes"]}
     T, Y = dag["treatment"], dag["outcome"]
-    ctrl = [n for n in nodes.values() if n["role"] in ("control", "other")]
-    if len(ctrl) > 6:
+    ctrl = [n for n in dag["nodes"] if n["role"] in ("control", "other")]
+    group = {}
+    if len(ctrl) > 7:
+        for c in ctrl:
+            group[c["id"]] = "__g"
         ctrl = [{"id": "__g", "label": f"{len(ctrl)} recorded traits", "role": "control"}]
-    nudges = [n for n in nodes.values() if n["role"] == "nudge (instrument)"]
-    hidden = [n for n in nodes.values() if n["role"] == "hidden"]
-    after = [n for n in nodes.values() if n["role"] == "after the action"]
-    meds = [n for n in nodes.values() if n["role"] == "middle step"]
-    big = W > 700
-    out = [f'<svg width="100%" viewBox="0 0 {W} 300" role="img" aria-label="Causal diagram of the assumptions">',
-           '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6b6964"/></marker>'
-           '<marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#141413"/></marker>'
-           '<marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b5542c"/></marker></defs>']
-    tx0 = 20 + (90 if nudges else 0)
-    tw = 210 if big else 150
-    Tb = (tx0, 132, tw, 48)
-    Yb = (W - 20 - tw, 132, tw, 48)
+    nudges = [n for n in dag["nodes"] if n["role"] == "nudge (instrument)"]
+    hidden = [n for n in dag["nodes"] if n["role"] == "hidden"]
+    meds = [n for n in dag["nodes"] if n["role"] == "middle step"]
+    placed = {c["id"] for c in ctrl} | {x["id"] for x in nudges + hidden + meds} | {T, Y} | set(group)
+    below = [n for n in dag["nodes"] if n["id"] not in placed]
+    pos, lab = {}, {}
+    # row 0: controls
     k = max(len(ctrl), 1)
-    cw = min(150 if big else 100, (W - 8 * (k - 1)) / k)
-    x = (W - (k * cw + (k - 1) * 8)) / 2
+    cw = min(170, (W - 12 * (k - 1)) / k)
+    x = (W - (k * cw + (k - 1) * 12)) / 2
     for c in ctrl:
-        out.append(f'<rect x="{x:.1f}" y="4" width="{cw:.1f}" height="38" rx="8" fill="#f4f3ee" stroke="{BASE}"/>' + _box_text(x + cw / 2, 23, c["label"], max(6, int(cw / 6.6)), 11, INK))
-        if c.get("role") == "control":
-            out.append(f'<line x1="{x + cw / 2:.1f}" y1="44" x2="{Tb[0] + Tb[2] / 2 + (x - W / 2) / 12:.1f}" y2="130" stroke="#6b6964" stroke-width="1.2" marker-end="url(#ah)"/>')
-            out.append(f'<line x1="{x + cw / 2:.1f}" y1="44" x2="{Yb[0] + Yb[2] / 2 + (x - W / 2) / 12:.1f}" y2="130" stroke="#6b6964" stroke-width="1.2" marker-end="url(#ah)"/>')
-        x += cw + 8
-    out.append(f'<rect x="{Tb[0]}" y="{Tb[1]}" width="{Tb[2]}" height="{Tb[3]}" rx="10" fill="{BLUE}"/>' + _box_text(Tb[0] + Tb[2] / 2, 156, nodes[T]["label"], 20, 12.5, "#ffffff", "600"))
-    out.append(f'<rect x="{Yb[0]}" y="{Yb[1]}" width="{Yb[2]}" height="{Yb[3]}" rx="10" fill="#1d6b43"/>' + _box_text(Yb[0] + Yb[2] / 2, 156, nodes[Y]["label"], 20, 12.5, "#ffffff", "600"))
+        pos[c["id"]] = (x, 8, cw, 46); lab[c["id"]] = c["label"]; x += cw + 12
+    # row 1: nudge, action, outcome
+    nw = 150 if nudges else 0
+    tw = 220
+    pos[T] = (16 + (nw + 40 if nudges else 0), 150, tw, 54)
+    pos[Y] = (W - 16 - tw, 150, tw, 54)
+    for i, z in enumerate(nudges[:2]):
+        pos[z["id"]] = (8, 150 + i * 62 - (31 if len(nudges) > 1 else 0) + (4 if len(nudges) == 1 else 0), nw, 46)
+    y2 = 270
     if meds:
-        mx = (Tb[0] + Tb[2] + Yb[0]) / 2
-        out.append(f'<rect x="{mx - 50}" y="140" width="100" height="32" rx="8" fill="#f4f3ee" stroke="{BASE}"/><text x="{mx}" y="161" font-size="11.5" text-anchor="middle" fill="{INK}">{e(meds[0]["label"][:14])}</text>')
-        out.append(f'<line x1="{Tb[0] + Tb[2] + 2}" y1="156" x2="{mx - 54}" y2="156" stroke="{INK}" stroke-width="2" marker-end="url(#ahb)"/><line x1="{mx + 52}" y1="156" x2="{Yb[0] - 4}" y2="156" stroke="{INK}" stroke-width="2" marker-end="url(#ahb)"/>')
-    else:
-        out.append(f'<line x1="{Tb[0] + Tb[2] + 2}" y1="156" x2="{Yb[0] - 4}" y2="156" stroke="{INK}" stroke-width="2" marker-end="url(#ahb)"/>')
-    for i, z in enumerate(nudges[:1]):
-        out.append(f'<rect x="4" y="140" width="84" height="32" rx="8" fill="#f4f3ee" stroke="{BASE}"/>' + _box_text(46, 156, z["label"], 12, 10.5, INK))
-        out.append(f'<line x1="90" y1="156" x2="{Tb[0] - 4}" y2="156" stroke="#6b6964" stroke-width="1.2" marker-end="url(#ah)"/>')
+        mx0 = pos[T][0] + tw + 30
+        mx1 = pos[Y][0] - 30
+        mw = min(170, (mx1 - mx0 - 12 * (len(meds) - 1)) / len(meds))
+        x = (mx0 + mx1 - (len(meds) * mw + (len(meds) - 1) * 12)) / 2
+        for m in meds:
+            pos[m["id"]] = (x, 232, mw, 46); x += mw + 12
+        y2 = 330
+    # row 2: things after the action (and any other role), row 3: unrecorded factors
+    if below:
+        bw = min(180, (W - 40 - 14 * (len(below) - 1)) / len(below))
+        span = len(below) * bw + (len(below) - 1) * 14
+        x = max(20, min((W - span) / 2, W - 20 - span))
+        for b in below:
+            pos[b["id"]] = (x, y2, bw, 46); x += bw + 14
+        y2 += 90
+    for i, h in enumerate(hidden[:2]):
+        pos[h["id"]] = (W / 2 - 150 + (i - (len(hidden[:2]) - 1) / 2) * 320, y2, 300, 46)
     if hidden:
-        hx = W / 2
-        out.append(f'<rect x="{hx - 120}" y="236" width="240" height="40" rx="8" fill="#fff" stroke="#b5542c" stroke-dasharray="4 3"/>' + _box_text(hx, 256, hidden[0]["label"], 38, 11, "#b5542c"))
-        out.append(f'<line x1="{hx - 60}" y1="236" x2="{Tb[0] + Tb[2] / 2}" y2="180" stroke="#b5542c" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ahr)"/>')
-        out.append(f'<line x1="{hx + 60}" y1="236" x2="{Yb[0] + Yb[2] / 2}" y2="180" stroke="#b5542c" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ahr)"/>')
-    if after and not hidden:
-        a = after[0]
-        cx = Tb[0] + Tb[2] / 2
-        out.append(f'<line x1="{cx}" y1="178" x2="{cx}" y2="236" stroke="#8a8883" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#ah)"/>')
-        out.append(f'<rect x="{cx - 75}" y="238" width="150" height="32" rx="8" fill="#f0efec" stroke="#b5b3ab"/>' + _box_text(cx, 254, a["label"], 22, 12, INK3))
-        out.append(f'<text x="{cx + 90}" y="252" font-size="12" fill="{INK3}">happens after the action:</text><text x="{cx + 90}" y="268" font-size="12" fill="{INK3}">not controlled for</text>')
+        y2 += 60
+    H = max(y2 - 30, 220) + 16 if (below or hidden) else 224
+    out = [f'<svg width="100%" viewBox="0 0 {W} {H:.0f}" role="img" aria-label="Causal diagram of the assumptions">',
+           '<defs>' + "".join(f'<marker id="{mid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{col}"/></marker>'
+                              for mid, col in (("ah", "#6b6964"), ("ahb", INK), ("ahr", "#b5542c"), ("ahp", "#4a3aa7"))) + '</defs>']
+    seen = set()
+    for ed in dag["edges"]:
+        a, b = group.get(ed["from"], ed["from"]), group.get(ed["to"], ed["to"])
+        if a not in pos or b not in pos or a == b or (a, b) in seen:
+            continue
+        seen.add((a, b))
+        kind = "effect" if (a, b) == (T, Y) else ed.get("kind", "assumed")
+        col, sw, dash, mk = EDGE_STYLE.get(kind, EDGE_STYLE["assumed"])
+        x1, y1, x2, y2_ = _clip(pos[a], pos[b])
+        out.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2_:.1f}" stroke="{col}" stroke-width="{sw}"{dash} marker-end="url(#{mk})"/>')
+    def box(i, fill, stroke, tcol, size=13, weight="400", dash=""):
+        x_, y_, w_, h_ = pos[i]
+        label = lab.get(i) or nodes[i]["label"]
+        return (f'<rect x="{x_:.1f}" y="{y_:.1f}" width="{w_:.1f}" height="{h_}" rx="9" fill="{fill}" stroke="{stroke}"{dash}/>'
+                + _box_text(x_ + w_ / 2, y_ + h_ / 2, label, max(8, int(w_ / (size * 0.55))), size, tcol, weight))
+    for c in ctrl:
+        out.append(box(c["id"], "#f4f3ee", BASE, INK))
+    for z in nudges[:2]:
+        out.append(box(z["id"], "#efedf8", "#b9b1e0", INK, 12))
+    for m in meds:
+        out.append(box(m["id"], "#efedf8", "#b9b1e0", INK, 12.5))
+    for b in below:
+        out.append(box(b["id"], "#f0efec", "#b5b3ab", INK3, 12.5))
+    for h in hidden[:2]:
+        out.append(box(h["id"], "#ffffff", "#b5542c", "#b5542c", 12, dash=' stroke-dasharray="4 3"'))
+    out.append(box(T, BLUE, BLUE, "#ffffff", 14, "600"))
+    out.append(box(Y, "#1d6b43", "#1d6b43", "#ffffff", 14, "600"))
     out.append("</svg>")
     return "".join(out)
 
@@ -552,6 +605,10 @@ def data_section(ov, labels, names, units, n):
         chip = f'<span class="chip" style="background:{bg}"><i style="background:{fg}"></i>{e(c["role"])}</span>'
         name = labels.get(c["column"], c["column"])
         sub = f'<div class="raw">{e(c["column"])}</div>' if name != c["column"] else ""
+        if c.get("meaning"):
+            tag = "" if c.get("confirmed") else ' <span class="assumed">assumed</span>'
+            rec = f' · {e(c["recorded"])}' if c.get("recorded") and c["recorded"] not in ("the action", "the outcome", "unknown") else ""
+            sub += f'<div class="meaning">{e(c["meaning"])}{rec}{tag}</div>'
         if c["n_unique"] == ov["rows"] and c["kind"] in ("number", "text/id") and c["role"] in ("left out", "not used"):
             viz, summ = "", f'unique for every row ({c["n_unique"]:,} values)'
         elif c["summary"] == "numeric":
@@ -607,6 +664,8 @@ def dag_legend(dag):
         it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#b5542c" stroke-width="2" stroke-dasharray="5 4"/></svg>not in the data</span>')
     if "after" in kinds:
         it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#8a8883" stroke-width="2" stroke-dasharray="2 4"/></svg>happens after the action: not controlled for</span>')
+    if "sme" in kinds:
+        it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#4a3aa7" stroke-width="2"/></svg>added from what you told us</span>')
     return f'<div class="legend">{"".join(it)}</div>'
 
 
@@ -628,6 +687,87 @@ def assumption_rows(r, n, diag):
                 st = "Assumed"
             rows.append({"text": a.split(" (")[0], "status": st})
     return "".join(f'<tr><td>{e(x["text"])}</td><td>{e(x["status"])}</td></tr>' for x in rows)
+
+
+def chart_alternatives(alt, main, main_key, f, labels):
+    """Dot plot: main estimate with its range as a band, then each alternative diagram."""
+    rows = []
+    for a in alt.get("user", []):
+        if a.get("estimate") is not None:
+            rows.append(("Your alternatives", a["name"], a.get("why", ""), a["estimate"], a.get("ci"), bool(a.get("illustrative"))))
+    for a in alt.get("add_one", []):
+        rows.append(("Also controlling for a left-out column", labels.get(a["column"], a["column"]), f'left out because: {a.get("left_out_because", "")}', a["estimate"], a.get("ci"), False))
+    for a in alt.get("leave_one_out", []):
+        rows.append(("Dropping one control", "without " + labels.get(a["column"], a["column"]), "", a["estimate"], a.get("ci"), False))
+    if not rows:
+        return ""
+    lo, hi = main["ci"]
+    vals = [0.0, lo, hi, main["estimate"]] + [v for r_ in rows for v in (r_[3], *(r_[4] or []))]
+    d0, d1 = min(vals), max(vals)
+    pad = (d1 - d0) * 0.06 or 1
+    ticks = nice_ticks(d0 - pad, d1 + pad, 7)
+    X = scale(min(ticks[0], d0 - pad), max(ticks[-1], d1 + pad), 380, 1090)
+    groups, y = [], 30
+    out = []
+    band_top = 20
+    last_g = None
+    for g, name, why, est_, ci, illus in rows:
+        if g != last_g:
+            y += 14
+            out.append(f'<text x="12" y="{y + 4}" font-size="12" letter-spacing="0.06em" fill="{MUTED}">{e(g.upper())}</text>')
+            y += 26
+            last_g = g
+        out.append(f'<text x="24" y="{y + 5}" font-size="14" fill="{INK}">{e(name if len(name) <= 44 else name[:43] + "…")}</text>')
+        if ci:
+            out.append(f'<line x1="{X(ci[0]):.1f}" y1="{y}" x2="{X(ci[1]):.1f}" y2="{y}" stroke="#8a8883" stroke-width="2" stroke-linecap="round"/>')
+        outside = not (lo <= est_ <= hi)
+        col = ORANGE if outside else GREY
+        dot = f'fill="{CARD}" stroke="{col}" stroke-width="2.2"' if illus else f'fill="{col}" stroke="{CARD}" stroke-width="2"'
+        out.append(f'<circle cx="{X(est_):.1f}" cy="{y}" r="5.5" {dot}><title>{e(name)}: {e(f(est_))}{(" — " + e(why)) if why else ""}</title></circle>')
+        out.append(f'<text x="{max(X(est_), X(ci[1]) if ci else X(est_)) + 12:.1f}" y="{y + 5}" font-size="13" fill="{INK if outside else MUTED}" font-weight="{600 if outside else 400}">{e(f(est_))}</text>')
+        y += 32
+    H = y + 40
+    head = [f'<svg width="100%" viewBox="0 0 1136 {H}" role="img" aria-label="Estimate under alternative diagrams">',
+            f'<rect x="{X(lo):.1f}" y="{band_top}" width="{X(hi) - X(lo):.1f}" height="{y - band_top}" fill="rgba(42,120,214,0.10)"/>',
+            f'<line x1="{X(main["estimate"]):.1f}" y1="{band_top}" x2="{X(main["estimate"]):.1f}" y2="{y}" stroke="{BLUE}" stroke-width="2"/>',
+            f'<text x="{X(main["estimate"]):.1f}" y="{band_top - 6}" font-size="12" font-weight="600" fill="{INK}" text-anchor="middle">Main result {e(f(main["estimate"]))}</text>']
+    for t in ticks:
+        head.append(f'<text x="{X(t):.1f}" y="{y + 22}" font-size="12" fill="{MUTED}" text-anchor="middle">{e(f(t, dec=tick_dec([tt * f.k for tt in ticks])))}</text>')
+        head.append(f'<line x1="{X(t):.1f}" y1="{band_top}" x2="{X(t):.1f}" y2="{y}" stroke="{"#c3c2b7" if t == 0 else "#ecebe5"}"/>')
+    return "".join(head + out) + "</svg>"
+
+
+def structure_findings(sc, labels):
+    fs = sc.get("findings") or []
+    if not fs:
+        return '<p class="small">The data raised no questions about the diagram.</p>'
+    icon = {"possible consequence": "⚠", "linked to both": "?", "no link": "·", "action only": "·"}
+    items = []
+    for x in fs:
+        txt = x["text"].replace(x["column"], labels.get(x["column"], x["column"]), 1)
+        items.append(f'<div class="check"><span class="qi">{icon.get(x["kind"], "?")}</span><div class="small">{e(txt)}</div></div>')
+    return "".join(items)
+
+
+def chart_sim(sim, f):
+    runs = sim["runs"]
+    vals = [sim["planted"], sim["naive_mean"]] + [v for r_ in runs for v in r_["ci"]]
+    lo, hi = min(vals), max(vals)
+    pad = (hi - lo) * 0.1 or 1
+    X = scale(lo - pad, hi + pad, 150, 500)
+    H = 40 + 28 * len(runs) + 50
+    out = [f'<svg width="100%" viewBox="0 0 520 {H}" role="img" aria-label="Recovering a planted effect">',
+           f'<line x1="{X(sim["planted"]):.1f}" y1="14" x2="{X(sim["planted"]):.1f}" y2="{H - 34}" stroke="{GOODTXT}" stroke-width="2" stroke-dasharray="5 4"/>',
+           f'<text x="{X(sim["planted"]):.1f}" y="10" font-size="12" fill="{INK}" text-anchor="middle">planted {e(f(sim["planted"]))}</text>']
+    for i, r_ in enumerate(runs):
+        y = 36 + 28 * i
+        out.append(f'<text x="0" y="{y + 5}" font-size="13" fill="{INK2}">Simulation {i + 1}</text>')
+        out.append(f'<line x1="{X(r_["ci"][0]):.1f}" y1="{y}" x2="{X(r_["ci"][1]):.1f}" y2="{y}" stroke="{BLUE}" stroke-width="2" stroke-linecap="round"/>')
+        out.append(f'<circle cx="{X(r_["estimate"]):.1f}" cy="{y}" r="5.5" fill="{BLUE}" stroke="{CARD}" stroke-width="2"><title>{e(f(r_["estimate"]))}</title></circle>')
+    y = 36 + 28 * len(runs)
+    out.append(f'<text x="0" y="{y + 5}" font-size="13" fill="{INK2}">Raw gap</text><circle cx="{X(sim["naive_mean"]):.1f}" cy="{y}" r="5" fill="{ORANGE}"><title>{e(f(sim["naive_mean"]))}</title></circle>')
+    out.append(f'<text x="{X(sim["naive_mean"]) + 10:.1f}" y="{y + 5}" font-size="12" fill="{MUTED}">{e(f(sim["naive_mean"]))}</text></svg>')
+    return "".join(out)
 
 
 def check_row(title, text, extra=""):
@@ -677,7 +817,7 @@ ul.small{{padding-left:18px}}
 .mlist{{display:flex;flex-direction:column;gap:10px;border-top:1px solid #ecebe5;padding-top:12px}}
 .mrow{{font-size:14px;line-height:1.45}} .mrow span{{color:{INK2}}}
 .watch{{font-size:13px;line-height:1.5;color:{INK2};background:#f4f3ee;border-radius:10px;padding:12px 14px}}
-.check{{display:flex;gap:14px;align-items:flex-start}}
+.check{{display:flex;gap:14px;align-items:flex-start}} .qi{{flex:none;width:22px;height:22px;border-radius:50%;background:#f4f3ee;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}}
 .ctitle{{font-size:15px;font-weight:600;margin-bottom:2px}}
 .issue svg,.check svg{{flex:none}}
 .issue{{background:#fff6e0;border:1px solid #f0d59a;border-radius:16px;padding:18px 22px;display:flex;gap:12px;align-items:flex-start}}
@@ -691,9 +831,10 @@ footer b{{color:{INK};display:block}}
 .tile{{background:{CARD};border:1px solid {HAIR};border-radius:14px;padding:18px 22px}}
 .tv{{font-family:{SERIF};font-size:40px;line-height:1}} .tl{{font-size:13px;color:{MUTED};margin-top:6px}}
 .tscroll{{overflow-x:auto}}
-.dagwrap{{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px}}
+.dagwrap{{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}}
 table.assume td{{font-size:14px;vertical-align:top}}
 table.cols td{{vertical-align:middle;font-size:14px}} .cn{{font-weight:600}} .raw{{font-size:12px;color:{MUTED};font-family:ui-monospace,Menlo,monospace}}
+.meaning{{font-size:12.5px;color:{INK2};margin-top:2px;max-width:280px}} .assumed{{font-size:11px;background:#fbe6dc;border-radius:999px;padding:1px 7px;color:{INK}}}
 .sm{{color:{INK2};font-size:13px;max-width:320px}} .why{{font-size:12px;color:{MUTED};margin-top:2px}}
 .chip{{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;color:{INK};white-space:nowrap}} .chip i{{width:8px;height:8px;border-radius:50%;display:inline-block}}
 table.sample td,table.sample th{{font-size:13px;white-space:nowrap}}
@@ -747,13 +888,29 @@ def render(results: dict, narrative: dict) -> str:
     blist = f'<ul class="small">{"".join(f"<li>{e(x)}</li>" for x in bullets)}</ul>' if bullets else ""
     hero.append(card(f'<div class="eyebrow">How much to trust it</div>{grade_scale(tier)}<div class="tierword">{WARN_ICON if tier in "CD" else ""}{TIER_WORD[tier]}</div>{blist}'))
     segs = diag.get("segments") or []
-    if len(segs) >= 3 and "error" not in segs[0] and main_key:
-        a, b = segs[0], segs[1]
+    seg_ok = len(segs) >= 3 and "error" not in segs[0] and main_key
+    groups = [x for x in segs if "estimate" in x and not str(x.get("segment", "")).startswith("difference")]
+    diffs = [(i, x) for i, x in enumerate(segs) if str(x.get("segment", "")).startswith("difference") and x.get("ci")]
+    real = [(i, x) for i, x in diffs if x["ci"][0] > 0 or x["ci"][1] < 0]
+    if seg_ok and real:
+        i_, _ = max(real, key=lambda ix: abs(ix[1]["estimate"]))
+        pair = sorted([segs[i_ - 2], segs[i_ - 1]], key=lambda x: -x["estimate"])
+    elif seg_ok and diffs:
+        lo_s, hi_s = min(x["estimate"] for x in groups), max(x["estimate"] for x in groups)
+        hero.append(card(f'<div class="eyebrow">{e(n.get("segment_card_title", "Who gains most"))}</div>'
+                         f'<div class="bigrow"><span style="font-family:{SERIF};font-size:40px;line-height:1.1">About the same for everyone</span></div>'
+                         f'<p class="small">In every group we checked, the effect was between {e(f(lo_s, sign=True))} and {e(f(hi_s, sign=True))}. None of the gaps between groups is bigger than chance.</p>'
+                         f'<div class="note">{e(n.get("segment_card_note_similar", ""))}</div>'))
+        pair = None
+    else:
+        pair = segs[:2]
+    if seg_ok and pair:
+        a, b = pair
         hero.append(card(f'<div class="eyebrow">{e(n.get("segment_card_title", "Who gains most"))}</div>'
                          f'<div class="bigrow"><span class="big">{e(f(a["estimate"], sign=True, dec=n.get("hero_decimals", sig_dec(a["estimate"] * f.k))))}</span><span class="unit">{e(labels.get(a["segment"], a["segment"]))}</span></div>'
                          f'<div class="bigrow"><span style="font-family:{SERIF};font-size:34px">{e(f(b["estimate"], sign=True, dec=n.get("hero_decimals", sig_dec(b["estimate"] * f.k))))}</span><span class="unit">{e(labels.get(b["segment"], b["segment"]))}</span></div>'
                          f'<div class="note">{e(n.get("segment_card_note", ""))}</div>'))
-    elif n.get("third_card"):
+    elif not seg_ok and n.get("third_card"):
         hero.append(card(f'<div class="eyebrow">{e(n["third_card"].get("title", ""))}</div><p class="small">{e(n["third_card"].get("text", ""))}</p>'))
     P.append(f'<section class="grid{len(hero)}" style="display:grid">{"".join(hero)}</section>')
 
@@ -771,7 +928,7 @@ def render(results: dict, narrative: dict) -> str:
                 else f'<span class="chip" style="background:#fbe6dc"><i style="background:{ORANGE}"></i>Not yet confirmed</span>' if confirmed is False else "")
         warn = "".join(f'<div class="why">⚠ {e(w)}</div>' for w in r["dag"].get("warnings", []))
         P.append(section(n.get("dag_title", "How we think it works"),
-                         f'<div class="dagwrap">' + card(chart_dag(r["dag"], 1000) + dag_legend(r["dag"])) +
+                         f'<div class="dagwrap">' + card(chart_dag(r["dag"], 960) + dag_legend(r["dag"])) +
                          card(f'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>In words</h3>{chip}</div><div class="mlist" style="border:none;padding:0">{dag_in_words(r["dag"], labels)}</div>'
                               + (f'<div class="note">{e(n["dag_note"])}</div>' if n.get("dag_note") else "") + warn) + '</div>',
                          n.get("dag_text", "The causal diagram behind the analysis: each arrow means \u201caffects\u201d. It decides what to compare and what to leave out.")))
@@ -788,6 +945,16 @@ def render(results: dict, narrative: dict) -> str:
                          f'<div style="flex:{1 - wsel:.3f};background:{BLUE};border-radius:0 6px 6px 0;color:#fff" title="The action itself: {e(f(m_est))}">{e(n.get("action_label", "The action"))} · {e(f(m_est))}</div></div>'
                          f'<div class="legend" style="justify-content:space-between"><span>{e(f(0, dec=0))}</span><span>Raw gap {e(f(naive))}</span></div>',
                          n.get("gap_text")))
+
+    elif main_key and naive and m_est is not None and abs(m_est) > abs(naive):
+        W = max(abs(naive), abs(m_est))
+        bars = "".join(
+            f'<div style="display:flex;align-items:center;gap:14px"><div style="width:160px;font-size:14px;font-weight:600">{e(lab)}</div>'
+            f'<div style="flex:1"><div style="width:{100 * abs(v) / W:.1f}%;height:40px;background:{col};border-radius:0 6px 6px 0;display:flex;align-items:center;padding-left:14px;color:{tc};font-weight:600;white-space:nowrap">{e(f(v))}</div></div></div>'
+            for lab, v, col, tc in ((n.get("naive_label", "Raw gap"), naive, ORANGE, INK), (n.get("action_label", "The real effect"), m_est, BLUE, "#fff")))
+        P.append(section(n.get("gap_title", "The raw gap understates the effect"),
+                         f'<div style="display:flex;flex-direction:column;gap:10px">{bars}</div>',
+                         n.get("gap_text", "The people who got the action were, on average, headed for worse results anyway, so a simple comparison hides part of the effect.")))
 
     # forest
     order = ["aipw_gbm", "double_ml", "causal_forest", "causalpfn", "aipw_tabpfn", "aipw_spline", "regression_linear", "ipw_gbm", "regression_gbm"]
@@ -812,6 +979,20 @@ def render(results: dict, narrative: dict) -> str:
                                                   + '<span>Year = when the idea was first published</span></div>') + family_cards(keys, main_key),
                          "These methods come from three generations of thinking about cause and effect. Older ones are simpler and more transparent; newer ones handle messier patterns. Using several side by side shows whether the answer depends on the technique.")
         P.append(methods_html if main_key else f'<details><summary>About the methods above</summary>{methods_html}</details>')
+
+    # what if the diagram is wrong
+    alt = diag.get("alternatives") or {}
+    sc = diag.get("structure_check") or {}
+    if main_key and m_est is not None and main.get("ci") and (alt.get("user") or alt.get("add_one") or alt.get("leave_one_out")):
+        ch = chart_alternatives(alt, main, main_key, f, labels)
+        right = card('<h3>What the data itself suggests</h3><p class="small">A second opinion from a data-driven structure search. Treat these as questions, not answers: on its own this kind of search is often wrong.</p>'
+                     + structure_findings(sc, labels)) if sc and "findings" in sc else ""
+        P.append(section(n.get("alternatives_title", "What if our diagram is wrong?"),
+                         card(ch + '<div class="legend"><span class="lg"><svg width="14" height="14" aria-hidden="true"><rect x="1" y="1" width="12" height="12" fill="rgba(42,120,214,0.25)"/></svg>Main result and its 95% range</span>'
+                              f'<span class="lg"><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="{ORANGE}"/></svg>Moves outside the range</span>'
+                              + (f'<span class="lg"><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="{ORANGE}" stroke-width="2"/></svg>A trap your answers rule out, shown for illustration</span>' if any(a.get("illustrative") for a in alt.get("user", [])) else "") +
+                              '<span>Quick estimates, for comparison only; the main result stays as planned</span></div>') + right,
+                         n.get("alternatives_text", "The answer depends on the diagram. Here is how it would change if we had drawn it differently: a different control set, a left-out column used as a control, or one control dropped.")))
 
     # instrument / bounds detail (tier D)
     inst = diag.get("instrument") or {}
@@ -842,7 +1023,8 @@ def render(results: dict, narrative: dict) -> str:
         share = ov.get("share_below_0.05", 0) + ov.get("share_above_0.95", 0)
         trim = ov.get("trimmed_estimate")
         tnote = f' Leaving them out gives <strong>{e(f(trim["estimate"]))}</strong>.' if trim and main_key else ""
-        tcards.append(card(f'<h3>{e(n.get("overlap_title", f"{share:.0%} had few look-alikes"))}</h3>'
+        default_t = f"{share:.0%} had few look-alikes" if share >= 0.01 else "Almost everyone had look-alikes to compare with"
+        tcards.append(card(f'<h3>{e(n.get("overlap_title", default_t))}</h3>'
                            f'<p class="small">Each unit’s estimated chance of getting the action: {e(names["treated"])} above the line, {e(names["untreated"])} below. The shaded ends are near-certain cases, where comparisons are thin.</p>'
                            + chart_overlap(ov["histogram"], (names["treated"], names["untreated"])) + f'<div class="note">{share:.1%} fall in the shaded ends.{tnote}</div>'))
     if diag.get("balance"):
@@ -855,11 +1037,17 @@ def render(results: dict, narrative: dict) -> str:
         tcards.append(card('<h3>How strong would a hidden factor need to be?</h3>'
                            '<p class="small">Each bar is how strongly a recorded factor drives both the action and the outcome. A hidden factor past the dashed line could erase the effect.</p>'
                            + chart_hidden(sens, labels) + (f'<div class="note">{e(n["hidden_note"])}</div>' if n.get("hidden_note") else "")))
+    sim = diag.get("simulation_check") or {}
+    if sim.get("reps"):
+        good = sim["coverage"] >= 0.5 and abs(sim["bias"]) <= 0.25 * abs(sim["planted"] or 1)
+        tcards.append(card(f'<h3>{"Tested on your data: it finds a planted effect" if good else "Tested on your data: it struggles"}</h3>'
+                           f'<p class="small">We kept your real columns and who really got the action, simulated the outcome with a known effect of {e(f(sim["planted"]))}, and reran the main method. It recovered {e(f(sim["mean_estimate"]))} on average; {sim["coverage"]:.0%} of its ranges contained the planted value. The raw gap would have said {e(f(sim["naive_mean"]))}.</p>'
+                           + chart_sim(sim, f) + '<div class="note">This checks the method on your data’s structure. It can’t test for factors missing from the data.</div>'))
     checks = []
     pl = diag.get("placebo_permuted_treatment")
     if pl:
         checks.append((check_row if pl["passes"] else fail_row)("Fake action shows no effect" if pl["passes"] else "Fake action showed an effect",
-                      f"Shuffling who got the action at random gave {f(pl['estimate'], sign=True)}, a range that {'includes' if pl['passes'] else 'excludes'} zero."))
+                      f"Shuffling who got the action at random ({len(pl.get('shuffles', [0]))} times) gave {('about 0' if abs(pl['estimate']) < 0.5 * 10 ** -f.dec / max(f.k, 1e-12) else f(pl['estimate'], sign=True))} on average{', close to zero as it should be' if pl['passes'] else ', clearly away from zero'}."))
     rc = diag.get("random_common_cause")
     if rc:
         checks.append(check_row("Adding a random variable changes nothing", f"The estimate moved by {f(abs(rc['change']))}."))

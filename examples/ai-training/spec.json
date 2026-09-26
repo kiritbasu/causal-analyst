@@ -1,0 +1,132 @@
+{
+  "data": "data.csv",
+  "treatment": "flag_t",
+  "outcome": "out_m",
+  "treatment_type": "binary",
+  "estimand": "ATE",
+  "confounders": [
+    "cohort",
+    "yrs",
+    "q_score"
+  ],
+  "outcome_baseline": "q_score",
+  "instruments": [
+    "slot_open"
+  ],
+  "excluded": {
+    "emp": "identifier",
+    "usage_idx": "post-treatment: AI-tool use during the quarter, after the course; part of how training works, not a background trait",
+    "kudos": "post-treatment and a collider: recognition is given partly for completing training and partly for good output, so it is caused by both the action and the outcome",
+    "slot_open": "instrument (random seat draw); used only for the complier-effect cross-check, not as a control"
+  },
+  "hidden_confounding": "none_known",
+  "hidden_driver_note": "Brief says taking the course was voluntary and managers nudged people with a weak previous quarter; that driver (previous-quarter output) is recorded. Personal motivation to take the course is not recorded; the brief does not name it, so it is sized by the sensitivity analysis and checked against the random seat draw.",
+  "alternatives": [
+    {
+      "name": "Treat AI-tool use as a control",
+      "why": "only right if usage_idx were recorded before the course; the brief says it was after",
+      "add": [
+        "usage_idx"
+      ],
+      "illustrative": true
+    },
+    {
+      "name": "Treat recognition points as a control",
+      "why": "only right if kudos were a background trait; the brief says they partly reward training and output",
+      "add": [
+        "kudos"
+      ],
+      "illustrative": true
+    },
+    {
+      "name": "Ignore last quarter's output",
+      "why": "shows how much the manager nudging of weak performers matters",
+      "remove": [
+        "q_score"
+      ],
+      "illustrative": true
+    },
+    {
+      "name": "Add the seat draw as a control",
+      "why": "if seat availability also tracked something about time zones that affects output",
+      "add": [
+        "slot_open"
+      ]
+    }
+  ],
+  "segments": [
+    "cohort=='eng'",
+    "cohort=='sales'",
+    "q_score<50"
+  ],
+  "budget": "standard",
+  "seed": 1729,
+  "labels": {
+    "flag_t": "Took AI training",
+    "out_m": "Output score this quarter",
+    "q_score": "Output score last quarter",
+    "yrs": "Years at company",
+    "cohort": "Department",
+    "slot_open": "Seat open in time zone (random draw)",
+    "usage_idx": "AI-tool use (after course)",
+    "kudos": "Recognition points",
+    "emp": "Employee number"
+  },
+  "codebook": {
+    "emp": {
+      "meaning": "Employee number (identifier)",
+      "recorded": "n/a",
+      "confirmed": false
+    },
+    "cohort": {
+      "meaning": "Department: eng, sales or ops",
+      "recorded": "before (at hire)",
+      "confirmed": false
+    },
+    "yrs": {
+      "meaning": "Years at the company",
+      "recorded": "before (start of quarter)",
+      "confirmed": false
+    },
+    "q_score": {
+      "meaning": "Output score for the previous quarter, same scale as out_m (the before-the-course productivity measure)",
+      "recorded": "before the course",
+      "confirmed": false
+    },
+    "slot_open": {
+      "meaning": "1 if a course seat was open in the employee's time zone at sign-up; seats allocated by random draw (a random nudge to take the course)",
+      "recorded": "at sign-up, before the course",
+      "confirmed": false
+    },
+    "flag_t": {
+      "meaning": "1 = took the AI-tools training course (the action)",
+      "recorded": "during the quarter",
+      "confirmed": false
+    },
+    "usage_idx": {
+      "meaning": "How much the employee used AI tools, from tool logs",
+      "recorded": "during the quarter, after the course (a consequence of training)",
+      "confirmed": false
+    },
+    "kudos": {
+      "meaning": "Recognition points from peers and managers; partly for good output, partly for completing training",
+      "recorded": "end of quarter (after the course and the outcome)",
+      "confirmed": false
+    },
+    "out_m": {
+      "meaning": "Output score this quarter (the productivity measure)",
+      "recorded": "end of quarter (the outcome)",
+      "confirmed": false
+    }
+  },
+  "extra_edges": [
+    [
+      "usage_idx",
+      "out_m"
+    ],
+    [
+      "out_m",
+      "kudos"
+    ]
+  ]
+}

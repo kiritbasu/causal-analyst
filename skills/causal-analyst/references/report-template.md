@@ -39,6 +39,8 @@ jargon without a translation. Keep the whole page readable in two minutes.
 | `dag_title`, `dag_text` | Header and one line for the diagram section (default "How we think it works") |
 | `assumptions` | Optional `[{"text","status"}]`; by default the table lists the identification assumptions with an automatic status |
 | `dag_note` | "Confirmed by you before the run." or, when no one could confirm it, "Drawn from the brief; not yet confirmed by you." |
+| `alternatives_title`, `alternatives_text` | Header/intro for "What if our diagram is wrong?" |
+| `naive_label` | Label for the raw gap when the real effect is bigger than it (the "raw gap understates the effect" view) |
 | `trap_title`, `trap_text` | Why the excluded columns were left out |
 | `data_issues` | `[{"title","text"}]` problems to check, never silently fixed |
 | `next_steps` | `[{"title","text"}]` 1-3 concrete actions (a sized test, targeting, data to collect) |

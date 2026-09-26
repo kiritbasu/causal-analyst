@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import warnings
 from dataclasses import dataclass
 
@@ -80,7 +81,7 @@ def profile(df: pd.DataFrame, treatment: str | None = None, outcome: str | None 
         if info["missing_pct"] > 20:
             flags.append({"column": c, "flag": f"{info['missing_pct']}% missing"})
         lname = c.lower()
-        if "age" in lname and info.get("min") is not None and info["min"] < 0:
+        if re.search(r"(^|[^a-z])age([^a-z]|$)", lname) and info.get("min") is not None and info["min"] < 0:
             flags.append({"column": c, "flag": "negative ages: impossible values"})
     if treatment is not None and treatment in df:
         t = df[treatment]
@@ -574,6 +575,9 @@ def data_overview(df: pd.DataFrame, spec: dict, sample_rows: int = 5, max_cols: 
                 "missing_pct": float(s.isna().mean() * 100), "n_unique": int(s.nunique(dropna=True))}
         if c in spec.get("excluded", {}):
             info["why_left_out"] = str(spec["excluded"][c])
+        cbk = (spec.get("codebook") or {}).get(c)
+        if cbk and cbk.get("meaning"):
+            info.update(meaning=cbk["meaning"], recorded=cbk.get("recorded", ""), confirmed=bool(cbk.get("confirmed")))
         if pd.api.types.is_numeric_dtype(s) and kind != "binary" and info["n_unique"] > 12:
             v = s.dropna().astype(float)
             counts, edges = np.histogram(v, bins=16)

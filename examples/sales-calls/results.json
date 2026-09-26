@@ -29,7 +29,56 @@
    "account_size": "Account size",
    "past_purchases": "Purchases last year",
    "industry": "Industry"
-  }
+  },
+  "codebook": {
+   "account_id": {
+    "meaning": "identifier",
+    "recorded": "-",
+    "confirmed": true
+   },
+   "account_size": {
+    "meaning": "small / mid / large",
+    "recorded": "at the start of the quarter",
+    "confirmed": true
+   },
+   "past_purchases": {
+    "meaning": "purchases in the previous year",
+    "recorded": "before the quarter",
+    "confirmed": true
+   },
+   "industry": {
+    "meaning": "account's industry",
+    "recorded": "at the start of the quarter",
+    "confirmed": true
+   },
+   "got_sales_call": {
+    "meaning": "1 = a rep called the account this quarter",
+    "recorded": "during the quarter",
+    "confirmed": true
+   },
+   "purchased_90d": {
+    "meaning": "1 = the account bought within 90 days of the quarter start",
+    "recorded": "end of the quarter",
+    "confirmed": true
+   }
+  },
+  "outcome_baseline": "past_purchases",
+  "alternatives": [
+   {
+    "name": "Drop past purchases",
+    "why": "if reps ignored purchase history when choosing whom to call",
+    "remove": [
+     "past_purchases"
+    ]
+   },
+   {
+    "name": "Drop industry",
+    "why": "if industry does not affect buying",
+    "remove": [
+     "industry"
+    ]
+   }
+  ]
  },
  "dag": {
   "nodes": [
@@ -114,6 +163,242 @@
   "treatment": "got_sales_call",
   "outcome": "purchased_90d",
   "warnings": []
+ },
+ "data_overview": {
+  "rows": 6000,
+  "columns": 6,
+  "columns_shown": 6,
+  "treated_share": 0.41133333333333333,
+  "complete_rows_pct": 100.0,
+  "column_info": [
+   {
+    "column": "got_sales_call",
+    "role": "action",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = a rep called the account this quarter",
+    "recorded": "during the quarter",
+    "confirmed": true,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 3532
+     },
+     {
+      "value": "1",
+      "count": 2468
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "purchased_90d",
+    "role": "outcome",
+    "kind": "binary",
+    "missing_pct": 0.0,
+    "n_unique": 2,
+    "meaning": "1 = the account bought within 90 days of the quarter start",
+    "recorded": "end of the quarter",
+    "confirmed": true,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "0",
+      "count": 4550
+     },
+     {
+      "value": "1",
+      "count": 1450
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "account_size",
+    "role": "control",
+    "kind": "category",
+    "missing_pct": 0.0,
+    "n_unique": 3,
+    "meaning": "small / mid / large",
+    "recorded": "at the start of the quarter",
+    "confirmed": true,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "small",
+      "count": 3044
+     },
+     {
+      "value": "mid",
+      "count": 2095
+     },
+     {
+      "value": "large",
+      "count": 861
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "past_purchases",
+    "role": "control",
+    "kind": "count/ordinal",
+    "missing_pct": 0.0,
+    "n_unique": 11,
+    "meaning": "purchases in the previous year",
+    "recorded": "before the quarter",
+    "confirmed": true,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "1",
+      "count": 1669
+     },
+     {
+      "value": "2",
+      "count": 1610
+     },
+     {
+      "value": "3",
+      "count": 1079
+     },
+     {
+      "value": "0",
+      "count": 839
+     }
+    ],
+    "other": 803
+   },
+   {
+    "column": "industry",
+    "role": "control",
+    "kind": "category",
+    "missing_pct": 0.0,
+    "n_unique": 4,
+    "meaning": "account's industry",
+    "recorded": "at the start of the quarter",
+    "confirmed": true,
+    "summary": "categories",
+    "top": [
+     {
+      "value": "services",
+      "count": 1587
+     },
+     {
+      "value": "manufacturing",
+      "count": 1526
+     },
+     {
+      "value": "retail",
+      "count": 1447
+     },
+     {
+      "value": "tech",
+      "count": 1440
+     }
+    ],
+    "other": 0
+   },
+   {
+    "column": "account_id",
+    "role": "left out",
+    "kind": "number",
+    "missing_pct": 0.0,
+    "n_unique": 6000,
+    "why_left_out": "identifier",
+    "meaning": "identifier",
+    "recorded": "-",
+    "confirmed": true,
+    "summary": "numeric",
+    "min": 5001.0,
+    "median": 8000.5,
+    "mean": 8000.5,
+    "max": 11000.0,
+    "histogram": {
+     "counts": [
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375,
+      375
+     ],
+     "edges": [
+      5001.0,
+      5375.9375,
+      5750.875,
+      6125.8125,
+      6500.75,
+      6875.6875,
+      7250.625,
+      7625.5625,
+      8000.5,
+      8375.4375,
+      8750.375,
+      9125.3125,
+      9500.25,
+      9875.1875,
+      10250.125,
+      10625.0625,
+      11000.0
+     ]
+    }
+   }
+  ],
+  "sample_rows": [
+   {
+    "got_sales_call": "0",
+    "purchased_90d": "0",
+    "account_size": "small",
+    "past_purchases": "2",
+    "industry": "tech",
+    "account_id": "5001"
+   },
+   {
+    "got_sales_call": "0",
+    "purchased_90d": "0",
+    "account_size": "small",
+    "past_purchases": "3",
+    "industry": "tech",
+    "account_id": "5002"
+   },
+   {
+    "got_sales_call": "0",
+    "purchased_90d": "0",
+    "account_size": "mid",
+    "past_purchases": "4",
+    "industry": "manufacturing",
+    "account_id": "5003"
+   },
+   {
+    "got_sales_call": "0",
+    "purchased_90d": "0",
+    "account_size": "small",
+    "past_purchases": "0",
+    "industry": "retail",
+    "account_id": "5004"
+   },
+   {
+    "got_sales_call": "1",
+    "purchased_90d": "1",
+    "account_size": "small",
+    "past_purchases": "4",
+    "industry": "retail",
+    "account_id": "5005"
+   }
+  ]
  },
  "identification": {
   "treatment": "got_sales_call",
@@ -213,15 +498,15 @@
   "causal_forest": {
    "estimate": 0.24014957335914133,
    "ci": [
-    0.1251992918062904,
+    0.12519929180629039,
     0.35509985491199225
    ]
   },
   "causalpfn": {
    "estimate": 0.23691824673240383,
    "ci": [
-    0.22041526436805725,
-    0.2533777356147766
+    0.22055763006210327,
+    0.25245893001556396
    ],
    "note": "Causal foundation model; interval is the model's own and tends to be too narrow."
   }
@@ -233,7 +518,7 @@
     "weights": "causalpfn_v0.pt"
    },
    "tabpfn": {
-    "skipped": "no TABPFN_TOKEN / TABPFN_TOKEN_FILE"
+    "skipped": "hosted TabPFN sends data to Prior Labs; add \"tabpfn_api\" to spec.allow_external_services to enable"
    }
   },
   "overlap": {
@@ -352,26 +637,33 @@
   ],
   "max_abs_smd_after": 0.011814070577233588,
   "placebo_permuted_treatment": {
-   "estimate": 0.00450823352414966,
+   "estimate": 0.0022584222452231286,
    "ci": [
-    -0.01742798306839042,
-    0.026444450116689742
+    -0.0075346779724409065,
+    0.012051522462887165
+   ],
+   "shuffles": [
+    0.00450823352414966,
+    0.010100259643660186,
+    -0.010855649199755709,
+    -0.0028535853125133404,
+    0.010392852570574847
    ],
    "passes": true
   },
   "random_common_cause": {
-   "estimate": 0.23540521163696077,
-   "change": -0.003003486307073505
+   "estimate": 0.23853615696290315,
+   "change": 0.00012745901886887512
   },
   "subset_80pct_estimates": [
-   0.24389956131128807,
-   0.23965436761170386,
-   0.24455102432768797,
-   0.23671203813048416,
-   0.2362343533109953
+   0.24161592142858354,
+   0.22278707986516902,
+   0.2359156767031134,
+   0.2432493506073695,
+   0.2252417566448734
   ],
   "forest_cate_spread": {
-   "p10": 0.1673943282534545,
+   "p10": 0.16739432825345452,
    "p50": 0.2537555047240639,
    "p90": 0.3129208930862495,
    "share_positive": 1.0
@@ -431,28 +723,106 @@
    "outcome_mean_treated": 0.3881685575364668,
    "outcome_mean_untreated": 0.1392978482446206
   },
-  "power": [
-   {
-    "per_group_control": 857,
-    "per_group_treated": 857,
-    "total": 1714,
-    "alpha": 0.05,
-    "power": 0.8,
-    "lift": 0.05,
-    "baseline": 0.139,
-    "sd": null
-   },
-   {
-    "per_group_control": 237,
-    "per_group_treated": 237,
-    "total": 474,
-    "alpha": 0.05,
-    "power": 0.8,
-    "lift": 0.1,
-    "baseline": 0.139,
-    "sd": null
+  "codebook": {
+   "has_codebook": true,
+   "no_meaning": [],
+   "unconfirmed": []
+  },
+  "alternatives": {
+   "user": [
+    {
+     "name": "Drop past purchases",
+     "why": "if reps ignored purchase history when choosing whom to call",
+     "confounders": [
+      "account_size",
+      "industry"
+     ],
+     "illustrative": false,
+     "estimate": 0.24628398590102166,
+     "ci": [
+      0.2237868731135298,
+      0.2687810986885135
+     ]
+    },
+    {
+     "name": "Drop industry",
+     "why": "if industry does not affect buying",
+     "confounders": [
+      "account_size",
+      "past_purchases"
+     ],
+     "illustrative": false,
+     "estimate": 0.23774720338378272,
+     "ci": [
+      0.21516239791905506,
+      0.2603320088485104
+     ]
+    }
+   ],
+   "leave_one_out": [
+    {
+     "column": "account_size",
+     "estimate": 0.24241572581168058,
+     "ci": [
+      0.22000484558108674,
+      0.2648266060422744
+     ],
+     "shift": 0.003359696776996546
+    },
+    {
+     "column": "past_purchases",
+     "estimate": 0.2458101766146622,
+     "ci": [
+      0.22345021879876378,
+      0.2681701344305606
+     ],
+     "shift": 0.006754147579978165
+    },
+    {
+     "column": "industry",
+     "estimate": 0.23894141949024092,
+     "ci": [
+      0.21653014102655926,
+      0.2613526979539226
+     ],
+     "shift": -0.00011460954444311722
+    }
+   ],
+   "add_one": [],
+   "linear_main_spec": {
+    "estimate": 0.23905602903468404,
+    "ci": [
+     0.2166477276159331,
+     0.261464330453435
+    ]
    }
-  ]
+  },
+  "structure_check": {
+   "method": "PC-style search, Fisher-z partial correlations (linear), alpha 0.001, conditioning sets up to 2",
+   "columns": [
+    "got_sales_call",
+    "purchased_90d",
+    "past_purchases"
+   ],
+   "rows": 6000,
+   "edges": [
+    [
+     "got_sales_call",
+     "past_purchases"
+    ],
+    [
+     "got_sales_call",
+     "purchased_90d"
+    ],
+    [
+     "past_purchases",
+     "purchased_90d"
+    ]
+   ],
+   "v_structures": [],
+   "findings": [],
+   "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."
+  }
  },
  "trust_tier": "D",
  "trust_reasons": [
@@ -461,14 +831,14 @@
  ],
  "timings_sec": {
   "naive_difference": 0.0,
-  "regression_linear": 0.3,
-  "aipw_gbm": 8.1,
-  "aipw_spline": 0.2,
+  "regression_linear": 0.6,
+  "aipw_gbm": 14.2,
+  "aipw_spline": 0.4,
   "ipw_gbm": 0.0,
   "regression_gbm": 0.0,
-  "double_ml": 2.9,
-  "causal_forest": 4.1,
-  "causalpfn": 67.7
+  "double_ml": 5.6,
+  "causal_forest": 6.9,
+  "causalpfn": 164.8
  },
  "manifest": {
   "fingerprint": "ds-7c8df9dd",
@@ -483,225 +853,7 @@
    "econml": "0.17.0",
    "dowhy": "0.14"
   },
-  "run_at_utc": "2026-09-26T07:13:33",
-  "runtime_sec": 102.1
- },
- "data_overview": {
-  "rows": 6000,
-  "columns": 6,
-  "columns_shown": 6,
-  "treated_share": 0.41133333333333333,
-  "complete_rows_pct": 100.0,
-  "column_info": [
-   {
-    "column": "got_sales_call",
-    "role": "action",
-    "kind": "binary",
-    "missing_pct": 0.0,
-    "n_unique": 2,
-    "summary": "categories",
-    "top": [
-     {
-      "value": "0",
-      "count": 3532
-     },
-     {
-      "value": "1",
-      "count": 2468
-     }
-    ],
-    "other": 0
-   },
-   {
-    "column": "purchased_90d",
-    "role": "outcome",
-    "kind": "binary",
-    "missing_pct": 0.0,
-    "n_unique": 2,
-    "summary": "categories",
-    "top": [
-     {
-      "value": "0",
-      "count": 4550
-     },
-     {
-      "value": "1",
-      "count": 1450
-     }
-    ],
-    "other": 0
-   },
-   {
-    "column": "account_size",
-    "role": "control",
-    "kind": "category",
-    "missing_pct": 0.0,
-    "n_unique": 3,
-    "summary": "categories",
-    "top": [
-     {
-      "value": "small",
-      "count": 3044
-     },
-     {
-      "value": "mid",
-      "count": 2095
-     },
-     {
-      "value": "large",
-      "count": 861
-     }
-    ],
-    "other": 0
-   },
-   {
-    "column": "past_purchases",
-    "role": "control",
-    "kind": "count/ordinal",
-    "missing_pct": 0.0,
-    "n_unique": 11,
-    "summary": "categories",
-    "top": [
-     {
-      "value": "1",
-      "count": 1669
-     },
-     {
-      "value": "2",
-      "count": 1610
-     },
-     {
-      "value": "3",
-      "count": 1079
-     },
-     {
-      "value": "0",
-      "count": 839
-     }
-    ],
-    "other": 803
-   },
-   {
-    "column": "industry",
-    "role": "control",
-    "kind": "category",
-    "missing_pct": 0.0,
-    "n_unique": 4,
-    "summary": "categories",
-    "top": [
-     {
-      "value": "services",
-      "count": 1587
-     },
-     {
-      "value": "manufacturing",
-      "count": 1526
-     },
-     {
-      "value": "retail",
-      "count": 1447
-     },
-     {
-      "value": "tech",
-      "count": 1440
-     }
-    ],
-    "other": 0
-   },
-   {
-    "column": "account_id",
-    "role": "left out",
-    "kind": "number",
-    "missing_pct": 0.0,
-    "n_unique": 6000,
-    "why_left_out": "identifier",
-    "summary": "numeric",
-    "min": 5001.0,
-    "median": 8000.5,
-    "mean": 8000.5,
-    "max": 11000.0,
-    "histogram": {
-     "counts": [
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375,
-      375
-     ],
-     "edges": [
-      5001.0,
-      5375.9375,
-      5750.875,
-      6125.8125,
-      6500.75,
-      6875.6875,
-      7250.625,
-      7625.5625,
-      8000.5,
-      8375.4375,
-      8750.375,
-      9125.3125,
-      9500.25,
-      9875.1875,
-      10250.125,
-      10625.0625,
-      11000.0
-     ]
-    }
-   }
-  ],
-  "sample_rows": [
-   {
-    "got_sales_call": "0",
-    "purchased_90d": "0",
-    "account_size": "small",
-    "past_purchases": "2",
-    "industry": "tech",
-    "account_id": "5001"
-   },
-   {
-    "got_sales_call": "0",
-    "purchased_90d": "0",
-    "account_size": "small",
-    "past_purchases": "3",
-    "industry": "tech",
-    "account_id": "5002"
-   },
-   {
-    "got_sales_call": "0",
-    "purchased_90d": "0",
-    "account_size": "mid",
-    "past_purchases": "4",
-    "industry": "manufacturing",
-    "account_id": "5003"
-   },
-   {
-    "got_sales_call": "0",
-    "purchased_90d": "0",
-    "account_size": "small",
-    "past_purchases": "0",
-    "industry": "retail",
-    "account_id": "5004"
-   },
-   {
-    "got_sales_call": "1",
-    "purchased_90d": "1",
-    "account_size": "small",
-    "past_purchases": "4",
-    "industry": "retail",
-    "account_id": "5005"
-   }
-  ]
+  "run_at_utc": "2026-09-26T09:13:09",
+  "runtime_sec": 219.7
  }
 }

@@ -5,11 +5,14 @@
    "id": 1,
    "name": "loyalty-hard-with-trap",
    "prompt": "I run marketing for a retail chain. Attached is data.csv plus brief.md with our data dictionary and notes. Does our loyalty program actually raise monthly spend, and do some customers benefit more (we think newer ones)? I won't be around to answer questions, so use the notes in the brief and tell me anything you had to assume.",
-   "files": ["examples/loyalty-program/data.csv", "examples/loyalty-program/brief.md"],
+   "files": [
+    "examples/loyalty-program/data.csv",
+    "examples/loyalty-program/brief.md"
+   ],
    "expected_output": "An estimate near the true +$9.17 with a 95% range containing it; points_redeemed excluded as post-treatment; newer customers found to gain more; the non-member points issue flagged; an explicit trust grade.",
    "assertions": [
     "Excludes points_redeemed (post-treatment) from the controls",
-    "Headline effect within ±15% of the true ATE 9.17",
+    "Headline effect within \u00b115% of the true ATE 9.17",
     "95% range covers the true ATE 9.17",
     "Finds newer customers benefit more",
     "Flags non-members with redeemed points as a data issue",
@@ -23,7 +26,9 @@
    "id": 2,
    "name": "causalds-iv-not-identifiable",
    "prompt": "Please answer the question in task.md using data.parquet and schema.json (same folder). Give the JSON answer the task asks for, plus a short plain-language explanation.",
-   "files": ["CausalDS benchmark, scene 000758 (not redistributed here; see the CausalDS release)"],
+   "files": [
+    "CausalDS benchmark, scene 000758 (not redistributed here; see the CausalDS release)"
+   ],
    "expected_output": "{\"ate\": null}: an unmeasured confounder makes the population effect not identifiable; bounds (if any) must contain the true value.",
    "assertions": [
     "answer.json gives {\"ate\": null}",
@@ -37,7 +42,10 @@
    "id": 3,
    "name": "sales-calls-hidden-driver",
    "prompt": "Our leadership wants to know how many extra purchases we get per 100 sales calls so they can decide whether to hire more reps. data.csv has last quarter's accounts and brief.md explains the columns and how reps work. Can you work it out? I'm in meetings all day so go ahead without me and note any assumptions.",
-   "files": ["examples/sales-calls/data.csv", "examples/sales-calls/brief.md"],
+   "files": [
+    "examples/sales-calls/data.csv",
+    "examples/sales-calls/brief.md"
+   ],
    "expected_output": "No causal headline number (reps choose calls on an unrecorded judgement); a range containing the true effect (about 5 per 100); a sized randomized test.",
    "assertions": [
     "Gives no causal headline number for leadership",
@@ -45,6 +53,25 @@
     "Any range given contains the true effect (~5 per 100)",
     "Recommends a randomized test",
     "Sizes the test (accounts per group / power)",
+    "States an explicit trust grade"
+   ]
+  },
+  {
+   "id": 4,
+   "name": "ai-training-design-traps",
+   "prompt": "We ran an AI-tools training course last quarter and I need to know whether it actually raised productivity, and by how much. data.csv has one row per employee and brief.md explains the columns and how people got onto the course. Go ahead without me and note any assumptions.",
+   "files": [
+    "examples/ai-training/data.csv",
+    "examples/ai-training/brief.md"
+   ],
+   "expected_output": "About +7.5 output points (total effect, including the part that flows through tool use). Does not control for tool use (a mediator with a misleading name) or recognition points (a collider); controls for last quarter's score (reverse causation / manager nudging); may use the random seat draw as a second check.",
+   "assertions": [
+    "95% range contains the true effect (+7.5)",
+    "Does not control for usage_idx (mediator)",
+    "Does not control for kudos (collider)",
+    "Controls for last quarter's score q_score",
+    "Uses slot_open as a natural experiment or leaves it out of the controls",
+    "Shows how the answer changes under the wrong diagrams",
     "States an explicit trust grade"
    ]
   }

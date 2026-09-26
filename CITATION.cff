@@ -4,6 +4,6 @@ title: "causal-analyst: an Agent Skill for plain-language causal analysis"
 type: software
 license: Apache-2.0
 date-released: 2026-09-26
-version: 0.1.0
+version: 0.2.0
 authors:
   - name: "The causal-analyst authors"
