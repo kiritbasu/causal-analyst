@@ -189,7 +189,8 @@ holds words only, so never type a number into it that you did not read from the 
    the one next step.
 
 The report opens with the data itself (size, each column's role, distributions and the first few
-rows) so readers know what the analysis stood on. The sample rows are raw values: if the file holds
+rows) and then the causal diagram, drawn and explained in words, so readers know what the analysis
+stood on. Set `dag_confirmed` in the narrative to say whether the SME confirmed it. The sample rows are raw values: if the file holds
 personal or sensitive data, set `"report_sample_rows": 0` in the spec before running.
 
 Sections appear only when their data exists: the gap breakdown needs a yes/no action with an

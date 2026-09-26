@@ -432,7 +432,7 @@ def _box_text(cx, cy, text, width_chars, size, fill, weight="400"):
     return "".join(f'<text x="{cx:.1f}" y="{y0 + i * size * 1.2:.1f}" font-size="{size}" font-weight="{weight}" text-anchor="middle" fill="{fill}">{e(l)}</text>' for i, l in enumerate(lines))
 
 
-def chart_dag(dag):
+def chart_dag(dag, W=508):
     nodes = {n["id"]: n for n in dag["nodes"]}
     T, Y = dag["treatment"], dag["outcome"]
     ctrl = [n for n in nodes.values() if n["role"] in ("control", "other")]
@@ -442,17 +442,17 @@ def chart_dag(dag):
     hidden = [n for n in nodes.values() if n["role"] == "hidden"]
     after = [n for n in nodes.values() if n["role"] == "after the action"]
     meds = [n for n in nodes.values() if n["role"] == "middle step"]
-    W = 508
+    big = W > 700
     out = [f'<svg width="100%" viewBox="0 0 {W} 300" role="img" aria-label="Causal diagram of the assumptions">',
            '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#6b6964"/></marker>'
            '<marker id="ahb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#141413"/></marker>'
            '<marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#b5542c"/></marker></defs>']
     tx0 = 20 + (90 if nudges else 0)
-    tw = 150
+    tw = 210 if big else 150
     Tb = (tx0, 132, tw, 48)
     Yb = (W - 20 - tw, 132, tw, 48)
     k = max(len(ctrl), 1)
-    cw = min(100, (W - 8 * (k - 1)) / k)
+    cw = min(150 if big else 100, (W - 8 * (k - 1)) / k)
     x = (W - (k * cw + (k - 1) * 8)) / 2
     for c in ctrl:
         out.append(f'<rect x="{x:.1f}" y="4" width="{cw:.1f}" height="38" rx="8" fill="#f4f3ee" stroke="{BASE}"/>' + _box_text(x + cw / 2, 23, c["label"], max(6, int(cw / 6.6)), 11, INK))
@@ -576,6 +576,60 @@ def data_section(ov, labels, names, units, n):
     return tile_html, table, sample
 
 
+def dag_in_words(dag, labels):
+    nodes = {x["id"]: x for x in dag["nodes"]}
+    L = lambda i: labels.get(i, nodes[i]["label"]) if i in nodes else i
+    T, Y = dag["treatment"], dag["outcome"]
+    ctrl = [x["id"] for x in dag["nodes"] if x["role"] == "control"]
+    items = []
+    if ctrl:
+        items.append(("Compared like with like", f'{", ".join(L(c) for c in ctrl)} affect both {L(T)} and {L(Y)}, so the analysis compares cases that look alike on these.'))
+    items.append(("The effect we measure", f'{L(T)} → {L(Y)}.'))
+    for x in dag["nodes"]:
+        if x["role"] == "nudge (instrument)":
+            items.append(("A random nudge", f'{L(x["id"])} shifts {L(T)} but affects {L(Y)} only through it.'))
+        if x["role"] == "middle step":
+            items.append(("A middle step", f'The effect of {L(T)} flows through {L(x["id"])}.'))
+        if x["role"] == "after the action":
+            items.append(("Left out on purpose", f'{L(x["id"])} happens after {L(T)}, so controlling for it would hide or distort the effect.'))
+        if x["role"] == "hidden":
+            items.append(("Not in the data", f'{x["label"].replace("Not in data: ", "")} affects both {L(T)} and {L(Y)}. Nothing recorded can stand in for it, which limits what the data can answer.'))
+    for ed in dag["edges"]:
+        if ed["kind"] == "sme":
+            items.append(("Added arrow", f'{L(ed["from"])} affects {L(ed["to"])}.'))
+    return "".join(f'<div class="mrow"><strong>{e(t)}.</strong> <span>{e(d)}</span></div>' for t, d in items)
+
+
+def dag_legend(dag):
+    kinds = {x["kind"] for x in dag["edges"]}
+    it = [f'<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#6b6964" stroke-width="2"/></svg>affects</span>']
+    if "hidden" in kinds:
+        it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#b5542c" stroke-width="2" stroke-dasharray="5 4"/></svg>not in the data</span>')
+    if "after" in kinds:
+        it.append('<span class="lg"><svg width="26" height="10" aria-hidden="true"><line x1="0" y1="5" x2="26" y2="5" stroke="#8a8883" stroke-width="2" stroke-dasharray="2 4"/></svg>happens after the action: not controlled for</span>')
+    return f'<div class="legend">{"".join(it)}</div>'
+
+
+def assumption_rows(r, n, diag):
+    rows = n.get("assumptions")
+    if not rows:
+        rows = []
+        for a in (r.get("identification") or {}).get("assumptions", []):
+            low = a.lower()
+            if "overlap" in low:
+                ov = diag.get("overlap") or {}
+                sh = ov.get("share_below_0.05", 0) + ov.get("share_above_0.95", 0)
+                st = ("Checked: weak for " + f"{sh:.0%}" if sh > 0.05 else "Checked: good") if ov else "Not checked"
+            elif "unrecorded" in low or "cannot be checked" in low:
+                st = "Can't be checked; sized above"
+            elif "measured before" in low:
+                st = "Confirmed by you" if n.get("dag_confirmed") else "Assumed"
+            else:
+                st = "Assumed"
+            rows.append({"text": a.split(" (")[0], "status": st})
+    return "".join(f'<tr><td>{e(x["text"])}</td><td>{e(x["status"])}</td></tr>' for x in rows)
+
+
 def check_row(title, text, extra=""):
     icon = f'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{GOODTXT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-label="Passed"><path d="M20 6L9 17l-5-5"/></svg>'
     return f'<div class="check">{icon}<div><div class="ctitle">{e(title)}</div><div class="small">{e(text)}</div>{extra}</div></div>'
@@ -637,6 +691,8 @@ footer b{{color:{INK};display:block}}
 .tile{{background:{CARD};border:1px solid {HAIR};border-radius:14px;padding:18px 22px}}
 .tv{{font-family:{SERIF};font-size:40px;line-height:1}} .tl{{font-size:13px;color:{MUTED};margin-top:6px}}
 .tscroll{{overflow-x:auto}}
+.dagwrap{{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px}}
+table.assume td{{font-size:14px;vertical-align:top}}
 table.cols td{{vertical-align:middle;font-size:14px}} .cn{{font-weight:600}} .raw{{font-size:12px;color:{MUTED};font-family:ui-monospace,Menlo,monospace}}
 .sm{{color:{INK2};font-size:13px;max-width:320px}} .why{{font-size:12px;color:{MUTED};margin-top:2px}}
 .chip{{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;color:{INK};white-space:nowrap}} .chip i{{width:8px;height:8px;border-radius:50%;display:inline-block}}
@@ -645,7 +701,7 @@ details{{font-size:14px}} summary{{cursor:pointer;color:{INK3}}}
 table{{border-collapse:collapse;width:100%;margin-top:10px;font-variant-numeric:tabular-nums}}
 th,td{{text-align:left;padding:6px 10px;border-bottom:1px solid #ecebe5}} th{{color:{MUTED};font-weight:500}}
 svg text{{font-family:"IBM Plex Sans",system-ui,sans-serif}}
-@media (max-width:900px){{.page{{padding:32px 16px}} .tiles{{grid-template-columns:repeat(2,minmax(0,1fr))}} .grid2,.grid3,footer{{grid-template-columns:minmax(0,1fr)}} h1{{font-size:38px}} .big{{font-size:60px}}}}
+@media (max-width:900px){{.dagwrap{{grid-template-columns:minmax(0,1fr)}} .page{{padding:32px 16px}} .tiles{{grid-template-columns:repeat(2,minmax(0,1fr))}} .grid2,.grid3,footer{{grid-template-columns:minmax(0,1fr)}} h1{{font-size:38px}} .big{{font-size:60px}}}}
 @media print{{body{{background:#fff}} .card,.issue{{break-inside:avoid}}}}
 """
 
@@ -707,6 +763,18 @@ def render(results: dict, narrative: dict) -> str:
         tiles, table, sample = data_section(ov, labels, names, unit_word, n)
         P.append(section(n.get("data_title", "The data"), f'<div class="tiles">{tiles}</div>' + card(table + sample),
                          n.get("data_text") or f'What the analysis worked from: one row per {unit_word.rstrip("s")}, and the role each column played.'))
+
+    # the causal diagram
+    if r.get("dag"):
+        confirmed = n.get("dag_confirmed")
+        chip = (f'<span class="chip" style="background:#dcefe4"><i style="background:#1d6b43"></i>Confirmed by you</span>' if confirmed
+                else f'<span class="chip" style="background:#fbe6dc"><i style="background:{ORANGE}"></i>Not yet confirmed</span>' if confirmed is False else "")
+        warn = "".join(f'<div class="why">⚠ {e(w)}</div>' for w in r["dag"].get("warnings", []))
+        P.append(section(n.get("dag_title", "How we think it works"),
+                         f'<div class="dagwrap">' + card(chart_dag(r["dag"], 1000) + dag_legend(r["dag"])) +
+                         card(f'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3>In words</h3>{chip}</div><div class="mlist" style="border:none;padding:0">{dag_in_words(r["dag"], labels)}</div>'
+                              + (f'<div class="note">{e(n["dag_note"])}</div>' if n.get("dag_note") else "") + warn) + '</div>',
+                         n.get("dag_text", "The causal diagram behind the analysis: each arrow means \u201caffects\u201d. It decides what to compare and what to leave out.")))
 
     # decomposition of the raw gap
     m_est = main.get("estimate")
@@ -805,8 +873,9 @@ def render(results: dict, narrative: dict) -> str:
 
     # assumptions + trap + data issues
     left = right = ""
-    if r.get("dag"):
-        left = f'<div style="display:flex;flex-direction:column;gap:14px"><h2>What this rests on</h2>' + card(chart_dag(r["dag"]) + f'<div class="note">Arrows mean "affects". {e(n.get("dag_note", ""))}</div>') + "</div>"
+    arows = assumption_rows(r, n, diag)
+    if arows:
+        left = f'<div style="display:flex;flex-direction:column;gap:14px"><h2>What this rests on</h2>' + card(f'<table class="assume"><tr><th>Assumption</th><th>Status</th></tr>{arows}</table>') + "</div>"
     rparts = []
     bc = diag.get("bad_control_illustration")
     if bc and "error" not in bc and main_key:

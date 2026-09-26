@@ -76,5 +76,6 @@
  ],
  "value_scale": 100,
  "value_prefix": "",
- "value_suffix": " per 100"
+ "value_suffix": " per 100",
+ "dag_confirmed": false
 }

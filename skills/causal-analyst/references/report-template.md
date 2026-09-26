@@ -35,6 +35,9 @@ jargon without a translation. Keep the whole page readable in two minutes.
 | `methods_title`, `methods_text` | Method comparison header and one-paragraph read |
 | `overlap_title`, `hidden_note`, `trust_title`, `trust_text` | Trust section copy |
 | `bounds_title`, `bounds_text` | Tier D: what can still be said |
+| `dag_confirmed` | `true` if the SME confirmed the diagram, `false` if drawn from a brief without confirmation (shows a status chip next to the diagram) |
+| `dag_title`, `dag_text` | Header and one line for the diagram section (default "How we think it works") |
+| `assumptions` | Optional `[{"text","status"}]`; by default the table lists the identification assumptions with an automatic status |
 | `dag_note` | "Confirmed by you before the run." or, when no one could confirm it, "Drawn from the brief; not yet confirmed by you." |
 | `trap_title`, `trap_text` | Why the excluded columns were left out |
 | `data_issues` | `[{"title","text"}]` problems to check, never silently fixed |

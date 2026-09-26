@@ -1,10 +1,12 @@
 # causal-analyst
 
-**Causal analysis for people who aren't data scientists.** An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) that lets Claude answer "did X actually cause Y?" from your data. It interviews you in plain language, fixes the plan before looking at any results, runs several causal methods side by side, checks how far to trust the answer, and hands back a designed one-page report. When the data can't answer the question, it says so.
+**Causal analysis for people who aren't data scientists.** An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) that lets Claude answer "did X actually cause Y?" from your data. You bring the question and what you know about your business. Claude does the modelling, checks how far to trust the answer, and hands back a one-page report. When the data can't answer the question, it says so.
 
 ![Report headline: effect, trust grade and who gains most](docs/images/loyalty-headline.png)
 
-<p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="#install">Install</a></p>
+<p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="#quick-start">Quick start</a></p>
+
+**Contents:** [Why this exists](#why-this-exists) · [What it's like to use](#what-its-like-to-use) · [The report](#the-report) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Does it work?](#does-it-work) · [Which model to use](#which-model-to-use) · [Data and privacy](#data-and-privacy) · [Limitations and roadmap](#limitations-and-roadmap)
 
 ---
 
@@ -24,51 +26,103 @@ It also guards against the ways capable models go wrong. Frontier models already
 - **Controlling for the wrong thing.** Adjusting for "points redeemed" turns a +$10 effect into −$22.
 - **Answering a question the data can't support.** If reps pick whom to call using a gut feel that isn't recorded, no amount of adjustment recovers the effect of a call.
 - **Choosing the method after seeing the results**, and quietly drifting toward the hoped-for answer.
-- **Overstating certainty.** Plain Claude twice gave confident ranges that missed the true answer. On a benchmark case the data couldn't answer, it called the effect "almost certainly about −0.27", but the true value was outside its range.
+- **Overstating certainty.** Plain Claude twice gave confident ranges that missed the true answer.
 
 So the workflow puts those judgments in the open. Controls are confirmed as recorded before the treatment. The expert signs off the diagram. The method is fixed in advance. There's an explicit "we can't tell" grade, and the risk from hidden factors is sized.
 
-## What you get
+## What it's like to use
 
-A self-contained HTML report (works offline, on a phone, and prints cleanly) with:
+You attach a file and ask in your own words. The skill takes it from there, stopping three times for your input.
 
-| Section | What it answers |
-|---|---|
-| Headline + trust grade (A–D) | What's the effect, how sure are we, who gains most |
-| The data | Size, each column's role (action, outcome, control, left out), distributions, the first few rows |
-| Where the raw gap comes from | How much of the naive difference is *who* got the action vs the action itself |
-| Methods side by side | Does the answer depend on the technique? |
-| Meet the methods | A timeline and plain-English guide to each method family |
-| Who benefits more | Effects for the groups you asked about, with ranges |
-| Why the grade | Overlap, balance, hidden-factor strength, placebo and stability checks |
-| What this rests on | The confirmed causal diagram, and the trap that was avoided |
-| Next steps and questions | A sized randomized test, and every assumption made on your behalf |
+> **You:** *[attaches customers.csv]* Did our loyalty program actually raise monthly spend? We think newer customers benefit more.
+
+**1. Claude checks the data** and points out anything odd before going further:
+
+> 4,000 customers, 9 columns. `points_redeemed` almost perfectly predicts who joined, which usually means it's a *result* of joining. And 44% of non-members have some points, which shouldn't happen. I'll flag that.
+
+**2. It asks what only you know**, one question at a time, as clickable options:
+
+> Were income, tenure, age, city and last quarter's spend all recorded *before* customers joined? ○ Yes ○ Some were later ○ Not sure
+>
+> Is there anything that affects both who joins and how much they spend that isn't in this file? ○ No ○ Yes: ___ ○ Not sure
+
+**3. You confirm the diagram and the plan.** Claude draws how it thinks things work, you correct it, and the main method is fixed before anything runs.
+
+**4. You get the report** about a minute later. It gives the answer, how much to trust it and why, who benefits most, and the randomized test that would settle it.
+
+## The report
+
+A self-contained HTML page: it works offline, on a phone, and prints cleanly. It reads top to bottom as a story. Here is the answer; here is what it stood on; here is how sure we are; here is what to do.
+
+| # | Section | What it answers |
+|---|---|---|
+| 1 | Headline + trust grade (A–D) | What's the effect, how sure are we, who gains most |
+| 2 | The data | How big it is, each column's role (action, outcome, control, left out), distributions, the first few rows |
+| 3 | How we think it works | The causal diagram, in a picture and in words, and whether you confirmed it |
+| 4 | Where the raw gap comes from | How much of the naive difference is *who* got the action vs the action itself |
+| 5 | Methods side by side | Does the answer depend on the technique? |
+| 6 | Meet the methods | A timeline and plain-English guide to each method family |
+| 7 | Who benefits more | Effects for the groups you asked about, with ranges |
+| 8 | Why the grade | Overlap, balance, hidden-factor strength, placebo and stability checks |
+| 9 | What this rests on | Every assumption and its status; the trap that was avoided; data issues |
+| 10 | Next steps and questions | A sized randomized test, and every assumption made on your behalf |
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/loyalty-data.png" alt="The data: shape, column roles and distributions"></td>
-<td width="50%"><img src="docs/images/loyalty-gap.png" alt="Where the raw gap comes from"><br><img src="docs/images/loyalty-segments.png" alt="Who benefits more"></td>
+<td width="50%"><b>2 · The data</b><br><img src="docs/images/loyalty-data.png" alt="The data: shape, column roles and distributions"></td>
+<td width="50%"><b>3 · How we think it works</b><br><img src="docs/images/loyalty-dag.png" alt="The causal diagram, in a picture and in words"></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/images/loyalty-methods.png" alt="Nine methods side by side"></td>
-<td width="50%"><img src="docs/images/loyalty-trust.png" alt="Trust diagnostics"></td>
+<td><b>4 · Where the raw gap comes from</b><br><img src="docs/images/loyalty-gap.png" alt="Where the raw gap comes from"><br><b>7 · Who benefits more</b><br><img src="docs/images/loyalty-segments.png" alt="Who benefits more"></td>
+<td><b>5 · Methods side by side</b><br><img src="docs/images/loyalty-methods.png" alt="Nine methods side by side"></td>
 </tr>
 <tr>
-<td><img src="docs/images/loyalty-meet-the-methods.png" alt="Meet the methods timeline and families"></td>
-<td><img src="docs/images/loyalty-assumptions.png" alt="Causal diagram and the trap avoided"></td>
+<td><b>6 · Meet the methods</b><br><img src="docs/images/loyalty-meet-the-methods.png" alt="Meet the methods timeline and families"></td>
+<td><b>8 · Why the grade</b><br><img src="docs/images/loyalty-trust.png" alt="Trust diagnostics"></td>
+</tr>
+<tr>
+<td><b>9 · What this rests on</b><br><img src="docs/images/loyalty-assumptions.png" alt="Assumptions, the trap avoided and a data issue"></td>
+<td><b>10 · Next steps and questions</b><br><img src="docs/images/loyalty-next-steps.png" alt="Next steps and open questions"></td>
 </tr>
 </table>
 
-When the question can't be answered, the report leads with that and shows what *can* be said:
+**When the data can't answer the question**, the report leads with that. The diagram shows why, and the page gives what *can* be said: a range the true effect lies in, and how to find out.
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/sales-calls-headline.png" alt="Sales calls: we can't tell"></td>
-<td width="50%"><img src="docs/images/sales-calls-reference.png" alt="Adjusted estimates shown as reference points with the bounds band"></td>
+<td width="33%"><img src="docs/images/sales-calls-headline.png" alt="Sales calls: we can't tell"></td>
+<td width="33%"><img src="docs/images/sales-calls-dag.png" alt="The diagram with the unrecorded driver"></td>
+<td width="33%"><img src="docs/images/sales-calls-reference.png" alt="Adjusted estimates as reference points with the range"></td>
 </tr>
 </table>
 
-**Open the full reports in your browser:** [loyalty program](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html) (grade C) · [sales calls](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html) (grade D). The HTML files are in [`examples/`](examples/) if you'd rather download them.
+**Open the full reports:** [loyalty program](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html) (grade C) · [sales calls](https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html) (grade D). The HTML files, data and every intermediate file are in [`examples/`](examples/).
+
+## Quick start
+
+**Claude apps (claude.ai / desktop):** download `causal-analyst.skill` from [Releases](../../releases) and upload it in Settings, under Skills. Then attach a data file and ask your question. The skill triggers on questions like "did our loyalty program raise spend?" or "is this cause or just coincidence?"
+
+**Claude Code:** copy `skills/causal-analyst/` into `~/.claude/skills/` (personal) or `.claude/skills/` (project).
+
+**Python dependencies** are installed automatically where the environment allows. Otherwise:
+
+```bash
+pip install -r requirements.txt            # core: numpy, pandas, scikit-learn, statsmodels, econml, dowhy, matplotlib
+pip install -r requirements-optional.txt   # optional: CausalPFN (local), tabpfn-client (hosted)
+```
+
+**Without an agent:** the toolkit is a plain CLI, so you can reproduce any report by hand:
+
+```bash
+cd examples/loyalty-program
+S=../../skills/causal-analyst/scripts
+python $S/ca.py profile  --data data.csv --treatment joined_loyalty --outcome monthly_spend --out profile.json
+python $S/ca.py dag      spec.json --outdir .
+python $S/ca.py identify spec.json --out identification.json
+python $S/ca.py run      spec.json --out results.json      # ~1 minute on 4,000 rows
+python $S/ca.py power    --sd 31 --lift 5 --results results.json
+python $S/ca.py report   results.json --narrative narrative.json --out report.html
+```
 
 ## How it works
 
@@ -89,7 +143,7 @@ Two rules hold throughout:
 1. **Numbers come from the script, never from the model's head.** `scripts/ca.py` produces every estimate. Claude writes only the words (`narrative.json`), and the report renderer draws every chart from `results.json`.
 2. **The plan comes before the results.** The main method, controls and target are written into `spec.json` and approved before anything runs. Other methods are shown as cross-checks, never averaged in.
 
-### The methods
+**The methods**
 
 | Family | Methods | Role |
 |---|---|---|
@@ -99,49 +153,18 @@ Two rules hold throughout:
 
 For amount treatments (e.g. discount size), the skill uses g-computation with the outcome model chosen by cross-validation. For "can't tell" cases it reports Manski / Manski–Pepper bounds, or instrument-based bounds and the complier effect when a random nudge exists.
 
-**Diagnostics:** propensity overlap and trimmed estimate; covariate balance before and after weighting; a fake-treatment placebo; a random-common-cause test; 80% subsample stability; Cinelli–Hazlett robustness value against the strongest measured confounder; a "bad control" illustration; power calculations for a confirming experiment.
+**Diagnostics:**
+- propensity overlap, with a trimmed estimate;
+- covariate balance before and after weighting;
+- a fake-treatment placebo and a random-common-cause test;
+- stability across 80% subsamples;
+- the Cinelli–Hazlett robustness value against the strongest measured confounder;
+- a "bad control" illustration;
+- power calculations for a confirming experiment.
 
 **Trust grades:** **A** randomized and checks pass · **B** observational, good overlap, robust to moderate hidden bias · **C** a weakness (weak overlap, fragile to hidden bias, methods disagree) · **D** the data can't answer this.
 
-## Install
-
-**Claude apps (claude.ai / desktop):** download `causal-analyst.skill` from [Releases](../../releases) and upload it in Settings, under Skills. Then ask a question with a data file attached. The skill triggers on questions like "did our loyalty program raise spend?"
-
-**Claude Code:** copy `skills/causal-analyst/` into `~/.claude/skills/` (personal) or `.claude/skills/` (project).
-
-**Python dependencies** (installed automatically where the environment allows, otherwise):
-
-```bash
-pip install -r requirements.txt                 # core: numpy, pandas, scikit-learn, statsmodels, econml, dowhy, matplotlib
-pip install -r requirements-optional.txt        # optional: CausalPFN (local), tabpfn-client (hosted)
-```
-
-### Running the toolkit without an agent
-
-The scripts are a plain CLI, so you can reproduce any report by hand:
-
-```bash
-cd examples/loyalty-program
-S=../../skills/causal-analyst/scripts
-python $S/ca.py profile  --data data.csv --treatment joined_loyalty --outcome monthly_spend --out profile.json
-python $S/ca.py dag      spec.json --outdir .
-python $S/ca.py identify spec.json --out identification.json
-python $S/ca.py run      spec.json --out results.json      # ~1 minute on 4,000 rows
-python $S/ca.py report   results.json --narrative narrative.json --out report.html
-python $S/ca.py power    --sd 31 --lift 5 --results results.json
-```
-
-## Which model to run it on
-
-| Model | Status |
-|---|---|
-| **Claude Opus 5.5** | **Tested.** Every evaluation in this repo was run on it. Recommended for real decisions. |
-| Other Claude models (Sonnet, Haiku) | Should work, but not yet evaluated. The scripts do the numerical work, but the steps that matter most are judgment calls: spotting post-treatment columns, deciding identification, calibrated wording. Run [`evals/`](evals/) before relying on a smaller model. |
-| Non-Claude agents (e.g. GPT-6 Astra in a tool that reads `SKILL.md`, or any agent with a shell) | Not tested. `SKILL.md` is plain Markdown and the toolkit is a Python CLI, so any agent that can read instructions and run Python can drive it. Please share eval results if you try. |
-
-The model matters less for the numbers (they're scripted) and more for knowing when *not* to trust them. That is where we'd spend on the strongest model available.
-
-## Evidence
+## Does it work?
 
 We ran the [skill-creator](https://github.com/anthropics/skills) eval loop on three scenarios, comparing Claude with the skill against Claude with the same prompt and no skill ([details](evals/README.md)):
 
@@ -163,6 +186,16 @@ The foundation-model cross-checks were benchmarked on 14 semi-synthetic datasets
 
 CausalPFN was more accurate, especially under poor overlap, but overconfident. That is why the main method stays classical-ML and the foundation models are cross-checks.
 
+## Which model to use
+
+| Model | Status |
+|---|---|
+| **Claude Opus 5.5** | **Tested.** Every evaluation in this repo was run on it. Recommended for real decisions. |
+| Other Claude models (Sonnet, Haiku) | Should work, but not yet evaluated. The scripts do the numerical work, but the steps that matter most are judgment calls: spotting post-treatment columns, deciding identification, calibrated wording. Run [`evals/`](evals/) before relying on a smaller model. |
+| Non-Claude agents (e.g. GPT-6 Astra in a tool that reads `SKILL.md`, or any agent with a shell) | Not tested. `SKILL.md` is plain Markdown and the toolkit is a Python CLI, so any agent that can read instructions and run Python can drive it. Please share eval results if you try. |
+
+The model matters less for the numbers (they're scripted) and more for knowing when *not* to trust them. That is where we'd spend on the strongest model available.
+
 ## Data and privacy
 
 - Everything runs locally by default. **No data leaves your machine** unless you opt in.
@@ -171,20 +204,23 @@ CausalPFN was more accurate, especially under poor overlap, but overconfident. T
 - API keys are read from `TABPFN_TOKEN` or a file named by `TABPFN_TOKEN_FILE`. Never paste keys into chat.
 - CausalPFN weights (~75 MB) download from Hugging Face on first use, or point `CAUSALPFN_WEIGHTS` at a local copy.
 
-## Limitations
+## Limitations and roadmap
+
+**Limitations**
 
 - **One yes/no or amount action at a time**, cross-sectional data. Difference-in-differences, regression discontinuity and multi-valued actions are not automated yet (the skill says so and offers a labelled one-off analysis).
 - **Hidden confounding can be sized, not removed.** Grades B and C still rest on "nothing important is missing". The report says exactly how strong a hidden factor would need to be.
+- **The diagram is only as good as the answers behind it.** If a column's name is misleading and nobody catches it, the diagram, and the answer, will be wrong. That's why the skill asks and the expert confirms.
 - **Front-door identification** is detected but not estimated in this version.
 - **Size:** comfortable up to a few hundred thousand rows on a laptop. Larger tables are what the warehouse version (below) is for.
 - **Tested on synthetic and semi-synthetic data** with known answers, plus one benchmark case. Real-world validation is ongoing.
 
-## Roadmap
+**Roadmap**
 
-- **SQL / warehouse layer:** a signed-off analysis becomes a versioned contract; models are fitted on a schedule in Databricks, Snowflake or ClickHouse; effects are answered in SQL in seconds, with the trust grade recomputed per query.
+- **SQL / warehouse layer:** a signed-off analysis becomes a versioned contract. Models are fitted on a schedule in Databricks, Snowflake or ClickHouse, and effects are answered in SQL in seconds, with the trust grade recomputed per query.
+- **Realistic synthetic datasets for causal inference:** a generator for complex, real-world-like scenarios with a known answer. Think hidden drivers, post-treatment traps, weak overlap, effects that vary by group, rollouts over time, and messy data. Use it to test this skill, compare methods, and train people.
 - Difference-in-differences and synthetic control for before/after rollouts; regression discontinuity for score cutoffs.
 - A proper one-step correction for foundation-model cross-checks ([Melnychuk et al., 2026](https://arxiv.org/abs/2603.12037)), and GPU support.
-- **Realistic synthetic datasets for causal inference:** a generator for complex, real-world-like scenarios with a known answer. Think hidden drivers, post-treatment traps, weak overlap, effects that vary by group, rollouts over time, and messy data. Use it to test this skill, compare methods, and train people.
 - Broader evals, including real-world benchmarks such as CausalReasoningBenchmark.
 
 ## Repository layout
@@ -193,11 +229,13 @@ CausalPFN was more accurate, especially under poor overlap, but overconfident. T
 skills/causal-analyst/     the skill: SKILL.md, scripts/, references/
 examples/                  two worked cases: data, brief, spec, results, narrative, report
 evals/                     eval scenarios, assertions, benchmark results, foundation-model study
-tests/                     smoke test (runs the full pipeline on the loyalty example)
+tests/                     smoke test (runs the full pipeline on both examples)
 docs/images/               screenshots used in this README
 ```
 
-## Credits
+Contributions, especially eval results on other models and new test cases with known answers, are welcome: see [CONTRIBUTING](CONTRIBUTING.md).
+
+## Credits and licence
 
 Built on [DoWhy](https://github.com/py-why/dowhy) (identification cross-check), [EconML](https://github.com/py-why/EconML) (double ML, causal forests), [scikit-learn](https://scikit-learn.org), [statsmodels](https://www.statsmodels.org), and optionally [CausalPFN](https://arxiv.org/abs/2506.07918) and [TabPFN](https://github.com/PriorLabs/tabpfn-client). Methods: Robins, Rotnitzky & Zhao (1994); Chernozhukov et al. (2018); Wager & Athey (2018); Cinelli & Hazlett (2020); Manski (1990); Manski & Pepper (2000); Balazadeh et al. (2025); Hollmann et al. (2025).
 

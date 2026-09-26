@@ -2,26 +2,75 @@
  "eyebrow": "Loyalty program",
  "title": "Does joining the loyalty program raise monthly spend?",
  "answer_html": "Yes, most likely by about <strong>$9 per customer a month</strong>, and newer customers gain the most. Treat the exact size with some caution: it assumes nothing important about who joined is missing from the data.",
- "value_prefix": "$", "decimals": 2, "hero_decimals": 0,
- "effect_label": "Effect of joining", "unit": "per customer per month",
+ "value_prefix": "$",
+ "decimals": 2,
+ "hero_decimals": 0,
+ "effect_label": "Effect of joining",
+ "unit": "per customer per month",
  "units": "customers",
- "group_names": {"treated": "members", "untreated": "non-members"},
- "labels": {"tenure_months<12": "Under 12 months", "not (tenure_months<12)": "12 months or more", "income_k": "Household income", "tenure_months": "Months as customer", "age": "Age", "urban": "Lives in a city", "prior_quarter_spend": "Spend last quarter"},
- "caution_bullets": ["1 in 10 customers had few look-alikes to compare with.", "A hidden factor 60% as strong as last quarter's spend could erase it."],
+ "group_names": {
+  "treated": "members",
+  "untreated": "non-members"
+ },
+ "labels": {
+  "tenure_months<12": "Under 12 months",
+  "not (tenure_months<12)": "12 months or more",
+  "income_k": "Household income",
+  "tenure_months": "Months as customer",
+  "age": "Age",
+  "urban": "Lives in a city",
+  "prior_quarter_spend": "Spend last quarter"
+ },
+ "caution_bullets": [
+  "1 in 10 customers had few look-alikes to compare with.",
+  "A hidden factor 60% as strong as last quarter's spend could erase it."
+ ],
  "segment_card_title": "Who gains most",
  "segment_card_note": "Your hunch was right: the gap between the two groups is about $9 (range $6 to $13).",
  "gap_title": "Most of the $35 gap isn't the program",
  "gap_text": "Members spend $34.77 more a month than non-members. About 73% of that comes from who joined: marketing pushed the program to city customers and people who already spent a lot.",
- "selection_label": "Who joined", "action_label": "The program",
+ "selection_label": "Who joined",
+ "action_label": "The program",
  "methods_title": "Nine methods, one answer: about $8 to $10",
  "methods_text": "The main method was chosen before any results. The others are cross-checks, including two foundation models, CausalPFN and TabPFN. They agree, which is reassuring but not proof: they share the same blind spots.",
  "segment_title": "Newer customers gain about 2.5 times as much",
  "overlap_title": "1 in 10 customers had few look-alikes",
  "hidden_note": "Only last quarter's spend clears the line. A hidden factor that strong would be unusual, but not impossible; for example, how engaged someone already was.",
  "trust_title": "Why the grade is C, not B",
- "dag_note": "Confirmed by you before the run.",
  "trap_text": "Points redeemed are a result of joining. Treating them as a control flips the answer to a nonsense result.",
- "data_issues": [{"title": "Data issue to check", "text": "966 non-members (44%) show 1 to 10 redeemed points, but only members should have any. It doesn't affect this result, but if some members are recorded as non-members, the true effect could be larger."}],
- "next_steps": [{"title": "Confirm with a small randomized test.", "text": "Invite a random half of a group of new customers. About 600 customers per group would detect a $5 lift."}, {"title": "Target newer customers first.", "text": "They show the biggest gain."}, {"title": "Fix the points data", "text": "so non-members can't show redemptions."}],
- "questions": [{"title": "How did customers end up joining?", "text": "You weren't sure, so we treated it as self-selected. If marketing targeted people using data we don't have, the estimate could be too high."}, {"title": "Can one customer joining affect another's spend?", "text": "Shared households or referrals would break an assumption. We assumed not."}, {"title": "Is margin what matters?", "text": "This is one month of spend, before the cost of the points."}]
+ "data_issues": [
+  {
+   "title": "Data issue to check",
+   "text": "966 non-members (44%) show 1 to 10 redeemed points, but only members should have any. It doesn't affect this result, but if some members are recorded as non-members, the true effect could be larger."
+  }
+ ],
+ "next_steps": [
+  {
+   "title": "Confirm with a small randomized test.",
+   "text": "Invite a random half of a group of new customers. About 600 customers per group would detect a $5 lift."
+  },
+  {
+   "title": "Target newer customers first.",
+   "text": "They show the biggest gain."
+  },
+  {
+   "title": "Fix the points data",
+   "text": "so non-members can't show redemptions."
+  }
+ ],
+ "questions": [
+  {
+   "title": "How did customers end up joining?",
+   "text": "You weren't sure, so we treated it as self-selected. If marketing targeted people using data we don't have, the estimate could be too high."
+  },
+  {
+   "title": "Can one customer joining affect another's spend?",
+   "text": "Shared households or referrals would break an assumption. We assumed not."
+  },
+  {
+   "title": "Is margin what matters?",
+   "text": "This is one month of spend, before the cost of the points."
+  }
+ ],
+ "dag_confirmed": true
 }
