@@ -1,0 +1,156 @@
+{
+ "id": "saas-pricing-rollout",
+ "industry": "SaaS & product",
+ "title": "New pricing page rollout → trial signups",
+ "teaser": "Regions switched in waves; effect builds up; fast-growing regions went first.",
+ "question": "Did the new pricing page increase trial signups?",
+ "ask": "It went live region by region, so there was no clean A/B test.",
+ "sme": "a growth lead",
+ "unit": "region",
+ "units": "regions",
+ "design": "rollout",
+ "n": 80,
+ "default_level": "realistic",
+ "id_col": {
+  "name": "region_id",
+  "start": 1
+ },
+ "treatment": {
+  "name": "new_pricing_live",
+  "type": "binary",
+  "meaning": "1 = new pricing page live in this region that month",
+  "recorded": "monthly"
+ },
+ "outcome": {
+  "name": "trial_signups",
+  "type": "continuous",
+  "base": 400,
+  "noise_sd": 25,
+  "unit_sd": 90,
+  "min": 0,
+  "decimals": 0,
+  "meaning": "trial signups that month",
+  "recorded": "monthly"
+ },
+ "effect": {
+  "ate": 30,
+  "unit_label": "signups per region per month"
+ },
+ "rollout": {
+  "periods": 18,
+  "cohorts": [
+   8,
+   11,
+   14
+  ],
+  "never_share": 0.3,
+  "ramp_periods": 0,
+  "season_amp": 20,
+  "time_trend": 2,
+  "period_name": "month",
+  "period_label": "month",
+  "period_meaning": "month number (1 = Jan last year)",
+  "adopt_name": "switched_in_month",
+  "adopt_meaning": "month the new page went live here (0 = never)"
+ },
+ "level_overrides": {
+  "realistic": {
+   "rollout": {
+    "ramp_periods": 4
+   }
+  },
+  "tricky": {
+   "rollout": {
+    "trend_selection": 1.5
+   }
+  },
+  "unanswerable": {
+   "rollout": {
+    "trend_selection": 3.0
+   }
+  }
+ },
+ "level_dials": {
+  "starter": {
+   "irrelevant": 0
+  },
+  "realistic": {
+   "irrelevant": 0
+  },
+  "tricky": {
+   "irrelevant": 0
+  },
+  "unanswerable": {
+   "irrelevant": 0
+  }
+ },
+ "variables": [
+  {
+   "name": "market_size_k",
+   "meaning": "addressable businesses in the region (thousands)",
+   "recorded": "fixed",
+   "dist": {
+    "type": "lognormal",
+    "median": 40,
+    "spread": 0.6
+   },
+   "clip": [
+    3,
+    900
+   ],
+   "decimals": 0,
+   "to_treat": 0.5,
+   "to_outcome": 60
+  },
+  {
+   "name": "language",
+   "meaning": "main site language",
+   "recorded": "fixed",
+   "dist": {
+    "type": "category",
+    "levels": [
+     "en",
+     "de",
+     "fr",
+     "es",
+     "pt"
+    ],
+    "probs": [
+     0.4,
+     0.2,
+     0.15,
+     0.15,
+     0.1
+    ]
+   }
+  }
+ ],
+ "notes": [
+  {
+   "text": "Bigger markets got the new page first."
+  },
+  {
+   "text": "Signups are seasonal (slower in summer)."
+  },
+  {
+   "text": "Marketing says the regions that switched early were already our fastest growing.",
+   "min_level": "tricky"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Time trends",
+   "text": "Before/after on adopters picks up growth and seasonality."
+  },
+  {
+   "name": "Staggered waves with growing effects",
+   "text": "Two-way fixed effects can mislead when effects build up.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Different paths",
+   "text": "Regions already growing faster adopted first; parallel trends fail.",
+   "min_level": "tricky"
+  }
+ ]
+}

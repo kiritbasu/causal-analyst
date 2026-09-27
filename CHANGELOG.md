@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 (unreleased)
+
+- New companion skill **causal-data-generator**: realistic synthetic datasets with a known true answer. Twelve ready-made use cases across four industries, or custom ones; Starter / Realistic / Tricky / Unanswerable levels plus realism dials; one-off, amount, score-cutoff and rollout designs. Outputs data + an expert's brief, and a sealed answer key with the truth, the traps and which methods should work or fail, plus a seeded `generate.py`. Blind mode, and a hand-off to causal-analyst.
+- Analyst: flags when more than 5% of rows are dropped for missing values.
+
 ## 0.3.0 (2026-09-26)
 
 Domain knowledge, used carefully.

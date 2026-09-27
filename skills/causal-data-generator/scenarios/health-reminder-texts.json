@@ -1,0 +1,177 @@
+{
+ "id": "health-reminder-texts",
+ "industry": "Health & pharmacy",
+ "title": "Refill reminder texts → on-time refills",
+ "teaser": "Organised patients opt in; a random branch pilot gives a clean nudge.",
+ "question": "Do refill reminder texts help patients refill on time?",
+ "ask": "We want the extra on-time refills per 100 patients.",
+ "sme": "a pharmacy chain's patient-services manager",
+ "unit": "patient",
+ "units": "patients",
+ "design": "cross_section",
+ "n": 7000,
+ "default_level": "realistic",
+ "id_col": {
+  "name": "patient_id",
+  "start": 40001,
+  "meaning": "patient identifier"
+ },
+ "treatment": {
+  "name": "texts_on",
+  "type": "binary",
+  "share": 0.4,
+  "meaning": "1 = signed up for refill reminder texts",
+  "recorded": "before the refill window"
+ },
+ "outcome": {
+  "name": "refilled_on_time",
+  "type": "binary",
+  "base_rate": 0.62,
+  "meaning": "1 = refilled within 5 days of running out",
+  "recorded": "after the refill window"
+ },
+ "effect": {
+  "ate": 0.06,
+  "unit_label": "on-time refill probability (6 per 100)"
+ },
+ "variables": [
+  {
+   "name": "age",
+   "meaning": "age",
+   "recorded": "on file",
+   "dist": {
+    "type": "normal",
+    "mean": 57,
+    "sd": 16
+   },
+   "clip": [
+    18,
+    95
+   ],
+   "decimals": 0,
+   "to_treat": -0.4,
+   "to_outcome": 0.2
+  },
+  {
+   "name": "chronic_meds",
+   "meaning": "number of chronic medications",
+   "recorded": "on file",
+   "dist": {
+    "type": "poisson",
+    "mean": 2.5
+   },
+   "to_treat": 0.2,
+   "to_outcome": 0.3
+  },
+  {
+   "name": "on_time_last_refill",
+   "role": "prior_outcome",
+   "meaning": "1 = refilled on time last time",
+   "recorded": "before the refill window",
+   "dist": {
+    "type": "binary",
+    "p": 0.6
+   },
+   "from_hidden": {
+    "U_organised": 0.8
+   },
+   "to_treat": 0.4,
+   "to_outcome": 0.7,
+   "min_level": "realistic"
+  },
+  {
+   "name": "app_user",
+   "meaning": "1 = uses the pharmacy app",
+   "recorded": "on file",
+   "dist": {
+    "type": "binary",
+    "p": 0.45
+   },
+   "from_hidden": {
+    "U_organised": 0.5
+   },
+   "to_treat": 0.8,
+   "to_outcome": 0.2
+  }
+ ],
+ "instrument": {
+  "name": "branch_pilot",
+  "p": 0.5,
+  "strength": 1.3,
+  "meaning": "1 = patient's branch was randomly picked for the texting pilot (staff offered sign-up at the counter)",
+  "recorded": "before the refill window",
+  "min_level": "realistic",
+  "max_level": "tricky"
+ },
+ "hidden": [
+  {
+   "name": "U_organised",
+   "label": "how organised the patient is",
+   "to_treat": 0.7,
+   "to_outcome": 0.6,
+   "min_level": "realistic"
+  },
+  {
+   "name": "U_carer",
+   "label": "carers signing up the patients they look after",
+   "to_treat": 1.2,
+   "to_outcome": 1.0,
+   "min_level": "unanswerable"
+  }
+ ],
+ "post_treatment": [
+  {
+   "name": "texts_read",
+   "kind": "consequence",
+   "treated_only": true,
+   "base": 3,
+   "from_treat": 0,
+   "from_outcome": 1.0,
+   "noise_sd": 1,
+   "clip": [
+    0,
+    12
+   ],
+   "decimals": 0,
+   "meaning": "reminder texts opened",
+   "recorded": "during the refill window",
+   "cryptic": "txr"
+  }
+ ],
+ "notes": [
+  {
+   "text": "Signing up for texts is optional."
+  },
+  {
+   "text": "Half of our branches were picked at random for a pilot where staff offered sign-up at the counter.",
+   "min_level": "realistic",
+   "max_level": "tricky"
+  },
+  {
+   "text": "Many sign-ups are done by carers for the patients they look after, and we don't record who has a carer.",
+   "min_level": "unanswerable"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Organised patients opt in",
+   "text": "Opt-in patients were already better at refilling.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Random branch pilot",
+   "text": "The pilot is a natural experiment identifying the effect for patients the pilot moved.",
+   "min_level": "realistic",
+   "max_level": "tricky"
+  },
+  {
+   "name": "Consequence column",
+   "text": "texts_read only exists for sign-ups."
+  },
+  {
+   "name": "Unrecorded carers",
+   "text": "Carers drive both sign-up and refills; not answerable from this file.",
+   "min_level": "unanswerable"
+  }
+ ]
+}

@@ -1,0 +1,178 @@
+{
+ "id": "people-ai-training",
+ "industry": "People, sales & ops",
+ "title": "AI-tools training → productivity",
+ "teaser": "Weak performers nudged in; tool use is the middle step; kudos is a collider.",
+ "question": "Did the AI-tools training raise productivity, and by how much?",
+ "ask": "Leadership wants the average lift in this quarter's output score.",
+ "sme": "the head of people analytics",
+ "unit": "employee",
+ "units": "employees",
+ "design": "cross_section",
+ "n": 4000,
+ "default_level": "tricky",
+ "id_col": {
+  "name": "emp",
+  "start": 1,
+  "meaning": "employee number"
+ },
+ "treatment": {
+  "name": "flag_t",
+  "type": "binary",
+  "share": 0.45,
+  "meaning": "1 = took the AI training course",
+  "recorded": "during the quarter"
+ },
+ "outcome": {
+  "name": "out_m",
+  "type": "continuous",
+  "base": 72,
+  "noise_sd": 7,
+  "decimals": 1,
+  "min": 0,
+  "meaning": "output score this quarter (the productivity measure)",
+  "recorded": "end of quarter"
+ },
+ "effect": {
+  "ate": 7.5,
+  "unit_label": "output points"
+ },
+ "variables": [
+  {
+   "name": "cohort",
+   "meaning": "department (eng, sales, ops)",
+   "recorded": "at hire",
+   "dist": {
+    "type": "category",
+    "levels": [
+     "eng",
+     "sales",
+     "ops"
+    ],
+    "probs": [
+     0.4,
+     0.35,
+     0.25
+    ]
+   },
+   "to_treat": 0.2,
+   "to_outcome": 1.5
+  },
+  {
+   "name": "yrs",
+   "meaning": "years at the company",
+   "recorded": "start of quarter",
+   "dist": {
+    "type": "lognormal",
+    "median": 4,
+    "spread": 0.6
+   },
+   "clip": [
+    0,
+    35
+   ],
+   "decimals": 1,
+   "to_treat": -0.2,
+   "to_outcome": 2
+  },
+  {
+   "name": "q_score",
+   "role": "prior_outcome",
+   "meaning": "output score for the previous quarter (same scale)",
+   "recorded": "before the course",
+   "dist": {
+    "type": "normal",
+    "mean": 55,
+    "sd": 10
+   },
+   "clip": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "to_treat": -0.8,
+   "to_outcome": 6
+  }
+ ],
+ "instrument": {
+  "name": "slot_open",
+  "p": 0.5,
+  "strength": 1.2,
+  "meaning": "1 = a course seat was open in the employee's time zone (seats were allocated by random draw)",
+  "recorded": "at sign-up",
+  "min_level": "realistic",
+  "max_level": "tricky"
+ },
+ "mediator": {
+  "name": "usage_idx",
+  "base": 10,
+  "from_treat": 15,
+  "share": 0.6,
+  "noise_sd": 5,
+  "decimals": 1,
+  "meaning": "how much the employee used AI tools, from tool logs",
+  "recorded": "during the quarter, after the course",
+  "min_level": "realistic"
+ },
+ "post_treatment": [
+  {
+   "name": "kudos",
+   "kind": "collider",
+   "base": 20,
+   "from_treat": 5,
+   "from_outcome": 6,
+   "noise_sd": 4,
+   "clip": [
+    0,
+    200
+   ],
+   "decimals": 0,
+   "meaning": "recognition points from peers and managers",
+   "recorded": "end of quarter",
+   "min_level": "tricky"
+  }
+ ],
+ "notes": [
+  {
+   "text": "Taking the course was voluntary. Managers nudged people who had a weak previous quarter to take it."
+  },
+  {
+   "text": "Recognition points are partly given for good output and partly for completing training.",
+   "min_level": "tricky"
+  },
+  {
+   "text": "Managers also hand-picked people they saw as high-potential for the first seats, based on their own impressions; that list wasn't kept.",
+   "min_level": "unanswerable"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Weak performers nudged in",
+   "text": "Reverse causation: leaving out last quarter's score understates the effect."
+  },
+  {
+   "name": "Middle step with a misleading name",
+   "text": "usage_idx is how the course works; controlling for it hides most of the effect.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Collider",
+   "text": "kudos is caused by both training and output.",
+   "min_level": "tricky"
+  },
+  {
+   "name": "Unrecorded manager picks",
+   "text": "Hand-picked high-potential staff took the course and improve anyway; with no seat draw recorded, not answerable.",
+   "min_level": "unanswerable"
+  }
+ ],
+ "hidden": [
+  {
+   "name": "U_ambition",
+   "label": "which people managers privately saw as high-potential",
+   "to_treat": 1.4,
+   "to_outcome": 4,
+   "min_level": "unanswerable"
+  }
+ ]
+}

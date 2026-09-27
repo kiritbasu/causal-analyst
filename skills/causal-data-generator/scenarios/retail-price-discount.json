@@ -1,0 +1,193 @@
+{
+ "id": "retail-price-discount",
+ "industry": "Retail & marketing",
+ "title": "Discount depth → units sold",
+ "teaser": "An amount, not a yes/no; slow sellers got deeper cuts; diminishing returns.",
+ "question": "How many more units do we sell for each extra point of discount?",
+ "ask": "Finance wants to know where deeper discounts stop paying off.",
+ "sme": "a category manager at a grocery chain",
+ "unit": "product-store week",
+ "units": "product-store weeks",
+ "design": "cross_section",
+ "n": 12000,
+ "default_level": "realistic",
+ "treatment": {
+  "name": "discount_pct",
+  "type": "dose",
+  "min": 0,
+  "max": 30,
+  "step": 5,
+  "spread": 0.75,
+  "noise": 0.8,
+  "grid": [
+   0,
+   5,
+   10,
+   15,
+   20,
+   25,
+   30
+  ],
+  "meaning": "price discount that week (%)",
+  "recorded": "set the week before",
+  "width": 0.33
+ },
+ "outcome": {
+  "name": "units_sold",
+  "type": "continuous",
+  "base": 120,
+  "noise_sd": 25,
+  "min": 0,
+  "decimals": 0,
+  "meaning": "units sold that week",
+  "recorded": "end of the week"
+ },
+ "effect": {
+  "shape": "curved",
+  "max_effect": 70,
+  "scale": 12,
+  "unit_label": "units per week"
+ },
+ "variables": [
+  {
+   "name": "baseline_units",
+   "role": "prior_outcome",
+   "meaning": "average weekly units over the previous 8 weeks",
+   "recorded": "before the week",
+   "dist": {
+    "type": "lognormal",
+    "median": 110,
+    "spread": 0.45
+   },
+   "clip": [
+    0,
+    2000
+   ],
+   "decimals": 0,
+   "to_treat": -0.9,
+   "to_outcome": 35,
+   "noisy": true
+  },
+  {
+   "name": "shelf_price",
+   "meaning": "regular shelf price (€)",
+   "recorded": "before the week",
+   "dist": {
+    "type": "lognormal",
+    "median": 4,
+    "spread": 0.5
+   },
+   "clip": [
+    0.3,
+    60
+   ],
+   "decimals": 2,
+   "to_treat": 0.3,
+   "to_outcome": -8
+  },
+  {
+   "name": "store_size_m2",
+   "meaning": "store sales floor (m²)",
+   "recorded": "fixed",
+   "dist": {
+    "type": "lognormal",
+    "median": 1500,
+    "spread": 0.4
+   },
+   "clip": [
+    200,
+    8000
+   ],
+   "decimals": 0,
+   "to_outcome": 18
+  },
+  {
+   "name": "holiday_week",
+   "meaning": "1 = public-holiday week",
+   "recorded": "calendar",
+   "dist": {
+    "type": "binary",
+    "p": 0.1
+   },
+   "to_treat": 0.5,
+   "to_outcome": 20,
+   "min_level": "realistic"
+  }
+ ],
+ "hidden": [
+  {
+   "name": "U_trend",
+   "label": "a product going out of fashion",
+   "to_treat": 0.6,
+   "to_outcome": -14,
+   "min_level": "tricky"
+  },
+  {
+   "name": "U_competitor",
+   "label": "competitor promotions the same week",
+   "to_treat": 0.9,
+   "to_outcome": -30,
+   "min_level": "unanswerable"
+  }
+ ],
+ "post_treatment": [
+  {
+   "name": "stockout_flag",
+   "kind": "consequence",
+   "base": -1.2,
+   "from_treat": 0,
+   "from_outcome": 0.9,
+   "noise_sd": 0.6,
+   "clip": [
+    0,
+    1
+   ],
+   "decimals": 0,
+   "meaning": "1 = ran out of stock that week",
+   "recorded": "end of the week",
+   "min_level": "realistic",
+   "cryptic": "oos"
+  }
+ ],
+ "notes": [
+  {
+   "text": "Category managers put deeper discounts on items that were selling slowly."
+  },
+  {
+   "text": "Holiday weeks get more promotions.",
+   "min_level": "realistic"
+  },
+  {
+   "text": "The regular price is what the shelf label shows outside promotions."
+  },
+  {
+   "text": "We often match competitor promotions, but we don't keep a record of which weeks competitors ran them.",
+   "min_level": "unanswerable"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Reverse causation",
+   "text": "Slow sellers got deeper discounts; ignoring baseline sales makes discounts look useless."
+  },
+  {
+   "name": "Diminishing returns",
+   "text": "The effect curves; a straight line overstates deep discounts."
+  },
+  {
+   "name": "Consequence column",
+   "text": "Stock-outs result from sales.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Unrecorded fading demand",
+   "text": "Products going out of fashion get deeper discounts and sell less anyway.",
+   "min_level": "tricky"
+  },
+  {
+   "name": "Unrecorded competitor promotions",
+   "text": "Matching competitor promotions drives deeper discounts and lower sales; not answerable from this file.",
+   "min_level": "unanswerable"
+  }
+ ]
+}

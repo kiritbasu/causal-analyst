@@ -1,0 +1,159 @@
+{
+ "id": "ops-warehouse-rollout",
+ "industry": "People, sales & ops",
+ "title": "New picking process rollout → orders per hour",
+ "teaser": "Sites switched after a bad month; the effect ramps up as staff learn.",
+ "question": "Did the new picking process raise orders picked per hour?",
+ "ask": "It was rolled out across warehouses over a year.",
+ "sme": "a VP of operations",
+ "unit": "warehouse",
+ "units": "warehouses",
+ "design": "rollout",
+ "n": 60,
+ "default_level": "realistic",
+ "id_col": {
+  "name": "site_id",
+  "start": 101
+ },
+ "treatment": {
+  "name": "new_process",
+  "type": "binary",
+  "meaning": "1 = new picking process in use that week",
+  "recorded": "weekly"
+ },
+ "outcome": {
+  "name": "orders_per_hour",
+  "type": "continuous",
+  "base": 95,
+  "noise_sd": 4,
+  "unit_sd": 12,
+  "min": 0,
+  "decimals": 1,
+  "meaning": "orders picked per labour hour that week",
+  "recorded": "weekly"
+ },
+ "effect": {
+  "ate": 6,
+  "unit_label": "orders per hour"
+ },
+ "rollout": {
+  "periods": 40,
+  "cohorts": [
+   12,
+   20,
+   28
+  ],
+  "never_share": 0.25,
+  "ramp_periods": 6,
+  "season_amp": 3,
+  "time_trend": 0.05,
+  "period_name": "week",
+  "period_label": "week",
+  "period_meaning": "week number",
+  "adopt_name": "switched_in_week",
+  "adopt_meaning": "week the new process started at this site (0 = never)"
+ },
+ "level_overrides": {
+  "starter": {
+   "rollout": {
+    "ramp_periods": 0
+   }
+  },
+  "realistic": {
+   "rollout": {
+    "ramp_periods": 6
+   }
+  },
+  "tricky": {
+   "rollout": {
+    "pre_dip": -6
+   }
+  },
+  "unanswerable": {
+   "rollout": {
+    "trend_selection": 2.0
+   }
+  }
+ },
+ "level_dials": {
+  "starter": {
+   "irrelevant": 0
+  },
+  "realistic": {
+   "irrelevant": 0
+  },
+  "tricky": {
+   "irrelevant": 0
+  },
+  "unanswerable": {
+   "irrelevant": 0
+  }
+ },
+ "variables": [
+  {
+   "name": "site_size_k_m2",
+   "meaning": "warehouse floor space (thousand m²)",
+   "recorded": "fixed",
+   "dist": {
+    "type": "lognormal",
+    "median": 20,
+    "spread": 0.5
+   },
+   "clip": [
+    3,
+    150
+   ],
+   "decimals": 1,
+   "to_treat": 0.6,
+   "to_outcome": 5
+  },
+  {
+   "name": "automation_level",
+   "meaning": "automation level (low / medium / high)",
+   "recorded": "fixed",
+   "dist": {
+    "type": "category",
+    "levels": [
+     "low",
+     "medium",
+     "high"
+    ],
+    "probs": [
+     0.4,
+     0.4,
+     0.2
+    ]
+   },
+   "to_outcome": 4
+  }
+ ],
+ "notes": [
+  {
+   "text": "Bigger sites went first."
+  },
+  {
+   "text": "Sites usually switched right after a bad month, when managers were keen to try something.",
+   "min_level": "tricky"
+  },
+  {
+   "text": "It takes staff a few weeks to get used to the new process.",
+   "min_level": "realistic"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Seasonality",
+   "text": "Before/after on adopters picks up the peak season."
+  },
+  {
+   "name": "Effect builds up over time",
+   "text": "With staggered waves, two-way fixed effects mix early and late effects.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Switching after a dip",
+   "text": "A pre-switch dip makes before/after comparisons overstate the gain.",
+   "min_level": "tricky"
+  }
+ ]
+}

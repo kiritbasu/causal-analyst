@@ -1,0 +1,56 @@
+{
+ "id": "retail-loyalty", "industry": "Retail & marketing", "title": "Loyalty program → monthly spend",
+ "teaser": "Big spenders were pushed to join; points only exist after joining.",
+ "question": "Does joining our loyalty program actually raise monthly spend?",
+ "ask": "I need the average effect across all customers, and whether newer customers gain more.",
+ "sme": "a retail marketing lead", "unit": "customer", "units": "customers",
+ "design": "cross_section", "n": 5000, "default_level": "realistic",
+ "id_col": {"name": "customer_id", "start": 100001, "meaning": "customer identifier"},
+ "treatment": {"name": "joined_loyalty", "label": "Joined loyalty", "type": "binary", "share": 0.4,
+   "meaning": "1 = joined the loyalty program", "recorded": "during the launch window"},
+ "outcome": {"name": "monthly_spend", "label": "Monthly spend", "type": "continuous", "base": 85, "noise_sd": 22, "min": 0, "decimals": 2,
+   "meaning": "spend in the month after the launch window ($)", "recorded": "the month after the launch window"},
+ "effect": {"ate": 10, "unit_label": "$ per customer per month"},
+ "variables": [
+  {"name": "income_k", "label": "Household income ($k)", "meaning": "household income, $k", "recorded": "at account creation",
+   "dist": {"type": "lognormal", "median": 62, "spread": 0.35}, "clip": [15, 400], "decimals": 0, "to_treat": 0.3, "to_outcome": 9},
+  {"name": "tenure_months", "label": "Months as a customer", "meaning": "months as a customer", "recorded": "at the start of the period",
+   "dist": {"type": "uniform", "low": 1, "high": 72}, "decimals": 0, "to_treat": 0.25, "to_outcome": 5},
+  {"name": "age", "label": "Age", "meaning": "customer age", "recorded": "at account creation",
+   "dist": {"type": "normal", "mean": 44, "sd": 13}, "clip": [18, 90], "decimals": 0, "to_outcome": -2},
+  {"name": "urban", "label": "Lives in a city", "meaning": "1 = lives in an urban area", "recorded": "at account creation",
+   "dist": {"type": "binary", "p": 0.55}, "to_treat": 0.45, "to_outcome": 3},
+  {"name": "prior_quarter_spend", "label": "Spend last quarter", "role": "prior_outcome", "noisy": true,
+   "meaning": "total spend in the quarter before launch ($)", "recorded": "before the program launched",
+   "dist": {"type": "lognormal", "median": 240, "spread": 0.5}, "clip": [0, 3000], "decimals": 2, "depends_on": {"income_k": 0.5, "tenure_months": 0.3},
+   "from_hidden": {"U_engaged": 0.7}, "to_treat": 0.8, "to_outcome": 12, "min_level": "realistic"}
+ ],
+ "hidden": [
+  {"name": "U_engaged", "label": "how engaged the customer already is", "to_treat": 0.3, "to_outcome": 4, "min_level": "realistic"},
+  {"name": "U_engaged_strong", "label": "store managers enrolling their 'regulars' by hand", "to_treat": 1.6, "to_outcome": 16, "min_level": "unanswerable"}
+ ],
+ "heterogeneity": {"variable": "tenure_months", "below": 12, "extra": 9, "label": "customers under 12 months", "min_level": "realistic"},
+ "post_treatment": [
+  {"name": "points_redeemed", "label": "Points redeemed", "kind": "consequence", "treated_only": true, "leak_share": 0.0,
+   "base": 20, "from_treat": 0, "from_outcome": 8, "noise_sd": 6, "clip": [0, 400], "decimals": 0,
+   "meaning": "loyalty points redeemed", "recorded": "during the outcome month", "cryptic": "pts_rd"},
+  {"name": "survey_satisfaction", "label": "Satisfaction score", "kind": "collider", "min_level": "tricky",
+   "base": 7, "from_treat": 0.8, "from_outcome": 0.9, "noise_sd": 1.1, "clip": [0, 10], "decimals": 0,
+   "meaning": "satisfaction score from the post-launch survey (0-10)", "recorded": "end of the outcome month", "cryptic": "csat_q"}
+ ],
+ "negative_control": {"name": "spend_before_launch_week", "label": "Spend in the week before launch", "type": "continuous", "min_level": "tricky",
+   "base": 60, "from_vars": {"income_k": 7, "tenure_months": 4}, "from_hidden": {"U_engaged": 6}, "noise_sd": 15, "clip": [0, 2000], "decimals": 2,
+   "meaning": "spend in the week before the program launched ($)", "recorded": "before the program launched"},
+ "notes": [
+  {"text": "Joining was voluntary. Marketing pushed the program harder in cities."},
+  {"text": "Marketing also targeted people who already spent a lot.", "min_level": "realistic"},
+  {"text": "Only members can earn and redeem points."},
+  {"text": "Store managers personally signed up their regulars, but nobody recorded who those regulars were.", "min_level": "unanswerable"}
+ ],
+ "traps": [
+  {"name": "Post-treatment column", "text": "points_redeemed only exists after joining; controlling for it wrecks the estimate."},
+  {"name": "Targeting on past spend", "text": "Big spenders were pushed to join; leaving prior spend out inflates the effect.", "min_level": "realistic"},
+  {"name": "Collider", "text": "Satisfaction is caused by both joining and spending; controlling for it biases the answer.", "min_level": "tricky"},
+  {"name": "Unrecorded driver", "text": "Managers enrolled their regulars by hand; nothing recorded captures it, so the effect can't be pinned down.", "min_level": "unanswerable"}
+ ]
+}

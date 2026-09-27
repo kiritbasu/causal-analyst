@@ -1,0 +1,207 @@
+{
+ "id": "health-statin-adherence",
+ "industry": "Health & pharmacy",
+ "title": "Statin adherence → cardiac admissions",
+ "teaser": "The healthy-adherer effect nobody mentions; injury admissions as a check.",
+ "question": "How much does sticking to your statin reduce cardiac hospital admissions over the next year?",
+ "ask": "Finance wants one number for the adherence programme business case.",
+ "sme": "the pharmacy benefits analytics lead at a regional health insurer",
+ "unit": "member",
+ "units": "members",
+ "design": "cross_section",
+ "n": 6000,
+ "default_level": "tricky",
+ "id_col": {
+  "name": "pid",
+  "start": 700001,
+  "meaning": "member id"
+ },
+ "treatment": {
+  "name": "adherent",
+  "type": "binary",
+  "share": 0.52,
+  "meaning": "1 = filled the statin for at least 80% of days in the first 6 months",
+  "recorded": "first 6 months"
+ },
+ "outcome": {
+  "name": "cardiac_adm_12m",
+  "type": "binary",
+  "base_rate": 0.11,
+  "meaning": "1 = admitted for a cardiac event in the following 12 months",
+  "recorded": "months 7-18"
+ },
+ "effect": {
+  "ate": -0.02,
+  "unit_label": "admission probability (2 fewer per 100)"
+ },
+ "variables": [
+  {
+   "name": "age",
+   "meaning": "age in years",
+   "recorded": "at prescription",
+   "dist": {
+    "type": "normal",
+    "mean": 66,
+    "sd": 9
+   },
+   "clip": [
+    40,
+    90
+   ],
+   "decimals": 0,
+   "to_outcome": 0.3
+  },
+  {
+   "name": "female",
+   "meaning": "1 = female",
+   "recorded": "at enrolment",
+   "dist": {
+    "type": "binary",
+    "p": 0.42
+   }
+  },
+  {
+   "name": "diabetes",
+   "meaning": "1 = diabetes diagnosis on file",
+   "recorded": "before prescription",
+   "dist": {
+    "type": "binary",
+    "p": 0.28
+   },
+   "depends_on": {
+    "age": 0.3
+   },
+   "to_treat": 0.2,
+   "to_outcome": 0.45
+  },
+  {
+   "name": "smoker",
+   "meaning": "1 = current smoker on file",
+   "recorded": "before prescription",
+   "dist": {
+    "type": "binary",
+    "p": 0.22
+   },
+   "from_hidden": {
+    "U_health": -0.4
+   },
+   "to_treat": -0.3,
+   "to_outcome": 0.35
+  },
+  {
+   "name": "ldl_baseline",
+   "meaning": "LDL cholesterol, mg/dL",
+   "recorded": "at prescription",
+   "dist": {
+    "type": "normal",
+    "mean": 135,
+    "sd": 28
+   },
+   "clip": [
+    60,
+    260
+   ],
+   "decimals": 0,
+   "to_outcome": 0.15
+  },
+  {
+   "name": "admits_prior_yr",
+   "role": "prior_outcome",
+   "meaning": "hospital admissions in the year before the prescription",
+   "recorded": "before prescription",
+   "dist": {
+    "type": "poisson",
+    "mean": 0.35
+   },
+   "depends_on": {
+    "age": 0.3,
+    "diabetes": 0.3
+   },
+   "from_hidden": {
+    "U_health": -0.2
+   },
+   "to_treat": 0.1,
+   "to_outcome": 0.25
+  },
+  {
+   "name": "flu_shot_prior_yr",
+   "role": "proxy",
+   "meaning": "1 = had a flu vaccination in the year before the prescription",
+   "recorded": "before prescription",
+   "dist": {
+    "type": "binary",
+    "p": 0.45
+   },
+   "depends_on": {
+    "age": 0.3
+   },
+   "from_hidden": {
+    "U_health": 1.0
+   },
+   "min_level": "realistic",
+   "max_level": "tricky"
+  }
+ ],
+ "hidden": [
+  {
+   "name": "U_health",
+   "label": "health-conscious habits",
+   "why": "People who take pills as prescribed also look after themselves in other ways.",
+   "to_treat": 1.1,
+   "to_outcome": -0.55,
+   "min_level": "realistic"
+  },
+  {
+   "name": "U_frail",
+   "label": "early frailty that makes people stop their pills",
+   "to_treat": -1.2,
+   "to_outcome": 0.8,
+   "min_level": "unanswerable"
+  }
+ ],
+ "negative_control": {
+  "name": "injury_adm_12m",
+  "type": "binary",
+  "base_rate": 0.055,
+  "from_vars": {
+   "age": 0.25,
+   "smoker": 0.2
+  },
+  "from_hidden": {
+   "U_health": -0.5
+  },
+  "meaning": "1 = admitted for an accidental injury in the following 12 months",
+  "recorded": "months 7-18",
+  "min_level": "realistic",
+  "max_level": "tricky"
+ },
+ "notes": [
+  {
+   "text": "Taking the statin as prescribed is the member's own choice; there was no programme or outreach during this period."
+  },
+  {
+   "text": "Claims data are complete for everyone in the file."
+  },
+  {
+   "text": "Members often stop their statin when they start feeling unwell, but we have no record of how they were feeling.",
+   "min_level": "unanswerable"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Healthy-adherer effect",
+   "text": "Adherent members are healthier in unrecorded ways; adjusted estimates overstate the benefit roughly twofold.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Negative-control outcome",
+   "text": "Injury admissions can't be prevented by a statin but fall among adherent members: evidence of the bias.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Sick-stopper effect, unrecorded",
+   "text": "Members who feel unwell stop taking pills and are admitted more; nothing recorded captures it.",
+   "min_level": "unanswerable"
+  }
+ ]
+}

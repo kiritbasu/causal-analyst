@@ -1,0 +1,126 @@
+{
+ "id": "health-care-management-cutoff",
+ "industry": "Health & pharmacy",
+ "title": "Care-management enrolment by risk score → readmission",
+ "teaser": "Enrolment switches on at a risk score of 70; only some eligible patients take it up.",
+ "question": "Does our care-management programme reduce 90-day readmissions?",
+ "ask": "Patients with a risk score of 70 or more are offered it.",
+ "sme": "a hospital quality director",
+ "unit": "patient discharge",
+ "units": "discharges",
+ "design": "cutoff",
+ "n": 12000,
+ "default_level": "realistic",
+ "id_col": {
+  "name": "discharge_id",
+  "start": 300001,
+  "meaning": "discharge identifier"
+ },
+ "cutoff": {
+  "running": "risk_score",
+  "threshold": 70,
+  "label": "risk score",
+  "fuzzy": false,
+  "truth_window": 2,
+  "bandwidth": 10
+ },
+ "level_overrides": {
+  "realistic": {
+   "cutoff": {
+    "fuzzy": true
+   }
+  }
+ },
+ "treatment": {
+  "name": "enrolled",
+  "type": "binary",
+  "meaning": "1 = enrolled in care management after discharge",
+  "recorded": "within 7 days of discharge"
+ },
+ "outcome": {
+  "name": "readmit_90d",
+  "type": "binary",
+  "base_rate": 0.2,
+  "meaning": "1 = readmitted within 90 days",
+  "recorded": "day 90"
+ },
+ "effect": {
+  "ate": -0.06,
+  "unit_label": "readmission probability (6 fewer per 100)"
+ },
+ "variables": [
+  {
+   "name": "risk_score",
+   "role": "running",
+   "meaning": "readmission risk score at discharge (0-100)",
+   "recorded": "at discharge",
+   "dist": {
+    "type": "normal",
+    "mean": 60,
+    "sd": 14
+   },
+   "clip": [
+    0,
+    100
+   ],
+   "decimals": 0,
+   "to_outcome": 0.7
+  },
+  {
+   "name": "age",
+   "meaning": "age",
+   "recorded": "at admission",
+   "dist": {
+    "type": "normal",
+    "mean": 68,
+    "sd": 13
+   },
+   "clip": [
+    18,
+    100
+   ],
+   "decimals": 0,
+   "depends_on": {
+    "risk_score": 0.4
+   },
+   "to_outcome": 0.15
+  },
+  {
+   "name": "lives_alone",
+   "meaning": "1 = lives alone",
+   "recorded": "at admission",
+   "dist": {
+    "type": "binary",
+    "p": 0.3
+   },
+   "to_outcome": 0.3
+  }
+ ],
+ "heterogeneity": {
+  "variable": "lives_alone",
+  "equals": 1,
+  "extra_ratio": 2.0,
+  "label": "patients living alone",
+  "min_level": "realistic"
+ },
+ "notes": [
+  {
+   "text": "Everyone with a risk score of 70 or more is offered the programme; below 70 it isn't offered."
+  },
+  {
+   "text": "Not everyone offered it enrols, and a few below 70 get in through their doctor.",
+   "min_level": "realistic"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Sicker patients get the programme",
+   "text": "A plain comparison makes the programme look harmful because enrolled patients are sicker."
+  },
+  {
+   "name": "Fuzzy cutoff",
+   "text": "Only part of the eligible group enrols; the jump must be scaled.",
+   "min_level": "realistic"
+  }
+ ]
+}

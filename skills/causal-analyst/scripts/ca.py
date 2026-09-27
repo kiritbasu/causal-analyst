@@ -533,6 +533,9 @@ def cmd_run(a):
     if spec.get("domain_notes"):
         diag["domain_notes"] = spec["domain_notes"]
     tier, reasons = trust_tier(ident, res, diag, main_key, spec)
+    dropped = out["rows_dropped_missing"]
+    if dropped and dropped / (dropped + out["rows_used"]) > 0.05:
+        reasons.append(f"{dropped:,} rows ({100 * dropped / (dropped + out['rows_used']):.0f}%) were left out because a column used had a missing value. If values are missing for a reason linked to the action or the outcome, the answer can shift.")
     main_result = res.get(main_key)
     if not ident.get("identifiable"):
         # Never present a single number for a question the data cannot answer.

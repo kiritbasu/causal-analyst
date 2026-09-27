@@ -1,0 +1,124 @@
+{
+ "id": "sales-calls",
+ "industry": "People, sales & ops",
+ "title": "Sales calls → purchase within 90 days",
+ "teaser": "Reps call accounts they feel are warm; that gut feel isn't recorded.",
+ "question": "How many extra purchases do we get per 100 sales calls?",
+ "ask": "Leadership is deciding whether to hire more reps.",
+ "sme": "the head of inside sales",
+ "unit": "business account",
+ "units": "accounts",
+ "design": "cross_section",
+ "n": 6000,
+ "default_level": "unanswerable",
+ "id_col": {
+  "name": "account_id",
+  "start": 5001,
+  "meaning": "identifier"
+ },
+ "treatment": {
+  "name": "got_sales_call",
+  "type": "binary",
+  "share": 0.35,
+  "meaning": "1 = a rep called the account this quarter",
+  "recorded": "during the quarter"
+ },
+ "outcome": {
+  "name": "purchased_90d",
+  "type": "binary",
+  "base_rate": 0.15,
+  "meaning": "1 = the account bought within 90 days of the quarter start",
+  "recorded": "end of the quarter"
+ },
+ "effect": {
+  "ate": 0.05,
+  "unit_label": "purchase probability (5 per 100)"
+ },
+ "variables": [
+  {
+   "name": "account_size",
+   "meaning": "small / mid / large",
+   "recorded": "start of quarter",
+   "dist": {
+    "type": "category",
+    "levels": [
+     "small",
+     "mid",
+     "large"
+    ],
+    "probs": [
+     0.55,
+     0.3,
+     0.15
+    ]
+   },
+   "to_treat": 0.5,
+   "to_outcome": 0.4
+  },
+  {
+   "name": "past_purchases",
+   "role": "prior_outcome",
+   "meaning": "purchases in the previous year",
+   "recorded": "before the quarter",
+   "dist": {
+    "type": "poisson",
+    "mean": 2
+   },
+   "to_treat": 0.5,
+   "to_outcome": 0.6
+  },
+  {
+   "name": "industry",
+   "meaning": "account's industry",
+   "recorded": "start of quarter",
+   "dist": {
+    "type": "category",
+    "levels": [
+     "tech",
+     "retail",
+     "manufacturing",
+     "services"
+    ],
+    "probs": [
+     0.3,
+     0.25,
+     0.25,
+     0.2
+    ]
+   },
+   "to_outcome": 0.2
+  }
+ ],
+ "hidden": [
+  {
+   "name": "U_warm",
+   "label": "rep's sense the account is warm",
+   "to_treat": 1.6,
+   "to_outcome": 1.3,
+   "min_level": "unanswerable"
+  }
+ ],
+ "notes": [
+  {
+   "text": "Reps decide who to call, mostly bigger accounts and ones that bought before."
+  },
+  {
+   "text": "Reps pick accounts they have a feeling are warm, based on conversations and gut feel. That judgement isn't recorded anywhere.",
+   "min_level": "unanswerable"
+  },
+  {
+   "text": "There was no random element in who got called."
+  }
+ ],
+ "traps": [
+  {
+   "name": "Selection on recorded traits",
+   "text": "Bigger, past-buying accounts get called."
+  },
+  {
+   "name": "Unrecorded gut feel",
+   "text": "Reps' judgement drives both calls and purchases; not answerable from this file.",
+   "min_level": "unanswerable"
+  }
+ ]
+}

@@ -1,0 +1,189 @@
+{
+ "id": "saas-ai-assistant",
+ "industry": "SaaS & product",
+ "title": "AI assistant adoption → weekly active minutes",
+ "teaser": "Power users adopt first; a random beta invite; effect flows through automated tasks.",
+ "question": "Does turning on the AI assistant make users spend more time in the product?",
+ "ask": "We want the average lift in weekly active minutes.",
+ "sme": "a product manager",
+ "unit": "user",
+ "units": "users",
+ "design": "cross_section",
+ "n": 7000,
+ "default_level": "realistic",
+ "id_col": {
+  "name": "user_id",
+  "start": 900001,
+  "meaning": "user identifier"
+ },
+ "treatment": {
+  "name": "assistant_on",
+  "type": "binary",
+  "share": 0.35,
+  "meaning": "1 = turned on the AI assistant",
+  "recorded": "during the launch month"
+ },
+ "outcome": {
+  "name": "weekly_active_min",
+  "type": "continuous",
+  "base": 150,
+  "noise_sd": 45,
+  "min": 0,
+  "decimals": 0,
+  "meaning": "average weekly active minutes, month after launch",
+  "recorded": "month after launch"
+ },
+ "effect": {
+  "ate": 18,
+  "unit_label": "minutes per week"
+ },
+ "variables": [
+  {
+   "name": "prior_weekly_min",
+   "role": "prior_outcome",
+   "meaning": "average weekly active minutes, month before launch",
+   "recorded": "before launch",
+   "dist": {
+    "type": "lognormal",
+    "median": 140,
+    "spread": 0.5
+   },
+   "clip": [
+    0,
+    3000
+   ],
+   "decimals": 0,
+   "from_hidden": {
+    "U_curious": 0.5
+   },
+   "to_treat": 0.9,
+   "to_outcome": 40
+  },
+  {
+   "name": "account_age_months",
+   "meaning": "months since the user joined",
+   "recorded": "at launch",
+   "dist": {
+    "type": "uniform",
+    "low": 1,
+    "high": 60
+   },
+   "decimals": 0,
+   "to_treat": -0.3,
+   "to_outcome": 6
+  },
+  {
+   "name": "role",
+   "meaning": "job role",
+   "recorded": "at signup",
+   "dist": {
+    "type": "category",
+    "levels": [
+     "engineer",
+     "designer",
+     "manager",
+     "other"
+    ],
+    "probs": [
+     0.4,
+     0.2,
+     0.25,
+     0.15
+    ]
+   },
+   "to_treat": 0.3,
+   "to_outcome": 8
+  },
+  {
+   "name": "desktop_app",
+   "meaning": "1 = mainly uses the desktop app",
+   "recorded": "at launch",
+   "dist": {
+    "type": "binary",
+    "p": 0.5
+   },
+   "to_treat": 0.3,
+   "to_outcome": 10
+  }
+ ],
+ "instrument": {
+  "name": "beta_invite",
+  "p": 0.3,
+  "strength": 1.4,
+  "meaning": "1 = randomly selected for the early beta invite",
+  "recorded": "before launch",
+  "min_level": "realistic",
+  "max_level": "tricky"
+ },
+ "mediator": {
+  "name": "tasks_automated",
+  "base": 2,
+  "from_treat": 6,
+  "share": 0.6,
+  "noise_sd": 2,
+  "decimals": 0,
+  "clip": [
+   0,
+   200
+  ],
+  "meaning": "tasks automated per week, month after launch",
+  "recorded": "month after launch",
+  "cryptic": "auto_ct",
+  "min_level": "realistic"
+ },
+ "hidden": [
+  {
+   "name": "U_curious",
+   "label": "appetite for new features",
+   "to_treat": 0.8,
+   "to_outcome": 14,
+   "min_level": "tricky"
+  },
+  {
+   "name": "U_push",
+   "label": "team leads pushing their teams to use the product more",
+   "to_treat": 1.3,
+   "to_outcome": 30,
+   "min_level": "unanswerable"
+  }
+ ],
+ "notes": [
+  {
+   "text": "Anyone could turn the assistant on. Heavy users tended to try it first."
+  },
+  {
+   "text": "Early beta invites were sent to a random 30% of users.",
+   "min_level": "realistic",
+   "max_level": "tricky"
+  },
+  {
+   "text": "The assistant works by automating repetitive tasks.",
+   "min_level": "realistic"
+  },
+  {
+   "text": "Some team leads ran their own push to get people using the product more, and told them to try the assistant; we don't know which teams.",
+   "min_level": "unanswerable"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Power users adopt first",
+   "text": "Prior usage drives adoption and usage."
+  },
+  {
+   "name": "Middle step",
+   "text": "tasks_automated is how the assistant works; controlling for it hides most of the effect.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Unrecorded curiosity",
+   "text": "Appetite for new features drives both; the random beta invite still identifies the compliers' effect.",
+   "min_level": "tricky"
+  },
+  {
+   "name": "Unrecorded team pushes",
+   "text": "Team-lead pushes raised both adoption and usage; no random invite at this level, so not answerable.",
+   "min_level": "unanswerable"
+  }
+ ]
+}

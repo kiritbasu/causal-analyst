@@ -8,7 +8,7 @@
 
 <p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/ai-training/report.html">AI training</a> (grade B, three traps) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/statin-adherence/report.html">Statin adherence</a> (grade C, a bias the brief never mentions) · <a href="#quick-start">Quick start</a></p>
 
-**Contents:** [Why this exists](#why-this-exists) · [What it's like to use](#what-its-like-to-use) · [The report](#the-report) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Does it work?](#does-it-work) · [Which model to use](#which-model-to-use) · [Data and privacy](#data-and-privacy) · [Limitations and roadmap](#limitations-and-roadmap)
+**Contents:** [Why this exists](#why-this-exists) · [What it's like to use](#what-its-like-to-use) · [The report](#the-report) · [Quick start](#quick-start) · [Practice data: the generator](#practice-data-the-causal-data-generator) · [How it works](#how-it-works) · [Does it work?](#does-it-work) · [Which model to use](#which-model-to-use) · [Data and privacy](#data-and-privacy) · [Limitations and roadmap](#limitations-and-roadmap)
 
 ---
 
@@ -125,7 +125,7 @@ A self-contained HTML page: it works offline, on a phone, and prints cleanly. It
 
 **Claude apps (claude.ai / desktop):** download `causal-analyst.skill` from [Releases](../../releases) and upload it in Settings, under Skills. Then attach a data file and ask your question. The skill triggers on questions like "did our loyalty program raise spend?" or "is this cause or just coincidence?"
 
-**Claude Code:** copy `skills/causal-analyst/` into `~/.claude/skills/` (personal) or `.claude/skills/` (project).
+**Claude Code:** copy `skills/causal-analyst/` (and `skills/causal-data-generator/` if you want practice data) into `~/.claude/skills/` (personal) or `.claude/skills/` (project).
 
 **Python dependencies** are installed automatically where the environment allows. Otherwise:
 
@@ -145,6 +145,50 @@ python $S/ca.py identify spec.json --out identification.json
 python $S/ca.py run      spec.json --out results.json      # ~1 minute on 4,000 rows
 python $S/ca.py power    --sd 31 --lift 5 --results results.json
 python $S/ca.py report   results.json --narrative narrative.json --out report.html
+```
+
+## Practice data: the causal-data-generator
+
+A companion skill that makes realistic synthetic datasets **with a known true answer**, dressed as a real business problem. Use it to test the analyst (or any method), to teach, to benchmark estimators, or for demos.
+
+> **You:** Make me a tricky practice dataset about whether higher nurse staffing reduces patient falls.
+
+Claude either picks from 12 ready-made use cases or builds one from your description. It asks how hard it should be, shows a one-screen plan, then generates:
+
+| Level | What's in it |
+|---|---|
+| Starter | Recorded drivers only; a correct adjustment recovers the truth |
+| Realistic | Targeting on past results, a consequence column, effects that differ by group, a partly-recorded hidden driver, some missing data |
+| Tricky | Adds colliders, a middle step with a misleading name, weak overlap, curved relationships, extreme values, noisy measures, cryptic names |
+| Unanswerable | A hidden driver nothing stands in for; the honest answer is "we can't tell" |
+
+Optional dials cover size, missing data, overlap, curvature, extreme values, measurement error, irrelevant columns, misleading names, and a **no-real-effect** switch. A "set" option generates several seeds of the same scenario for benchmarking.
+
+**Ready-made use cases:**
+
+| Industry | Use cases |
+|---|---|
+| Retail & marketing | Loyalty program → spend · Coupon email → purchase · Discount depth → units sold (an amount, with diminishing returns) |
+| SaaS & product | Onboarding checklist → churn · AI assistant → usage (with a random beta invite) · Pricing page rollout by region (before/after, staggered) |
+| Health & pharmacy | Statin adherence → admissions (healthy-adherer effect) · Care management by risk-score cutoff · Refill reminder texts (random branch pilot) |
+| People, sales & ops | AI training → productivity (mediator + collider) · Sales calls → purchase (unrecorded gut feel) · Warehouse process rollout (effects build up; switching after a bad month) |
+
+**What you get:**
+- `data.csv` and `brief.md`, a brief in the expert's own voice. These are the files you share.
+- A **sealed** `-key` folder with `answer_key.json`, which holds:
+  - the true effect for each target (everyone, those treated, each group, a dose curve, the effect at a cutoff, the effect for those a random nudge moved);
+  - the traps;
+  - quick estimates showing which approaches work and which fail, and by how much.
+
+  The folder also has a standalone seeded `generate.py` that recreates the file exactly.
+
+**How the truth is computed.** It comes from each row's simulated outcomes with and without the action. It isn't a setting you have to trust. A `--blind` mode keeps the truth out of view, so the analysis that follows stays blind. When the dataset is ready, Claude offers to hand it to causal-analyst, passing only `data.csv` and `brief.md`.
+
+```bash
+S=skills/causal-data-generator/scripts
+python $S/cg.py list
+python $S/cg.py plan retail-loyalty --level tricky
+python $S/cg.py generate retail-loyalty --level tricky --out practice/loyalty --blind
 ```
 
 ## How it works
@@ -258,7 +302,7 @@ The model matters less for the numbers (they're scripted) and more for knowing w
 **Roadmap**
 
 - **SQL / warehouse layer:** a signed-off analysis becomes a versioned contract. Models are fitted on a schedule in Databricks, Snowflake or ClickHouse, and effects are answered in SQL in seconds, with the trust grade recomputed per query.
-- **Realistic synthetic datasets for causal inference:** a generator for complex, real-world-like scenarios with a known answer. Think hidden drivers, post-treatment traps, weak overlap, effects that vary by group, rollouts over time, and messy data. Use it to test this skill, compare methods, and train people.
+- **More from the data generator:** clustered and repeated units (wards over months), time-varying actions, more industries, and scored benchmark runs across many seeds.
 - Difference-in-differences and synthetic control for before/after rollouts; regression discontinuity for score cutoffs.
 - A proper one-step correction for foundation-model cross-checks ([Melnychuk et al., 2026](https://arxiv.org/abs/2603.12037)), and GPU support.
 - Broader evals, including real-world benchmarks such as CausalReasoningBenchmark.
@@ -267,6 +311,7 @@ The model matters less for the numbers (they're scripted) and more for knowing w
 
 ```
 skills/causal-analyst/     the skill: SKILL.md, scripts/, references/
+skills/causal-data-generator/  companion skill: synthetic datasets with a known answer (scenarios/, scripts/)
 examples/                  four worked cases: data, brief, spec, results, narrative, report
 evals/                     eval scenarios, assertions, benchmark results, foundation-model study
 tests/                     smoke test (runs the full pipeline on the examples)
