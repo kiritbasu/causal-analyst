@@ -1,0 +1,11 @@
+# Versions the test suite last passed with (Python 3.11). Use with: pip install -r requirements.txt -c constraints.txt
+numpy==2.4.4
+pandas==2.3.3
+scipy==1.15.3
+scikit-learn==1.8.0
+statsmodels==0.15.0
+econml==0.17.0
+dowhy==0.14
+networkx==3.6.1
+matplotlib==3.10.9
+pyarrow==25.0.1

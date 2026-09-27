@@ -1,0 +1,112 @@
+{
+ "targets": [
+  {
+   "name": "ate",
+   "label": "Average effect for everyone",
+   "value": 0.0,
+   "primary": true
+  },
+  {
+   "name": "att",
+   "label": "Average effect for those who got the action",
+   "value": 0.0,
+   "primary": false
+  }
+ ],
+ "methods": [
+  {
+   "method": "Plain comparison (no adjustment)",
+   "estimate": 31.065419,
+   "range95": [
+    27.988021,
+    34.142818
+   ],
+   "off_by_pct": null,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": ""
+  },
+  {
+   "method": "Flexible adjustment for all recorded drivers (doubly robust ML)",
+   "estimate": -0.408091,
+   "range95": [
+    -4.269262,
+    3.453079
+   ],
+   "off_by_pct": null,
+   "expected": "should work",
+   "verdict": "recovers truth",
+   "note": ""
+  },
+  {
+   "method": "Linear adjustment for all recorded drivers",
+   "estimate": -0.684225,
+   "range95": [
+    -3.070523,
+    1.702073
+   ],
+   "off_by_pct": null,
+   "expected": "should work",
+   "verdict": "recovers truth",
+   "note": ""
+  },
+  {
+   "method": "Adjust for prior_weekly_min only",
+   "estimate": 2.664323,
+   "range95": [
+    0.203228,
+    5.125419
+   ],
+   "off_by_pct": null,
+   "expected": "can mislead",
+   "verdict": "recovers truth",
+   "note": "leaves other drivers out"
+  },
+  {
+   "method": "Leave out prior_weekly_min (the before-the-action outcome)",
+   "estimate": 29.807442,
+   "range95": [
+    26.737707,
+    32.877178
+   ],
+   "off_by_pct": null,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": "misses targeting on past results"
+  }
+ ],
+ "correct_adjustment": [
+  "prior_weekly_min",
+  "account_age_months",
+  "role",
+  "desktop_app"
+ ],
+ "true_value_primary": 0.0,
+ "column_names": {},
+ "scenario": "saas-ai-assistant",
+ "title": "AI assistant adoption \u2192 weekly active minutes",
+ "level": "starter",
+ "seed": 11,
+ "rows": 7000,
+ "dials": {
+  "nonlinear": 0.0,
+  "heavy_tails": false,
+  "overlap": "good",
+  "missing": 0.0,
+  "measurement_error": 0.0,
+  "irrelevant": 0,
+  "misleading_names": false,
+  "zero_effect": true,
+  "missing_pattern": "random"
+ },
+ "fingerprint": "gt-0386f6",
+ "design": "cross_section",
+ "traps": [
+  {
+   "name": "Power users adopt first",
+   "text": "Prior usage drives adoption and usage."
+  }
+ ],
+ "hidden_drivers": [],
+ "note": "Truth computed from each row's potential outcomes (common random numbers). 'methods' are quick linear or textbook estimates on this file, for orientation."
+}

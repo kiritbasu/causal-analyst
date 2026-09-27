@@ -1,10 +1,12 @@
-numpy>=2.0
-pandas>=2.2
-scipy>=1.13
-scikit-learn>=1.5
-statsmodels>=0.14
-econml>=0.15
-dowhy>=0.12
-networkx>=3.2
-matplotlib>=3.8
+# Core dependencies. Tested versions are pinned in constraints.txt:
+#   pip install -r requirements.txt -c constraints.txt
+numpy>=2.0,<3
+pandas>=2.2,<3
+scipy>=1.13,<2
+scikit-learn>=1.5,<2
+statsmodels>=0.14,<0.16
+econml>=0.15,<0.18
+dowhy>=0.12,<0.15
+networkx>=3.2,<4
+matplotlib>=3.8,<4
 pyarrow>=15

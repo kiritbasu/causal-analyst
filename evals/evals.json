@@ -20,7 +20,8 @@
     "Says the main method was fixed before seeing results",
     "Records reproducibility details (seed, data fingerprint, package versions)",
     "Shows a causal diagram of the assumptions"
-   ]
+   ],
+   "true_answer": 9.17
   },
   {
    "id": 2,
@@ -54,7 +55,8 @@
     "Recommends a randomized test",
     "Sizes the test (accounts per group / power)",
     "States an explicit trust grade"
-   ]
+   ],
+   "true_answer": 0.05
   },
   {
    "id": 4,
@@ -73,7 +75,8 @@
     "Uses slot_open as a natural experiment or leaves it out of the controls",
     "Shows how the answer changes under the wrong diagrams",
     "States an explicit trust grade"
-   ]
+   ],
+   "true_answer": 7.5
   },
   {
    "id": 5,
@@ -92,6 +95,125 @@
     "Does not present the adjusted estimate (about 4.5 per 100) as the answer",
     "The toolkit's own trust grade reflects the bias (C or D), not only the narrative",
     "Planning figure between 1 and 3 fewer per 100 (true effect 2.0)"
+   ],
+   "true_answer": -0.02
+  },
+  {
+   "id": 6,
+   "name": "zero-effect-heldout",
+   "split": "held-out",
+   "true_answer": 0.0,
+   "prompt": "I'm a product manager. data.csv and brief.md are attached. Does turning on our AI assistant make users spend more time in the product? I need a number for the board deck.",
+   "files": [
+    "evals/cases/zero-effect/data.csv",
+    "evals/cases/zero-effect/brief.md"
+   ],
+   "expected_output": "No real effect (truth 0 minutes). The raw gap (~+31 min) is selection by heavy users; adjusting for prior weekly minutes brings it to about zero. The answer should say the data are consistent with no effect, without a downgrade just for that.",
+   "assertions": [
+    "States the effect is about zero / consistent with no effect (95% range includes 0)",
+    "Does not report the raw gap (~+31 minutes) as the effect",
+    "Adjusts for prior weekly minutes (the before-the-action outcome)",
+    "Gives a trust grade and does not lower it merely because the range includes zero"
+   ]
+  },
+  {
+   "id": 7,
+   "name": "randomized-heldout",
+   "split": "held-out",
+   "true_answer": 0.03,
+   "prompt": "Did our 20%-off coupon email actually make people buy? data.csv and brief.md attached. I want extra purchases per 100 customers emailed.",
+   "files": [
+    "evals/cases/randomized/data.csv",
+    "evals/cases/randomized/brief.md"
+   ],
+   "expected_output": "Randomized: about +3 purchases per 100 (truth 0.03). Should confirm how the randomization was done rather than take it on trust, exclude opened_email (a consequence), and give grade A only if randomization is confirmed (otherwise B with the assumption named).",
+   "assertions": [
+    "Estimate within 0.015 of 0.03 (i.e. 1.5 to 4.5 per 100) with a range",
+    "Excludes opened_email as a consequence of the email",
+    "Asks about or states the randomization assumption instead of silently trusting it",
+    "Does not overstate: headline wording matches the grade"
+   ]
+  },
+  {
+   "id": 8,
+   "name": "dose-heldout",
+   "split": "held-out",
+   "true_answer": 2.14,
+   "prompt": "I'm a category manager. data.csv and brief.md are attached. How many more units do we sell for each extra point of discount, and where do deeper discounts stop paying off?",
+   "files": [
+    "evals/cases/dose/data.csv",
+    "evals/cases/dose/brief.md"
+   ],
+   "expected_output": "Amount treatment with diminishing returns: about +2.1 units per point on average over the range, flattening at deeper discounts. The plain comparison is negative (slow sellers get deeper discounts). Should treat discount as an amount, adjust for prior sales, and describe the curve.",
+   "assertions": [
+    "Treats the discount as an amount (dose), not yes/no",
+    "Average effect per point between 1.2 and 3.0, or a curve consistent with it",
+    "Says the effect flattens / diminishes at deeper discounts",
+    "Explains why the raw relationship is misleading (deeper discounts went to slow sellers)"
+   ]
+  },
+  {
+   "id": 9,
+   "name": "rollout-out-of-scope",
+   "split": "held-out",
+   "true_answer": 23.6,
+   "prompt": "Did the new pricing page increase trial signups? It went live region by region. data.csv and brief.md attached.",
+   "files": [
+    "evals/cases/rollout/data.csv",
+    "evals/cases/rollout/brief.md"
+   ],
+   "expected_output": "A staggered rollout panel (region x month): the right design is cohort-by-cohort difference-in-differences vs never-adopting regions (truth ~+23.6 signups per region-month). The skill doesn't support this design; it should say so, not force a one-row-per-unit analysis, and either do a clearly labelled custom DiD or recommend one.",
+   "assertions": [
+    "Recognises the data as a staggered rollout panel (units over time)",
+    "Does not present a cross-sectional adjusted comparison as the answer",
+    "Either runs a clearly labelled custom difference-in-differences (with never-adopters or not-yet-adopters) or states the design needed",
+    "Mentions seasonality / time trends as a trap"
+   ]
+  },
+  {
+   "id": 10,
+   "name": "generator-blind-dataset",
+   "split": "held-out",
+   "skill": "causal-data-generator",
+   "prompt": "Make me a tricky churn dataset I can use to test an analyst. Don't tell me the answer.",
+   "files": [],
+   "expected_output": "Uses causal-data-generator in blind mode: offers or picks a churn scenario (saas-onboarding-churn), level Tricky, never prints the truth, traps or quick estimates, writes data.csv and brief.md, and seals the answer key in a separate folder (ideally with --key-dir outside the data folder). Offers the hand-off to causal-analyst in a fresh subagent.",
+   "assertions": [
+    "Produces data.csv and brief.md",
+    "Answer key is in a separate -key folder (not inside the data folder)",
+    "Does not reveal the true effect, the traps, or quick estimates in the chat",
+    "Uses blind mode before printing the list or the plan",
+    "Offers a blind hand-off to causal-analyst"
+   ]
+  },
+  {
+   "id": 11,
+   "name": "interactive-sme",
+   "split": "held-out",
+   "true_answer": -0.04,
+   "prompt": "Did the new onboarding checklist reduce churn in the first 90 days? data.csv and brief.md attached. I need churned accounts per 100 to size the rollout.",
+   "files": [
+    "evals/cases/interactive/data.csv",
+    "evals/cases/interactive/brief.md"
+   ],
+   "sme": {
+    "role": "head of customer success",
+    "answers": {
+     "how accounts got the checklist": "CSMs picked accounts that looked promising in week 1 - usually bigger and more active ones. There was no random element.",
+     "checklist_items_done timing": "Counted by day 30, after the checklist was given.",
+     "newsletter_opens / app_rating": "Not sure what those are used for; they came from a marketing export.",
+     "anything else that drove both": "CSMs also had a feel for how engaged the admin was, which isn't recorded. Week-1 active users is our best proxy for it.",
+     "diagram": "Looks right.",
+     "anything else": "Not sure."
+    }
+   },
+   "expected_output": "Played with a simulated SME (a subagent answering from the 'sme' block, 'Not sure' otherwise). Truth -4 per 100. The best available adjustment gives about -4.5 to -6; the analysis should exclude checklist_items_done, use week1_active_users as the before-the-action measure, note the partly-unrecorded engagement driver, and grade C with a sized test.",
+   "assertions": [
+    "Asks at most about five questions",
+    "Excludes checklist_items_done as a consequence",
+    "Uses week1_active_users as the before-the-action measure",
+    "Flags the partly unrecorded engagement driver and grades C (not B)",
+    "Estimate between -8 and -2 per 100 with a range; proposes a randomized test"
    ]
   }
  ]

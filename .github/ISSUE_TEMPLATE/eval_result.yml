@@ -1,0 +1,22 @@
+name: Eval result
+description: Share results from running the evals on a model or dataset
+labels: ["evals"]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Model and agent
+      description: e.g. "Claude Sonnet in Claude Code", "another agent via SKILL.md"
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: Which evals from evals/evals.json, pass/fail per assertion, estimates and grades, run time.
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What the skill got wrong

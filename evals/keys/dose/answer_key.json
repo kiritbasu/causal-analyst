@@ -1,0 +1,122 @@
+{
+ "targets": [
+  {
+   "name": "dose_curve",
+   "label": "Average change in units_sold compared with discount_pct = 0",
+   "values": {
+    "0": 0.0,
+    "5": 23.793686,
+    "10": 39.50442,
+    "15": 49.86553,
+    "20": 56.697504,
+    "25": 61.201657,
+    "30": 64.170978
+   },
+   "primary": true,
+   "quick_estimate_curve": {
+    "0": 0.0,
+    "5": 13.485942,
+    "10": 27.041472,
+    "15": 36.887671,
+    "20": 43.344052,
+    "25": 49.201024,
+    "30": 49.378726
+   }
+  },
+  {
+   "name": "average_slope",
+   "label": "Average effect per 1 unit of discount_pct across 0 to 30",
+   "value": 2.139033
+  }
+ ],
+ "methods": [
+  {
+   "method": "Plain comparison (straight line, no adjustment)",
+   "estimate": -0.310173,
+   "range95": [
+    -0.473627,
+    -0.14672
+   ],
+   "off_by_pct": -114.5,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": ""
+  },
+  {
+   "method": "Adjust for recorded drivers, straight-line dose",
+   "estimate": 1.815537,
+   "range95": [
+    1.679806,
+    1.951267
+   ],
+   "off_by_pct": -15.1,
+   "expected": "can mislead",
+   "verdict": "misses",
+   "note": "a straight line misstates a curved effect"
+  },
+  {
+   "method": "Linear adjustment, each dose level separately",
+   "estimate": 1.482344,
+   "range95": null,
+   "off_by_pct": -30.7,
+   "expected": "approximate",
+   "verdict": "misses",
+   "note": "straight-line adjustment for curved relationships"
+  },
+  {
+   "method": "Double ML with dose levels, average slope",
+   "estimate": 1.645958,
+   "range95": [
+    1.510103,
+    1.781812
+   ],
+   "off_by_pct": -23.1,
+   "expected": "approximate",
+   "verdict": "misses",
+   "note": "flexible, but pulled towards zero when few units sit at the lowest and highest levels"
+  }
+ ],
+ "correct_adjustment": [
+  "baseline_units",
+  "shelf_price",
+  "store_size_m2",
+  "holiday_week"
+ ],
+ "true_value_primary": 2.139033,
+ "column_names": {},
+ "scenario": "retail-price-discount",
+ "title": "Discount depth \u2192 units sold",
+ "level": "realistic",
+ "seed": 13,
+ "rows": 12000,
+ "dials": {
+  "nonlinear": 0.3,
+  "heavy_tails": false,
+  "overlap": "good",
+  "missing": 0.03,
+  "measurement_error": 0.0,
+  "irrelevant": 2,
+  "misleading_names": false,
+  "zero_effect": false,
+  "missing_pattern": "random"
+ },
+ "fingerprint": "gt-4e7869",
+ "design": "cross_section",
+ "traps": [
+  {
+   "name": "Reverse causation",
+   "text": "Slow sellers got deeper discounts; ignoring baseline sales makes discounts look useless."
+  },
+  {
+   "name": "Diminishing returns",
+   "text": "The effect curves; a straight line overstates deep discounts."
+  },
+  {
+   "name": "Consequence column",
+   "text": "Stock-outs result from sales.",
+   "min_level": "realistic"
+  }
+ ],
+ "hidden_drivers": [],
+ "note": "Truth computed from each row's potential outcomes (common random numbers). 'methods' are quick linear or textbook estimates on this file, for orientation."
+}

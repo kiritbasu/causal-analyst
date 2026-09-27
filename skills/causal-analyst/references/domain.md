@@ -11,26 +11,26 @@ In the spec, fill `domain_notes`:
 
 ```json
 "domain_notes": {
-  "domain": "statin adherence and hospital admissions",
-  "usual_drivers": ["age", "diabetes", "smoking", "prior admissions", "health-seeking behaviour"],
+  "domain": "osteoporosis medicine adherence and hip fractures",
+  "usual_drivers": ["age", "bone density", "prior fractures", "steroid use", "health-seeking behaviour"],
   "known_traps": [
     {"name": "Healthy-adherer effect", "source": "general knowledge",
      "why": "People who take medicines as prescribed also look after their health in other ways, which lowers admissions on its own.",
-     "handled": "Flu vaccination used as a partial stand-in; injury admissions used as a check; sized below."}
+     "handled": "Eye-test attendance used as a partial stand-in; road-accident admissions used as a check; sized below."}
   ]
 }
 ```
 
 Then turn each item into one of:
-- **A question for the SME** ("Do members who stick to their statin also tend to get flu shots and
+- **A question for the SME** ("Do patients who stick to their medicine also tend to go for eye tests and
   keep appointments?"). Their answer changes `source` to `"sme"`.
-- **A control or stand-in** (a recorded column that tracks the suspected driver, e.g. flu shots
-  for health-seeking behaviour). Add it to `confounders`; note it in the codebook.
+- **A control or stand-in** (a recorded column that tracks the suspected driver, e.g. eye-test
+  attendance for health-seeking behaviour). Add it to `confounders`; note it in the codebook.
 - **A suspected hidden driver** the data can't record: `suspected_hidden`. It is drawn in the
   diagram, caps the grade at C, and is sized by the hidden-factor chart. Use `hidden_confounding:
   "named_driver"` instead only when the SME confirms a strong unrecorded driver (that makes it D).
 - **A negative-control outcome**: a recorded outcome the action cannot plausibly change but the
-  suspected driver would (injury admissions for a heart drug; last year's spend for a new
+  suspected driver would (road-accident admissions for a bone drug; last year's spend for a new
   programme). `negative_control_outcomes`. An apparent "effect" on it exposes hidden bias.
 - **An alternative diagram** in `alternatives`.
 - **An expected range** for the effect, from published evidence or benchmarks, in the outcome's
@@ -41,11 +41,11 @@ Then turn each item into one of:
 
 | Domain | Trap | What it looks like | Typical response |
 |---|---|---|---|
-| Health, pharmacy | Healthy-adherer / healthy-user | Adherent or screened people do better on everything | Proxies (vaccination, screening), negative-control outcomes (injuries), expected-effect check vs trials |
+| Health, pharmacy | Healthy-adherer / healthy-user | Adherent or screened people do better on everything | Proxies (screening, check-up attendance), negative-control outcomes (admissions the treatment can't affect), expected-effect check vs trials |
 | Health | Confounding by indication | Sicker people get the treatment, so it looks harmful | Severity measures before treatment; ask how treatment was decided |
 | Health, subscriptions | Immortal time | Treated group must survive long enough to be counted as treated | Fix the start of follow-up at the decision point |
 | Marketing, loyalty | Targeting the already-engaged | Offers go to big spenders | Prior spend as `outcome_baseline`; negative control: spend *before* the offer |
-| Sales | Cherry-picking warm accounts | Reps call who they think will buy | Usually `named_driver` → D; ask for any randomness in assignment |
+| Sales | Cherry-picking likely buyers | Reps call who they think will buy | Usually `named_driver` → D; ask for any randomness in assignment |
 | HR, training | Self-selection of the motivated; managers nudging weak performers | Volunteers differ; regression to the mean | Prior performance as `outcome_baseline`; random seat draws as instruments |
 | Product, SaaS | Power users adopt features first | Feature users retain better regardless | Prior activity; negative control: retention before launch |
 | Pricing, promotions | Promotions timed to demand | Discounts run in peak weeks | Season / week controls; ask how timing was chosen |

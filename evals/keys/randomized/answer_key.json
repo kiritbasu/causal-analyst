@@ -1,0 +1,111 @@
+{
+ "targets": [
+  {
+   "name": "ate",
+   "label": "Average effect for everyone",
+   "value": 0.03,
+   "primary": true
+  },
+  {
+   "name": "att",
+   "label": "Average effect for those who got the action",
+   "value": 0.029838,
+   "primary": false
+  }
+ ],
+ "methods": [
+  {
+   "method": "Plain comparison (no adjustment)",
+   "estimate": 0.03586,
+   "range95": [
+    0.020684,
+    0.051037
+   ],
+   "off_by_pct": 19.5,
+   "expected": "should work",
+   "verdict": "within noise",
+   "note": ""
+  },
+  {
+   "method": "Flexible adjustment for all recorded drivers (doubly robust ML)",
+   "estimate": 0.036312,
+   "range95": [
+    0.020201,
+    0.052423
+   ],
+   "off_by_pct": 21.0,
+   "expected": "should work",
+   "verdict": "within noise",
+   "note": ""
+  },
+  {
+   "method": "Linear adjustment for all recorded drivers",
+   "estimate": 0.037228,
+   "range95": [
+    0.022418,
+    0.052038
+   ],
+   "off_by_pct": 24.1,
+   "expected": "approximate",
+   "verdict": "within noise",
+   "note": ""
+  },
+  {
+   "method": "Adjust for orders_last_year only",
+   "estimate": 0.036557,
+   "range95": [
+    0.021692,
+    0.051423
+   ],
+   "off_by_pct": 21.9,
+   "expected": "can mislead",
+   "verdict": "within noise",
+   "note": "leaves other drivers out"
+  },
+  {
+   "method": "Also adjust for opened_email (consequence)",
+   "estimate": -0.106546,
+   "range95": [
+    -0.117082,
+    -0.096009
+   ],
+   "off_by_pct": -455.2,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": "controls for a result of the action"
+  }
+ ],
+ "correct_adjustment": [
+  "orders_last_year",
+  "days_since_last_order",
+  "email_subscriber_years"
+ ],
+ "true_value_primary": 0.03,
+ "column_names": {},
+ "scenario": "marketing-email-coupon",
+ "title": "Coupon email \u2192 purchase",
+ "level": "starter",
+ "seed": 12,
+ "rows": 8000,
+ "dials": {
+  "nonlinear": 0.0,
+  "heavy_tails": false,
+  "overlap": "good",
+  "missing": 0.0,
+  "measurement_error": 0.0,
+  "irrelevant": 0,
+  "misleading_names": false,
+  "zero_effect": false,
+  "missing_pattern": "random"
+ },
+ "fingerprint": "gt-77fce4",
+ "design": "cross_section",
+ "traps": [
+  {
+   "name": "Consequence column",
+   "text": "opened_email only exists for recipients and tracks buyers; controlling for it distorts the answer."
+  }
+ ],
+ "hidden_drivers": [],
+ "note": "Truth computed from each row's potential outcomes (common random numbers). 'methods' are quick linear or textbook estimates on this file, for orientation."
+}

@@ -180,6 +180,7 @@
     "meaning": "1 = a rep called the account this quarter",
     "recorded": "during the quarter",
     "confirmed": true,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -202,6 +203,7 @@
     "meaning": "1 = the account bought within 90 days of the quarter start",
     "recorded": "end of the quarter",
     "confirmed": true,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -224,6 +226,7 @@
     "meaning": "small / mid / large",
     "recorded": "at the start of the quarter",
     "confirmed": true,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -250,6 +253,7 @@
     "meaning": "purchases in the previous year",
     "recorded": "before the quarter",
     "confirmed": true,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -280,6 +284,7 @@
     "meaning": "account's industry",
     "recorded": "at the start of the quarter",
     "confirmed": true,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -311,6 +316,7 @@
     "meaning": "identifier",
     "recorded": "-",
     "confirmed": true,
+    "source": "",
     "summary": "numeric",
     "min": 5001.0,
     "median": 8000.5,
@@ -478,12 +484,12 @@
   },
   "ipw_gbm": {
    "estimate": 0.23798206824306956,
-   "se": 0.011685775349627864,
+   "se": 0.012502042691843252,
    "ci": [
-    0.21567250503729749,
-    0.25973544411945404
+    0.21347806456705679,
+    0.26248607191908235
    ],
-   "n_boot": 200
+   "n_boot": 60
   },
   "regression_gbm": {
    "estimate": 0.23925466985682708
@@ -493,32 +499,28 @@
    "ci": [
     0.21834965251146532,
     0.2629681446943359
-   ]
+   ],
+   "target": "overlap-weighted average effect"
   },
   "causal_forest": {
    "estimate": 0.24014957335914133,
    "ci": [
-    0.12519929180629039,
+    0.1251992918062904,
     0.35509985491199225
    ]
   },
   "causalpfn": {
-   "estimate": 0.23691824673240383,
-   "ci": [
-    0.22055763006210327,
-    0.25245893001556396
-   ],
-   "note": "Causal foundation model; interval is the model's own and tends to be too narrow."
+   "error": "Task error: File reconstruction error: CAS Client Error: Request middleware error: error sending request for url (https://cas-server.xethub.hf.co/v2/reconstructions/997ed8687bd20685b8559a98533021069b2214b424d31646029498ffe479d019)"
   }
  },
  "diagnostics": {
   "optional_cross_checks": {
    "causalpfn": {
-    "ran": true,
-    "weights": "causalpfn_v0.pt"
+    "ran": false,
+    "weights": "causalpfn"
    },
    "tabpfn": {
-    "skipped": "hosted TabPFN sends data to Prior Labs; add \"tabpfn_api\" to spec.allow_external_services to enable"
+    "skipped": "no TABPFN_TOKEN / TABPFN_TOKEN_FILE"
    }
   },
   "overlap": {
@@ -663,7 +665,7 @@
    0.2252417566448734
   ],
   "forest_cate_spread": {
-   "p10": 0.16739432825345452,
+   "p10": 0.1673943282534545,
    "p50": 0.2537555047240639,
    "p90": 0.3129208930862495,
    "share_positive": 1.0
@@ -721,12 +723,14 @@
    "hidden_factor_strength_needed_vs_strongest_measured": 30.80836419717604,
    "outcome_sd": 0.4281289968711329,
    "outcome_mean_treated": 0.3881685575364668,
-   "outcome_mean_untreated": 0.1392978482446206
+   "outcome_mean_untreated": 0.1392978482446206,
+   "effect_relative_to_untreated": 1.7115030917445713
   },
   "codebook": {
    "has_codebook": true,
    "no_meaning": [],
-   "unconfirmed": []
+   "unconfirmed": [],
+   "from_brief": []
   },
   "alternatives": {
    "user": [
@@ -821,7 +825,7 @@
    ],
    "v_structures": [],
    "findings": [],
-   "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."
+   "note": "A second opinion from the data only. Linear tests on numeric columns, conditioning on at most two others: it can miss curved links, cannot see unrecorded factors, and only spots colliders in simple patterns, so no warning is not proof a column is safe. Columns recorded before the action are never treated as consequences. Treat findings as questions for the expert."
   }
  },
  "trust_tier": "D",
@@ -831,14 +835,14 @@
  ],
  "timings_sec": {
   "naive_difference": 0.0,
-  "regression_linear": 0.6,
-  "aipw_gbm": 14.2,
-  "aipw_spline": 0.4,
-  "ipw_gbm": 0.0,
+  "regression_linear": 0.4,
+  "aipw_gbm": 9.5,
+  "aipw_spline": 0.2,
+  "ipw_gbm": 11.0,
   "regression_gbm": 0.0,
-  "double_ml": 5.6,
-  "causal_forest": 6.9,
-  "causalpfn": 164.8
+  "double_ml": 4.0,
+  "causal_forest": 4.7,
+  "causalpfn": 315.0
  },
  "manifest": {
   "fingerprint": "ds-7c8df9dd",
@@ -853,7 +857,7 @@
    "econml": "0.17.0",
    "dowhy": "0.14"
   },
-  "run_at_utc": "2026-09-26T09:13:09",
-  "runtime_sec": 219.7
+  "run_at_utc": "2026-09-27T16:45:12+00:00",
+  "runtime_sec": 373.3
  }
 }

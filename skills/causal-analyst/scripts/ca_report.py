@@ -29,7 +29,7 @@ METHODS = {
     "regression_gbm": ("ML regression", 1986, "1986", "ml", "Predicts each unit's outcome with and without the action.", "G-computation, Robins 1986"),
     "aipw_gbm": ("Doubly robust ML", 1994, "1994", "ml", "Models both who gets the action and the outcome; still right if either model is.", "Robins, Rotnitzky & Zhao, 1994"),
     "aipw_spline": ("Doubly robust, spline models", 1994, "1994", "ml", "The same recipe with smooth-curve models instead of trees.", "Robins, Rotnitzky & Zhao, 1994"),
-    "double_ml": ("Double ML", 2018, "2018", "ml", "Strips out what the traits already predict, then compares what's left.", "Chernozhukov et al., 2018"),
+    "double_ml": ("Double ML (overlap-weighted)", 2018, "2018", "ml", "Strips out what the traits already predict, then compares what's left. Its average leans towards units that could have gone either way.", "Chernozhukov et al., 2018"),
     "causal_forest": ("Causal forest", 2018, "2018", "ml", "Thousands of decision trees that look for who benefits most.", "Wager & Athey, 2018"),
     "causalpfn": ("CausalPFN", 2025, "2025", "fm", "Built for cause and effect: reads the data and estimates the effect in one pass.", "Balazadeh et al., 2025"),
     "aipw_tabpfn": ("Doubly robust, TabPFN", 2023, "2023", "fm", "A general prediction model used as the engine inside the doubly robust recipe (hosted by Prior Labs).", "Hollmann et al., 2023; v2 2025"),
@@ -37,8 +37,22 @@ METHODS = {
     "gcomp_spline5": ("G-computation, smooth curve (5 knots)", 1986, "1986", "ml", "Predicts the outcome at each amount with a flexible curve.", "Robins, 1986"),
     "gcomp_spline8": ("G-computation, smooth curve (8 knots)", 1986, "1986", "ml", "Predicts the outcome at each amount with a flexible curve.", "Robins, 1986"),
     "gcomp_spline12": ("G-computation, smooth curve (12 knots)", 1986, "1986", "ml", "Predicts the outcome at each amount with a flexible curve.", "Robins, 1986"),
+    "front_door": ("Front-door (through the middle step)", 1995, "1995", "classical", "Traces the effect through a middle step the action fully works through, sidestepping hidden drivers of the outcome.", "Pearl, 1995"),
     "gcomp_gbm": ("G-computation, boosted trees", 1986, "1986", "ml", "Predicts the outcome at each amount with gradient-boosted trees.", "Robins, 1986"),
 }
+def _safe_html(s):
+    """Escape everything, then re-allow only <strong>, <em> and <br>."""
+    t = e(str(s))
+    for tag in ("strong", "em"):
+        t = t.replace(f"&lt;{tag}&gt;", f"<{tag}>").replace(f"&lt;/{tag}&gt;", f"</{tag}>")
+    return t.replace("&lt;br&gt;", "<br>").replace("&lt;br/&gt;", "<br>")
+
+
+# The report is a static page: no scripts, no outside requests except the fonts.
+CSP_META = ('<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; '
+            'style-src \'unsafe-inline\' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:">')
+
+
 FAMILY_TEXT = {
     "classical": ("1800s to 1980s", "Classical statistics", "Fit a simple formula, then compare like with like. Transparent and fast.",
                   "wrong when relationships are curved; weighting gets shaky when some units were near-certain to get the action."),
@@ -570,7 +584,10 @@ def _cell(v):
     if v is None:
         return ""
     if isinstance(v, float):
-        return str(int(v)) if v.is_integer() else f"{v:.4g}" if abs(v) < 1e4 else f"{v:.2f}"
+        if v.is_integer():
+            return str(int(v))
+        s = f"{v:.4f}".rstrip("0").rstrip(".") if abs(v) < 1e4 else f"{v:.2f}"
+        return s if s not in ("0", "-0") else f"{v:.3g}"   # keep tiny values visible
     return str(v)
 
 
@@ -627,7 +644,7 @@ def data_section(ov, labels, names, units, n):
             summ = f'{_num(c["min"])} to {_num(c["max"])} · average {_num(c["mean"])}'
         else:
             viz = mini_cats(c["top"], c["other"], ov["rows"])
-            summ = ", ".join(f'{t["value"]} ({t["count"] / ov["rows"]:.0%})' for t in c["top"][:3]) + (" …" if c["n_unique"] > 3 else "")
+            summ = ", ".join(f'{e(t["value"])} ({t["count"] / ov["rows"]:.0%})' for t in c["top"][:3]) + (" …" if c["n_unique"] > 3 else "")
         if c.get("why_left_out"):
             summ += f'<div class="why">Left out: {e(c["why_left_out"])}</div>'
         miss = f'{c["missing_pct"]:.0f}%' if c["missing_pct"] >= 0.5 else ("<1%" if c["missing_pct"] > 0 else "none")
@@ -765,7 +782,7 @@ def structure_findings(sc, labels):
     fs = sc.get("findings") or []
     if not fs:
         return '<p class="small">The data raised no questions about the diagram.</p>'
-    icon = {"possible consequence": "⚠", "linked to both": "?", "no link": "·", "action only": "·"}
+    icon = {"possible consequence": "⚠", "linked to both": "?", "no linear link": "·", "timing conflict": "·", "action only": "·"}
     items = []
     for x in fs:
         txt = x["text"].replace(x["column"], labels.get(x["column"], x["column"]), 1)
@@ -982,7 +999,7 @@ def render(results: dict, narrative: dict) -> str:
     # header
     meta = n.get("meta_line") or f'Run {r.get("manifest", {}).get("run_at_utc", "")[:10]} · {r.get("rows_used", 0):,} {unit_word} · method fixed before the run'
     P.append(f'<header style="display:flex;flex-direction:column;gap:16px"><div class="top"><span>Causal analysis · {e(n.get("eyebrow", ""))}</span><span>{e(meta)}</span></div>'
-             f'<h1>{e(n.get("title", "What is the effect?"))}</h1><p class="lede">{n.get("answer_html") or e(n.get("answer", ""))}</p></header>')
+             f'<h1>{e(n.get("title", "What is the effect?"))}</h1><p class="lede">{_safe_html(n.get("answer_html")) if n.get("answer_html") else e(n.get("answer", ""))}</p></header>')
 
     # hero cards
     hero = []
@@ -1006,7 +1023,8 @@ def render(results: dict, narrative: dict) -> str:
     seg_ok = len(segs) >= 3 and "error" not in segs[0] and main_key
     groups = [x for x in segs if "estimate" in x and not str(x.get("segment", "")).startswith("difference")]
     diffs = [(i, x) for i, x in enumerate(segs) if str(x.get("segment", "")).startswith("difference") and x.get("ci")]
-    real = [(i, x) for i, x in diffs if x["ci"][0] > 0 or x["ci"][1] < 0]
+    # 'real' only after allowing for the number of groups compared (simultaneous intervals)
+    real = [(i, x) for i, x in diffs if (x.get("ci_adjusted") or x["ci"])[0] > 0 or (x.get("ci_adjusted") or x["ci"])[1] < 0]
     if seg_ok and real:
         i_, _ = max(real, key=lambda ix: abs(ix[1]["estimate"]))
         pair = sorted([segs[i_ - 2], segs[i_ - 1]], key=lambda x: -abs(x["estimate"]))
@@ -1171,7 +1189,7 @@ def render(results: dict, narrative: dict) -> str:
         tcards.append(card(f'<h3>{"The action seems to ‘change’ something it can’t" if bad else "No effect on things it can’t change"}</h3>'
                            '<p class="small">Changes relative to the untreated group’s average. We ran the main method on outcomes the action cannot plausibly affect. They should sit on the no-effect line.</p>'
                            + chart_negctl(ncs, mrel, mci, labels)
-                           + (lambda c: (f'<div class="small" style="margin-top:10px"><b>Rough planning figure with that bias removed: {e(f(c["estimate"], sign=True))}</b> (range {e(f(c["ci"][0]))} to {e(f(c["ci"][1]))}). It assumes the hidden difference shifts both outcomes by the same share, so treat it as a guide, not a result.</div>') if c else "")(diag.get("negative_control_adjusted"))
+                           + (lambda c: (f'<div class="small" style="margin-top:10px"><b>If that hidden difference also inflates the main answer, the effect would be nearer {e(f(c["band"][0], sign=True))} to {e(f(c["band"][1], sign=True))}</b> (middle value {e(f(c["estimate"], sign=True))}). That assumes the difference shifts the main outcome by half to one and a half times the share it shifts the check outcome: a sensitivity band, not a corrected answer.</div>') if c else "")(diag.get("negative_control_adjusted") if (diag.get("negative_control_adjusted") or {}).get("band") else None)
                            + (f'<div class="note">{e(n.get("negative_control_note", "An apparent effect here means the groups differ in ways the data doesn’t record. The same difference likely inflates the main answer."))}</div>' if bad else "")))
     pz = diag.get("plausibility")
     if pz and main_key and main:
@@ -1187,7 +1205,7 @@ def render(results: dict, narrative: dict) -> str:
     checks = []
     pl = diag.get("placebo_permuted_treatment")
     if pl:
-        checks.append((check_row if pl["passes"] else fail_row)("Fake action shows no effect" if pl["passes"] else "Fake action showed an effect",
+        checks.append((check_row if pl["passes"] else fail_row)("Sanity check: a shuffled action shows no effect" if pl["passes"] else "Sanity check failed: a shuffled action showed an effect",
                       f"Shuffling who got the action at random ({len(pl.get('shuffles', [0]))} times) gave {('about 0' if abs(pl['estimate']) < 0.5 * 10 ** -f.dec / max(f.k, 1e-12) else f(pl['estimate'], sign=True))} on average{', close to zero as it should be' if pl['passes'] else ', clearly away from zero'}."))
     rc = diag.get("random_common_cause")
     if rc:
@@ -1253,7 +1271,7 @@ def render(results: dict, narrative: dict) -> str:
 
     fonts = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
              '<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">')
-    return (f'<!doctype html><html lang="{e(n.get("lang", "en"))}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    return (f'<!doctype html><html lang="{e(n.get("lang", "en"))}"><head><meta charset="utf-8">{CSP_META}<meta name="viewport" content="width=device-width,initial-scale=1">'
             f'<title>{e(n.get("page_title", n.get("title", "Causal analysis")))}</title>{fonts}<style>{CSS}</style></head>'
             f'<body><main class="page">{"".join(P)}</main></body></html>')
 

@@ -3,8 +3,8 @@ message: "If you use causal-analyst, please cite it as below."
 title: "causal-analyst: an Agent Skill for plain-language causal analysis"
 type: software
 license: Apache-2.0
-date-released: 2026-09-26
-version: 0.3.0
+date-released: 2026-09-27
+version: 0.4.0
 authors:
   - family-names: "Basu"
     given-names: "Kirit"

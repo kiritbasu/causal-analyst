@@ -1,6 +1,6 @@
 ---
 name: causal-data-generator
-description: Creates realistic synthetic datasets for causal inference with a known true answer. Use when someone wants test data for a causal analysis, a practice or teaching dataset ("make me a dataset with a hidden confounder"), benchmark cases for methods, or demo data for an industry, e.g. "generate a loyalty-program dataset where the naive answer is wrong" or "I need a tricky churn dataset to test the analyst". It offers ready-made use cases or builds one from your description, asks about difficulty, and delivers data.csv plus an expert's brief, with a sealed answer key.
+description: Creates realistic synthetic datasets for causal inference with a known true answer. Use when someone wants test data for a causal analysis, a practice or teaching dataset ("make me a dataset with a hidden confounder"), benchmark cases for methods, or demo data for an industry, e.g. "generate a loyalty-program dataset where the naive answer is wrong" or "I need a tricky churn dataset to test the analyst". It offers ready-made use cases or builds one from your description, asks about difficulty, and delivers data.csv plus an expert's brief, with a sealed answer key. It makes data only; to estimate an effect from real data, use causal-analyst instead.
 ---
 
 # Causal data generator
@@ -18,9 +18,15 @@ Keep it short: 3–5 questions, then a one-screen plan to confirm. Ask with mult
 when the interface supports it (e.g. AskUserQuestion), always with a free-text way out. If no
 one is there to answer, pick sensible defaults, say which, and go.
 
-### 1. What is it for, and which story?
+### 1. Blind or not, what for, and which story?
 
-Run `python scripts/cg.py list` and offer the ready-made use cases grouped by industry, plus
+**First decide whether the data will be analysed blind** (by the user, a colleague, or by you in
+this session). Everything you print from here on (the list's teasers, the plan, the summary) can
+reveal the traps and the answer, so ask this before showing anything, or infer it from the request
+("test the analyst", "a quiz for my students" mean blind). If blind, add `--blind` to every
+command below, including `list`.
+
+Run `python scripts/cg.py list [--blind]` and offer the ready-made use cases grouped by industry, plus
 "Describe your own". One question, two parts if the interface allows:
 
 - **Purpose** (shapes the defaults): testing an analysis / teaching / benchmarking methods /
@@ -32,6 +38,9 @@ Run `python scripts/cg.py list` and offer the ready-made use cases grouped by in
 - the action and the outcome, and the unit (customer, store, patient…);
 - how the action was decided: random, chosen by staff, self-selected, a score cutoff, or a
   rollout over time. This sets the design and the main trap.
+
+A custom scenario can't be blind for *you*: you wrote its traps. If the user wants to test an
+analysis of it, the analysis must run in a fresh subagent (step 5), or by someone else.
 
 Then write a scenario file with `references/scenario-schema.md`, starting from the closest
 ready-made scenario in `scenarios/`. Give columns realistic names, ranges and units. Write the
@@ -52,7 +61,7 @@ ward, stores in one region), set `interference_note` to say so honestly.
 | **Unanswerable** | An unrecorded driver with nothing standing in for it; the honest answer is "we can't tell" |
 
 Then offer, as one optional question, the dials: size (`--n`), `missing` (0–0.3), `overlap`
-(good/weak), `nonlinear` (0–1), `heavy_tails`, `measurement_error`, `irrelevant` (number of
+(good/weak), `missing_pattern` (`random`, or `depends_on_action` so gaps differ by group), `nonlinear` (0–1), `heavy_tails`, `measurement_error`, `irrelevant` (number of
 extra columns), `misleading_names`, and `zero_effect` (true effect set to 0, the best test
 for false positives). For benchmarking, also offer a **set**: several seeds of the same
 scenario.
@@ -76,8 +85,8 @@ truth, your own analysis is no longer blind.
 ### 4. Generate
 
 ```bash
-python scripts/cg.py generate <id or scenario.json> --level <level> --out <folder>/<name> [--seed 42] [--n N] [--dials JSON]
-python scripts/cg.py set      <id or scenario.json> --level <level> --out <folder>/<name> --seeds 5     # benchmarking
+python scripts/cg.py generate <id or scenario.json> --level <level> --out <folder>/<name> [--key-dir <elsewhere>] [--blind] [--seed 42] [--n N] [--dials JSON]
+python scripts/cg.py set      <id or scenario.json> --level <level> --out <folder>/<name> --seeds 5 [--blind]     # benchmarking
 ```
 
 This writes:
@@ -88,6 +97,10 @@ This writes:
   and by how much;
 - `<name>-key/generate.py`: a standalone, seeded script that regenerates the data exactly;
 - `<name>-key/scenario.json`: the scenario used.
+
+If the data folder will be shared or uploaded, put the key somewhere else with `--key-dir`
+(it refuses a key folder inside the data folder). The quick estimates in the key are computed on
+the released data, gaps and noise included, so they show what an analyst can actually get.
 
 Read the printed summary. If a warning says a trap "may not bite on this draw", the trap is
 there but weak for this sample (common with yes/no outcomes and small n). Offer a larger `--n`

@@ -1,0 +1,10 @@
+{
+  "name": "causal-analyst",
+  "version": "0.4.0",
+  "description": "Cause-and-effect analysis with an honest trust grade, plus a synthetic dataset generator with known answers.",
+  "author": {"name": "Kirit Basu"},
+  "homepage": "https://github.com/kiritbasu/causal-analyst",
+  "repository": "https://github.com/kiritbasu/causal-analyst",
+  "license": "Apache-2.0",
+  "keywords": ["causal-inference", "data-analysis", "statistics", "synthetic-data"]
+}

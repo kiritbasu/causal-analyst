@@ -6,27 +6,34 @@ never from the model's own arithmetic. Keep functions deterministic given a seed
 from __future__ import annotations
 
 import hashlib
-import json
 import math
 import re
 import warnings
-from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-warnings.filterwarnings("ignore")
+# Silence library chatter (deprecations, convergence notes) that the user can't act on; real errors
+# still raise. Our own messages go through log() in ca.py.
+for _cat in (FutureWarning, DeprecationWarning, PendingDeprecationWarning, RuntimeWarning):
+    warnings.filterwarnings("ignore", category=_cat)
+for _mod in ("sklearn", "econml", "statsmodels", "dowhy", "lightgbm", "shap"):
+    warnings.filterwarnings("ignore", module=_mod)
 
 # ----------------------------------------------------------------------------
 # Data loading and profiling
 # ----------------------------------------------------------------------------
 
 def load_data(path: str) -> pd.DataFrame:
-    if path.endswith(".parquet"):
+    suffix = str(path).lower().rsplit(".", 1)[-1]
+    if suffix == "parquet":
         return pd.read_parquet(path)
-    if path.endswith((".xlsx", ".xls")):
-        return pd.read_excel(path)
+    if suffix in ("xlsx", "xls"):
+        try:
+            return pd.read_excel(path)
+        except ImportError as ex:
+            raise ImportError("Reading Excel files needs openpyxl: pip install openpyxl (or save the sheet as CSV).") from ex
     return pd.read_csv(path)
 
 
@@ -181,7 +188,8 @@ def aipw(y, t, e, mu0, mu1, estimand="ATE", eps=0.01):
         p = t.mean()
         psi = (t * (y - mu0) - (1 - t) * e / (1 - e) * (y - mu0)) / p
         est = psi.mean()
-        se = psi.std(ddof=1) / math.sqrt(n)
+        phi = psi - t * est / p  # efficient influence function for the ATT (the -t*theta/p term matters for the SE)
+        se = phi.std(ddof=1) / math.sqrt(n)
     else:
         psi = mu1 - mu0 + t * (y - mu1) / e - (1 - t) * (y - mu0) / (1 - e)
         est = psi.mean()
@@ -207,6 +215,20 @@ def reg_adjust(y, t, X, estimand="ATE", learner="linear", seed=0):
     return float(d[t == 1].mean() if estimand == "ATT" else d.mean())
 
 
+def ipw_refit(y, t, X, estimand="ATE", seed=0):
+    """Propensity weighting with the propensity model refitted (used inside the bootstrap, so the
+    range reflects uncertainty in the weights too)."""
+    from sklearn.ensemble import HistGradientBoostingClassifier
+    # 2-fold cross-fitting, like the main estimate: in-sample boosted propensities overfit and bias the weights
+    n = len(t)
+    fold = np.random.default_rng(seed).integers(0, 2, n)
+    e = np.zeros(n)
+    for k in (0, 1):
+        tr, te = fold != k, fold == k
+        e[te] = HistGradientBoostingClassifier(max_iter=100, learning_rate=0.1, max_leaf_nodes=15, random_state=seed).fit(X[tr], t[tr]).predict_proba(X[te])[:, 1]
+    return ipw_hajek(y, t, e, estimand)
+
+
 def bootstrap(fn, n, B=200, seed=0):
     r = np.random.default_rng(seed)
     out = []
@@ -229,7 +251,10 @@ def dml_linear(y, t, X, seed=0):
                     discrete_treatment=True, cv=5, random_state=seed)
     est.fit(y, t, X=None, W=X)
     lo, hi = est.ate_interval(X=None, alpha=0.05)
-    return {"estimate": float(est.ate(X=None)), "ci": [float(np.ravel(lo)[0]), float(np.ravel(hi)[0])]}
+    # A single coefficient from the partially linear model: when the effect varies, this is an average weighted
+    # towards units with p(1-p) large (good overlap), not the plain average for everyone.
+    return {"estimate": float(est.ate(X=None)), "ci": [float(np.ravel(lo)[0]), float(np.ravel(hi)[0])],
+            "target": "overlap-weighted average effect"}
 
 
 def causal_forest(y, t, X, seed=0):
@@ -240,34 +265,48 @@ def causal_forest(y, t, X, seed=0):
                           model_t=HistGradientBoostingClassifier(max_iter=200, random_state=seed),
                           discrete_treatment=True, n_estimators=300, min_samples_leaf=20, cv=5, random_state=seed)
     est.fit(y, t, X=X)
-    ps = est.effect_inference(X).population_summary(alpha=0.05)
-    lo, hi = ps.conf_int_mean()
     cate = est.effect(X)
-    return {"estimate": float(ps.mean_point), "ci": [float(np.ravel(lo)[0]), float(np.ravel(hi)[0])], "cate": cate}
+    try:
+        # the library's interval for the average effect over these units
+        lo, hi = est.ate_interval(X, alpha=0.05)
+        return {"estimate": float(np.ravel(est.ate(X))[0]), "ci": [float(np.ravel(lo)[0]), float(np.ravel(hi)[0])], "cate": cate}
+    except Exception:
+        ps = est.effect_inference(X).population_summary(alpha=0.05)
+        lo, hi = ps.conf_int_mean()
+        return {"estimate": float(ps.mean_point), "ci": [float(np.ravel(lo)[0]), float(np.ravel(hi)[0])], "cate": cate}
 
 
 # ----------------------------------------------------------------------------
 # Continuous treatment: dose contrast via g-computation
 # ----------------------------------------------------------------------------
 
-def dose_contrast(df, treatment, outcome, confounders, x0, x1, learner="spline", seed=0):
+def _dose_model(learner, seed=0):
     from sklearn.ensemble import HistGradientBoostingRegressor
-    from sklearn.linear_model import LinearRegression
+    from sklearn.linear_model import LinearRegression, RidgeCV
     from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import SplineTransformer, StandardScaler, PolynomialFeatures
+    from sklearn.preprocessing import SplineTransformer
 
-    cols = [treatment] + list(confounders)
-    X = df[cols].astype(float).values
-    y = df[outcome].astype(float).values
     if learner.startswith("spline"):
         # additive cubic splines with knots at data quantiles; n_knots encoded as spline<k>
         k = int(learner[6:] or 8)
-        from sklearn.linear_model import RidgeCV
-        model = make_pipeline(SplineTransformer(n_knots=k, degree=3, knots="quantile"), RidgeCV(alphas=np.logspace(-4, 2, 13)))
-    elif learner == "gbm":
-        model = HistGradientBoostingRegressor(max_iter=400, learning_rate=0.05, random_state=seed)
-    else:
-        model = LinearRegression()
+        return make_pipeline(SplineTransformer(n_knots=k, degree=3, knots="quantile"), RidgeCV(alphas=np.logspace(-4, 2, 13)))
+    if learner == "gbm":
+        return HistGradientBoostingRegressor(max_iter=400, learning_rate=0.05, random_state=seed)
+    return LinearRegression()
+
+
+def _dose_X(df, treatment, confounders):
+    """Amount in column 0, then confounders (categories one-hot encoded)."""
+    t = df[treatment].astype(float).values.reshape(-1, 1)
+    if not confounders:
+        return t
+    return np.hstack([t, design_matrix(df, list(confounders))])
+
+
+def dose_contrast(df, treatment, outcome, confounders, x0, x1, learner="spline", seed=0, X=None):
+    X = _dose_X(df, treatment, confounders) if X is None else X
+    y = df[outcome].astype(float).values
+    model = _dose_model(learner, seed)
     model.fit(X, y)
     X0, X1 = X.copy(), X.copy()
     X0[:, 0] = x0
@@ -278,13 +317,12 @@ def dose_contrast(df, treatment, outcome, confounders, x0, x1, learner="spline",
 def cv_score(df, treatment, outcome, confounders, learner, seed=0):
     from sklearn.model_selection import KFold
 
-    cols = [treatment] + list(confounders)
-    X = df[cols].astype(float).values
+    X = _dose_X(df, treatment, confounders)   # encoded once, so every fold has the same columns
     y = df[outcome].astype(float).values
     kf = KFold(5, shuffle=True, random_state=seed)
     errs = []
     for tr, te in kf.split(X):
-        _, m = dose_contrast(df.iloc[tr], treatment, outcome, confounders, 0, 0, learner, seed)
+        m = _dose_model(learner, seed).fit(X[tr], y[tr])
         errs.append(np.mean((m.predict(X[te]) - y[te]) ** 2))
     return float(np.mean(errs))
 
@@ -358,10 +396,14 @@ def iv_2sls(df, treatment, outcome, instrument, controls=()):
     ss = sm.OLS(df[outcome].astype(float), Xs).fit()
     # correct SE using residuals from structural equation with actual treatment
     Xa = Xs.copy(); Xa[treatment] = t
-    resid = df[outcome].astype(float) - Xa @ ss.params
-    sigma2 = float((resid ** 2).sum() / (len(resid) - Xs.shape[1]))
-    XtX_inv = np.linalg.inv(Xs.T.values @ Xs.values)
-    se = math.sqrt(sigma2 * XtX_inv[list(Xs.columns).index(treatment), list(Xs.columns).index(treatment)])
+    resid = (df[outcome].astype(float) - Xa @ ss.params).values
+    # heteroskedasticity-robust (HC1) sandwich with the structural residuals
+    A = Xs.values
+    XtX_inv = np.linalg.inv(A.T @ A)
+    meat = (A * resid[:, None] ** 2).T @ A
+    V = XtX_inv @ meat @ XtX_inv * len(resid) / (len(resid) - A.shape[1])
+    j = list(Xs.columns).index(treatment)
+    se = math.sqrt(V[j, j])
     est = float(ss.params[treatment])
     return {"estimate": est, "ci": [est - 1.96 * se, est + 1.96 * se], "first_stage_F": fstat}
 
@@ -600,3 +642,41 @@ def data_overview(df: pd.DataFrame, spec: dict, sample_rows: int = 5, max_cols: 
             "treated_share": float((t == t.max()).mean()) if t is not None and t.nunique() == 2 else None,
             "complete_rows_pct": float(df.notna().all(axis=1).mean() * 100),
             "column_info": out_cols, "sample_rows": sample}
+
+
+# ----------------------------------------------------------------------------
+# Front-door (hidden driver, effect fully through a measured middle step)
+# ----------------------------------------------------------------------------
+
+def front_door(df, T, M, Y, conf, seed=0, draws=20):
+    """Plug-in front-door estimate of the ATE for a yes/no action T with middle step M.
+
+    E[Y(t)] = E_x[ E_{M|T=t,x} [ sum_t' E[Y | M, T=t', x] P(T=t'|x) ] ]
+    M | T, x is modelled as a regression plus resampled residuals (per arm); E[Y | M, T, x] with
+    gradient boosting; P(T | x) with gradient boosting (or the treated share without controls)."""
+    rng = np.random.default_rng(seed)
+    t = df[T].astype(int).values
+    y = df[Y].astype(float).values
+    m = df[M].astype(float).values
+    X = design_matrix(df, conf)
+    n = len(y)
+    if conf:
+        p1 = _clip(_learner("gbm", "clf", seed).fit(X, t).predict_proba(X)[:, 1])
+    else:
+        p1 = np.full(n, t.mean())
+    XT = np.column_stack([X, t])
+    gm = _learner("linear", "reg", seed).fit(XT, m)
+    resid = {a: m[t == a] - gm.predict(XT[t == a]) for a in (0, 1)}
+    XMT = np.column_stack([X, m, t])
+    mu = _learner("gbm", "reg", seed).fit(XMT, y)
+    ey = {}
+    for a in (0, 1):
+        base = gm.predict(np.column_stack([X, np.full(n, a)]))
+        vals = np.zeros(n)
+        for _ in range(draws):
+            mm = base + rng.choice(resid[a], n, replace=True)
+            f1 = mu.predict(np.column_stack([X, mm, np.ones(n)]))
+            f0 = mu.predict(np.column_stack([X, mm, np.zeros(n)]))
+            vals += f1 * p1 + f0 * (1 - p1)
+        ey[a] = vals / draws
+    return float(np.mean(ey[1] - ey[0]))

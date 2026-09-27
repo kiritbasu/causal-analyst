@@ -2,6 +2,8 @@
 import json
 import subprocess
 import sys
+
+import pytest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +15,7 @@ def ca(*args, cwd):
     subprocess.run([sys.executable, str(CA), *args], cwd=cwd, check=True, capture_output=True, text=True)
 
 
+@pytest.mark.slow
 def test_pipeline(tmp_path):
     spec = json.loads((EX / "spec.json").read_text())
     spec.update(data=str(EX / "data.csv"), budget="quick", causalpfn_max_rows=0)
@@ -41,6 +44,7 @@ def test_pipeline(tmp_path):
     assert "What if our diagram is wrong?" in html
 
 
+@pytest.mark.slow
 def test_design_traps(tmp_path):
     """AI-training case: controlling for the mediator or the collider must move the answer away from the truth."""
     ex = ROOT / "examples" / "ai-training"
@@ -55,6 +59,7 @@ def test_design_traps(tmp_path):
     assert len(alts) == 3 and all(v < 6 for v in alts.values()), alts
 
 
+@pytest.mark.slow
 def test_not_identifiable(tmp_path):
     ex = ROOT / "examples" / "sales-calls"
     spec = json.loads((ex / "spec.json").read_text())
@@ -67,6 +72,7 @@ def test_not_identifiable(tmp_path):
     assert b["lower"] == 0 and b["upper"] > 0.2
 
 
+@pytest.mark.slow
 def test_negative_control(tmp_path):
     """Statin case: the injury check must fail, cap the grade and give a planning figure near the truth (-0.02)."""
     ex = ROOT / "examples" / "statin-adherence"

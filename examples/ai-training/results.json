@@ -228,12 +228,14 @@
    {
     "from": "usage_idx",
     "to": "out_m",
-    "kind": "sme"
+    "kind": "sme",
+    "source": "sme"
    },
    {
     "from": "out_m",
     "to": "kudos",
-    "kind": "sme"
+    "kind": "sme",
+    "source": "sme"
    }
   ],
   "treatment": "flag_t",
@@ -256,6 +258,7 @@
     "meaning": "1 = took the AI-tools training course (the action)",
     "recorded": "during the quarter",
     "confirmed": false,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -278,6 +281,7 @@
     "meaning": "Output score this quarter (the productivity measure)",
     "recorded": "end of quarter (the outcome)",
     "confirmed": false,
+    "source": "",
     "summary": "numeric",
     "min": 23.0,
     "median": 72.5,
@@ -332,6 +336,7 @@
     "meaning": "Department: eng, sales or ops",
     "recorded": "before (at hire)",
     "confirmed": false,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -358,6 +363,7 @@
     "meaning": "Years at the company",
     "recorded": "before (start of quarter)",
     "confirmed": false,
+    "source": "",
     "summary": "numeric",
     "min": 0.1,
     "median": 4.2,
@@ -412,6 +418,7 @@
     "meaning": "Output score for the previous quarter, same scale as out_m (the before-the-course productivity measure)",
     "recorded": "before the course",
     "confirmed": false,
+    "source": "",
     "summary": "numeric",
     "min": 17.4,
     "median": 53.7,
@@ -467,6 +474,7 @@
     "meaning": "1 if a course seat was open in the employee's time zone at sign-up; seats allocated by random draw (a random nudge to take the course)",
     "recorded": "at sign-up, before the course",
     "confirmed": false,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -490,6 +498,7 @@
     "meaning": "Employee number (identifier)",
     "recorded": "n/a",
     "confirmed": false,
+    "source": "",
     "summary": "numeric",
     "min": 70001.0,
     "median": 72000.5,
@@ -545,6 +554,7 @@
     "meaning": "How much the employee used AI tools, from tool logs",
     "recorded": "during the quarter, after the course (a consequence of training)",
     "confirmed": false,
+    "source": "",
     "summary": "numeric",
     "min": -1.51,
     "median": 4.04,
@@ -600,6 +610,7 @@
     "meaning": "Recognition points from peers and managers; partly for good output, partly for completing training",
     "recorded": "end of quarter (after the course and the outcome)",
     "confirmed": false,
+    "source": "",
     "summary": "numeric",
     "min": -0.1,
     "median": 24.2,
@@ -724,8 +735,8 @@
   "explanation": "Comparing like with like on the recorded pre-treatment traits identifies the effect, provided nothing important that drives both treatment and outcome is missing from the data.",
   "dowhy": {
    "backdoor_variables": [
-    "q_score",
     "yrs",
+    "q_score",
     "cohort"
    ],
    "instruments": [
@@ -739,9 +750,9 @@
     "Estimand name: backdoor",
     "Estimand expression:",
     "   d                                 ",
-    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[out_m|q_score,yrs,cohort])",
+    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[out_m|yrs,q_score,cohort])",
     "d[flag\u209c]                             ",
-    "Estimand assumption 1, Unconfoundedness: If U\u2192{flag_t} and U\u2192out_m then P(out_m|flag_t,q_score,yrs,cohort,U) = P(out_m|flag_t,q_score,yrs,cohort)",
+    "Estimand assumption 1, Unconfoundedness: If U\u2192{flag_t} and U\u2192out_m then P(out_m|flag_t,yrs,q_score,cohort,U) = P(out_m|flag_t,yrs,q_score,cohort)",
     "",
     "### Estimand : 2",
     "Estimand name: iv"
@@ -805,12 +816,12 @@
   },
   "ipw_gbm": {
    "estimate": 8.557929830663653,
-   "se": 0.5845249426767231,
+   "se": 1.076068154474337,
    "ci": [
-    7.685683194153664,
-    9.80871115968003
+    6.4488362478939525,
+    10.667023413433354
    ],
-   "n_boot": 200
+   "n_boot": 60
   },
   "regression_gbm": {
    "estimate": 7.495913821745862
@@ -820,7 +831,8 @@
    "ci": [
     6.851156432195549,
     7.66780506791858
-   ]
+   ],
+   "target": "overlap-weighted average effect"
   },
   "causal_forest": {
    "estimate": 7.242138179330774,
@@ -830,19 +842,14 @@
    ]
   },
   "causalpfn": {
-   "estimate": 7.664971360206604,
-   "ci": [
-    7.31198263168335,
-    8.023910522460938
-   ],
-   "note": "Causal foundation model; interval is the model's own and tends to be too narrow."
+   "error": "Task error: File reconstruction error: CAS Client Error: Request middleware error: error sending request for url (https://cas-server.xethub.hf.co/v2/reconstructions/997ed8687bd20685b8559a98533021069b2214b424d31646029498ffe479d019)"
   }
  },
  "diagnostics": {
   "optional_cross_checks": {
    "causalpfn": {
-    "ran": true,
-    "weights": "causalpfn_v0.pt"
+    "ran": false,
+    "weights": "causalpfn"
    },
    "tabpfn": {
     "skipped": "no TABPFN_TOKEN / TABPFN_TOKEN_FILE"
@@ -1013,7 +1020,13 @@
     "ci": [
      -1.02520397798507,
      1.1275503686302117
-    ]
+    ],
+    "ci_adjusted": [
+     -1.2635335444142861,
+     1.365879935059428
+    ],
+    "comparisons_tested": 3,
+    "p_value": 0.9257586160755213
    },
    {
     "segment": "cohort=='sales'",
@@ -1039,7 +1052,13 @@
     "ci": [
      -1.3836917157199986,
      1.0701402527625214
-    ]
+    ],
+    "ci_adjusted": [
+     -1.6553533245134437,
+     1.3418018615559666
+    ],
+    "comparisons_tested": 3,
+    "p_value": 0.8022397920453173
    },
    {
     "segment": "q_score<50",
@@ -1065,13 +1084,19 @@
     "ci": [
      -1.2095279979318516,
      1.3118465375697064
-    ]
+    ],
+    "ci_adjusted": [
+     -1.4886671857340088,
+     1.5909857253718636
+    ],
+    "comparisons_tested": 3,
+    "p_value": 0.9366049443320879
    }
   ],
   "forest_cate_spread": {
    "p10": 6.28564989738627,
-   "p50": 7.282876141028527,
-   "p90": 8.150122669281588,
+   "p50": 7.2828761410285265,
+   "p90": 8.150122669281586,
    "share_positive": 1.0
   },
   "sensitivity": {
@@ -1109,8 +1134,8 @@
    "complier_effect_2sls": {
     "estimate": 7.889915822297132,
     "ci": [
-     5.671542817477119,
-     10.108288827117144
+     5.673960671044016,
+     10.105870973550248
     ],
     "first_stage_F": 136.25241336998275
    },
@@ -1158,7 +1183,8 @@
    "hidden_factor_strength_needed_vs_strongest_measured": 1.9969887447629058,
    "outcome_sd": 11.187970693989254,
    "outcome_mean_treated": 74.03569321533924,
-   "outcome_mean_untreated": 70.42771972956362
+   "outcome_mean_untreated": 70.42771972956362,
+   "effect_relative_to_untreated": 0.10722392668548154
   },
   "codebook": {
    "has_codebook": true,
@@ -1170,7 +1196,8 @@
     "yrs",
     "q_score",
     "slot_open"
-   ]
+   ],
+   "from_brief": []
   },
   "alternatives": {
    "user": [
@@ -1385,45 +1412,45 @@
      "text": "kudos is linked to both the action and the outcome. It was left out on purpose (post-treatment and a collider), which fits if it is a consequence of the action; check that reason still holds."
     }
    ],
-   "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."
+   "note": "A second opinion from the data only. Linear tests on numeric columns, conditioning on at most two others: it can miss curved links, cannot see unrecorded factors, and only spots colliders in simple patterns, so no warning is not proof a column is safe. Columns recorded before the action are never treated as consequences. Treat findings as questions for the expert."
   },
   "simulation_check": {
-   "planted": 7.6,
+   "planted": 7.606074572838553,
    "reps": 3,
    "runs": [
     {
-     "estimate": 8.098424387891074,
+     "estimate": 8.110326288636122,
      "ci": [
-      7.629229390742916,
-      8.567619385039231
+      7.628371889876986,
+      8.592280687395258
      ],
      "covers": false,
-     "naive": 4.175788145613566
+     "naive": 3.641941582527352
     },
     {
-     "estimate": 7.824408890893255,
+     "estimate": 7.848990819243456,
      "ci": [
-      7.37888600065166,
-      8.26993178113485
+      7.392187294242284,
+      8.305794344244628
      ],
      "covers": true,
-     "naive": 3.9927501243220007
+     "naive": 3.458903561235772
     },
     {
-     "estimate": 7.5842543179956845,
+     "estimate": 7.6118045748400425,
      "ci": [
-      6.90433623167602,
-      8.264172404315348
+      6.923593525255885,
+      8.3000156244242
      ],
      "covers": true,
-     "naive": 3.88264703482335
+     "naive": 3.3488004717371354
     }
    ],
-   "mean_estimate": 7.835695865593337,
-   "bias": 0.23569586559333722,
+   "mean_estimate": 7.85704056090654,
+   "bias": 0.2509659880679873,
    "coverage": 0.6666666666666666,
-   "naive_mean": 4.017061768252972,
-   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect. Tests the method on this data's structure, not hidden factors."
+   "naive_mean": 3.483215205166753,
+   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect that varies across units. Tests the method on this data's structure, not hidden factors."
   }
  },
  "trust_tier": "B",
@@ -1435,13 +1462,13 @@
  "timings_sec": {
   "naive_difference": 0.0,
   "regression_linear": 0.3,
-  "aipw_gbm": 6.8,
+  "aipw_gbm": 8.3,
   "aipw_spline": 0.1,
-  "ipw_gbm": 0.0,
+  "ipw_gbm": 9.3,
   "regression_gbm": 0.0,
-  "double_ml": 2.4,
-  "causal_forest": 3.0,
-  "causalpfn": 45.6
+  "double_ml": 3.1,
+  "causal_forest": 4.0,
+  "causalpfn": 319.6
  },
  "manifest": {
   "fingerprint": "ds-5dcd13d2",
@@ -1456,7 +1483,7 @@
    "econml": "0.17.0",
    "dowhy": "0.14"
   },
-  "run_at_utc": "2026-09-26T09:20:12",
-  "runtime_sec": 91.1
+  "run_at_utc": "2026-09-27T16:51:42+00:00",
+  "runtime_sec": 385.3
  }
 }

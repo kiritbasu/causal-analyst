@@ -7,6 +7,12 @@ answer, and assertions are graded against the known truth. All runs used **Claud
 Scenarios and assertions: [`evals.json`](evals.json). Scenario 2 uses a case from the CausalDS benchmark,
 which we don't redistribute.
 
+**Two sets.** Scenarios 1–5 were used while building the skill: its examples were written around
+them, so they measure fit, not generalisation. Scenarios 6–11 are **held out**: generated with
+causal-data-generator (`cases/`, answer keys in `keys/`) after the skill was written, and never
+used to tune it. `tests/test_contamination.py` checks that no eval column name or answer appears in
+the skill.
+
 ## Results
 
 | Iteration | What changed | Pass rate with skill | Without skill | Time per run (with) | Tokens (with / without) |
@@ -17,10 +23,12 @@ which we don't redistribute.
 | 5 | codebook, alternative diagrams, structure check, planted-effect test; new scenario 4 only | 100% | 86%† | n/a | n/a |
 | 6 | v0.2.0 rerun of scenarios 1–3 (baselines from iteration 2) | 100% | 50%* | ~7 min‡ | 102–114k / 79k |
 | 7 | domain briefing, negative controls, expected-effect check; new scenario 5 vs the v0.2.0 skill (not a no-skill baseline) | 100% | 71% (v0.2.0)§ | ~6 min | 118k / 111k |
+| 8 | v0.4.0 on the **held-out** scenarios 6–11 (one run each, unattended except 11) | 96% (25/26) | 90% (19/21)¶ | 3–6 min | ~100k / ~77k |
 
 \* Iteration 3 added a "shows a causal diagram" assertion that the baseline can't pass by design.
 † Scenario 4: the baseline avoided all three traps (+7.4, 7.0–7.8) and showed what controlling for them would do, but gave no trust grade. On this case accuracy does not separate the arms.
 § Scenario 5 compares the new skill with the previous version, not with plain Claude. Both runs spotted the healthy-adherer effect unprompted and both checked injury admissions, but the v0.2.0 run had to do it by hand: its script still graded the result B while its own text said C, and it wrote no expected range before the run. Both planning figures landed near the truth (new: −2.2 per 100 from the built-in check; old: −2.3 to −3.5 from custom code). The honest conclusion: the model already had the domain knowledge; the new step makes using it systematic, graded and visible in the report.
+¶ Iteration 8, held out. Both baseline misses are procedural (no trust grade). On substance the two arms were close: the skill missed one assertion (it didn't mention seasonality on the rollout) and the baseline none. See the table below.
 ‡ Most of the time is the optional CausalPFN cross-check (2–5 minutes on CPU). Estimates matched iteration 2: loyalty +$9.25 (7.43–11.07), benchmark null with bounds −0.295 to −0.214, sales calls grade D with 0–25 per 100.
 
 ### Where the skill made a difference
@@ -36,6 +44,25 @@ which we don't redistribute.
 Estimation accuracy on clean cases was similar either way. The skill's value was honest ranges,
 abstention, pre-registration, structure and a sized next step. That costs about 20% more tokens and
 1–2 extra minutes.
+
+### Held-out results (iteration 8)
+
+| Scenario | Truth | With skill | Without skill |
+|---|---|---|---|
+| 6 · No real effect (AI assistant, heavy users adopt first) | 0 min | −1.4 (−5.2 to 2.4), grade B | −0.7 (−3 to 2) |
+| 7 · Randomized coupon email | +3.0 per 100 | +4.1 (2.6 to 5.7), grade B pending confirmation of how it was randomized | +3.7 (2.2 to 5.2), "high confidence" |
+| 8 · Discount depth, diminishing returns | +2.14 units per point (average) | +1.7 (1.6 to 1.9), grade C, flattening shown (custom curve) | +1.9 (1.8 to 2.0), flattening shown |
+| 9 · Staggered rollout (out of scope) | +23.6 per region-month | +29 (19 to 38), clearly labelled custom DiD, grade C | +29 (19 to 38), cohort DiD |
+| 10 · Generator, blind | – | blind list, plan and summary; key sealed with `--key-dir`; hand-off offered | not run |
+| 11 · Onboarding checklist, simulated expert | −4.0 per 100 | −4.7 (−7.1 to −2.2), grade C, 5 questions | −5.4 (−7.4 to −3.4), 5 questions |
+
+What this shows: on well-described held-out cases, plain Claude (Opus 5.5) is as accurate as the skill. Both
+arms avoided every post-treatment trap, found the zero effect, and ran a proper cohort-by-cohort DiD on
+the rollout. On the amount case neither range contained the true average slope (both a little
+low). The skill's added value was the grade (B where the hidden-driver risk was small, C where the
+expert said an unrecorded judgement drove assignment), not following the brief's "random" claim
+blindly, a report and a plan, and a sized test. One run per case, so treat the differences as
+anecdotes, not rates.
 
 ### Non-discriminating assertions (both arms pass)
 

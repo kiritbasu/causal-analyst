@@ -14,13 +14,13 @@ Paths may be absolute or relative to where you run `ca.py`.
 | `confounders` | yes | Pre-treatment columns that may drive treatment and/or outcome. Use `[]` if none. |
 | `excluded` | no | `{column: reason}` for columns deliberately not used (post-treatment, IDs, instruments used elsewhere). Shown in the report. |
 | `instruments` | no | Columns that nudge treatment but affect the outcome only through it |
-| `mediators` | no | Measured middle step (front-door; identification only in this version) |
+| `mediators` | no | Measured middle step that the whole effect passes through and the hidden driver doesn't touch. With a `named_driver`, the run uses the front-door route (grade C at best). Not for ordinary "middle steps" you just want to avoid controlling for |
 | `randomized` | no | `true` if treatment was randomly assigned |
 | `hidden_confounding` | yes | `"none_known"` or `"named_driver"` (SME named an unrecorded factor driving both) |
 | `hidden_driver_note` | no | The SME's words about the hidden driver |
-| `hidden_driver_label` | no | Short label (under ~40 characters) for the diagram, e.g. "rep's sense the account is warm". The diagram adds "Not in data:" itself, so don't write "unrecorded" |
+| `hidden_driver_label` | no | Short label (under ~40 characters) for the diagram, e.g. "store manager's sense the site is ready". The diagram adds "Not in data:" itself, so don't write "unrecorded" |
 | `outcome_range` | no | `[min, max]` the outcome can take, for no-instrument bounds (default: observed min/max; use `[0, 1]` for yes/no) |
-| `extra_edges` | no | `[["from", "to", "source"], ...]` arrows added between factors (e.g. `["income_k", "prior_quarter_spend", "sme"]`); source `"sme"`, `"brief"` or `"general knowledge"` (drawn dashed, labelled unconfirmed). Drawn in the diagram and used in the DoWhy check, which reports if the controls then need to change. |
+| `extra_edges` | no | `[["from", "to", "source"], ...]` arrows added between factors (e.g. `["household_size", "orders_prior_quarter", "sme"]`); source `"sme"`, `"brief"` or `"general knowledge"` (drawn dashed, labelled unconfirmed). Drawn in the diagram and used in the DoWhy check, which reports if the controls then need to change. |
 | `allow_external_services` | no | `["tabpfn_api"]` to allow the hosted TabPFN cross-check (sends data to Prior Labs). Only with the SME's consent. |
 | `causalpfn_max_rows` | no | Row cap for the local CausalPFN cross-check (default 20000) |
 | `report_sample_rows` | no | Rows of raw data shown in the report's data section (default 5). Set `0` for sensitive data. |
@@ -44,29 +44,29 @@ What goes where:
 - Identifiers, free text, and constant columns → `excluded`.
 - Only affects outcome (not treatment) and pre-treatment → may go in `confounders` (it sharpens precision).
 
-## Example: loyalty program (binary, observational)
+## Example: delivery membership (binary, observational)
 
 ```json
 {
   "data": "data.csv",
-  "treatment": "joined_loyalty",
-  "outcome": "monthly_spend",
+  "treatment": "has_delivery_pass",
+  "outcome": "orders_per_month",
   "treatment_type": "binary",
   "estimand": "ATE",
-  "confounders": ["income_k", "tenure_months", "age", "urban", "prior_quarter_spend"],
-  "excluded": {"points_redeemed": "post-treatment: only members earn points", "customer_id": "identifier"},
+  "confounders": ["household_size", "months_as_customer", "distance_km", "orders_prior_quarter"],
+  "excluded": {"free_deliveries_used": "post-treatment: only pass holders get them", "account_id": "identifier"},
   "hidden_confounding": "none_known",
-  "segments": ["tenure_months<12"],
+  "segments": ["distance_km>10"],
   "budget": "standard",
   "seed": 1729,
-  "labels": {"joined_loyalty": "Loyalty membership", "monthly_spend": "Monthly spend ($)"}
+  "labels": {"has_delivery_pass": "Delivery pass", "orders_per_month": "Orders a month"}
 }
 ```
 
 ## Example: amount treatment
 
 ```json
-{"data": "data.parquet", "treatment": "discount_pct", "outcome": "units", "treatment_type": "continuous",
+{"data": "data.parquet", "treatment": "promo_depth_pct", "outcome": "units", "treatment_type": "continuous",
  "contrast": {"x0": 0, "x1": 10}, "confounders": ["region_size", "last_month_units"],
  "hidden_confounding": "none_known", "budget": "standard", "seed": 1729}
 ```

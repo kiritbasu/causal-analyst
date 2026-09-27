@@ -155,6 +155,12 @@ def structure_check(df, spec, alpha=0.001, max_cond=2, max_vars=14, id_like=()):
             if j not in adj[i] and m not in sepset.get((i, j), set()):
                 vs.append((cols[i], cols[m], cols[j]))
     ti, yi = cols.index(T), cols.index(Y)
+    # Time order as background knowledge: a column recorded before the action can't be caused by the action or
+    # the outcome, so a v-structure pointing into it contradicts the timing rather than revealing a consequence.
+    cb = spec.get("codebook", {}) or {}
+    def _before(c):
+        r = str((cb.get(c) or {}).get("recorded", "")).lower()
+        return bool(r) and any(w in r for w in ("before", "prior", "baseline", "at sign", "at enrol", "at account", "at hire", "at start", "last year", "previous"))
     edges = sorted({tuple(sorted((cols[i], cols[j]))) for i in range(k) for j in adj[i]})
     findings = []
     for x in conf:
@@ -163,11 +169,15 @@ def structure_check(df, spec, alpha=0.001, max_cond=2, max_vars=14, id_like=()):
         xi = cols.index(x)
         into_x = [(a, b) for a, mid, b in vs if mid == x]
         if any({a, b} & {T, Y} for a, b in into_x) and (ti in adj[xi] or yi in adj[xi]):
-            findings.append({"column": x, "kind": "possible consequence",
-                             "text": f"The data pattern suggests {x} may be affected by other variables rather than only affecting them (a collider-like pattern). Confirm it was recorded before the action and isn't influenced by the outcome."})
+            if _before(x):
+                findings.append({"column": x, "kind": "timing conflict",
+                                 "text": f"The linear pattern would make {x} a consequence, but it was recorded before the action ({cb[x].get('recorded')}), so it can't be one. More likely a curved or hidden link; keep it as a control."})
+            else:
+                findings.append({"column": x, "kind": "possible consequence",
+                                 "text": f"The data pattern suggests {x} may be affected by other variables rather than only affecting them (a collider-like pattern). Confirm it was recorded before the action and isn't influenced by the outcome."})
         if ti not in adj[xi] and yi not in adj[xi]:
-            findings.append({"column": x, "kind": "no link",
-                             "text": f"No direct link from {x} to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."})
+            findings.append({"column": x, "kind": "no linear link",
+                             "text": f"No direct straight-line link from {x} to the action or the outcome was found once other columns are accounted for. Keep it if the expert thinks it matters: these tests miss curved and weak links, and leaving out a real driver costs more than keeping a spare one."})
         elif ti in adj[xi] and yi not in adj[xi]:
             findings.append({"column": x, "kind": "action only",
                              "text": f"{x} is linked to who got the action but not directly to the outcome. Fine as a control; if it is close to random it might even serve as a natural experiment."})
@@ -183,7 +193,9 @@ def structure_check(df, spec, alpha=0.001, max_cond=2, max_vars=14, id_like=()):
     return {"method": "PC-style search, Fisher-z partial correlations (linear), alpha 0.001, conditioning sets up to 2",
             "columns": cols, "rows": n, "edges": [list(e) for e in edges], "v_structures": [list(v) for v in vs],
             "findings": findings,
-            "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."}
+            "note": ("A second opinion from the data only. Linear tests on numeric columns, conditioning on at most two others: it can miss curved links, "
+                     "cannot see unrecorded factors, and only spots colliders in simple patterns, so no warning is not proof a column is safe. "
+                     "Columns recorded before the action are never treated as consequences. Treat findings as questions for the expert.")}
 
 
 # ---------------------------------------------------------------------------- simulation check
@@ -207,17 +219,21 @@ def simulation_check(df, spec, planted=None, reps=3, seed=1729):
         resid = y[t == 0] - m.predict(X[t == 0])
     if planted is None:
         planted = 0.2 * (float(np.std(y)) if not binary_y else 0.25)
-    target = float(planted)
+    # The planted effect varies by unit (larger where the baseline is higher), as real effects do, so the check
+    # also tests that the method averages over the right people (everyone vs those who got the action).
+    z = (base - base.mean()) / (base.std() or 1.0)
+    tau = float(planted) * (1 + 0.5 * np.clip(z, -1.5, 1.5))
+    target = float(np.mean(tau)) if estimand == "ATE" else float(np.mean(tau[t == 1]))
     if binary_y:
         # probabilities are clipped to [0, 1], so the effect actually planted can be smaller than asked
-        p1, p0 = np.clip(base + planted, 0, 1), np.clip(base, 0, 1)
+        p1, p0 = np.clip(base + tau, 0, 1), np.clip(base, 0, 1)
         target = float(np.mean(p1 - p0)) if estimand == "ATE" else float(np.mean((p1 - p0)[t == 1]))
     runs = []
     for k in range(reps):
         if binary_y:
-            ys = rng.binomial(1, np.clip(base + planted * t, 0, 1)).astype(float)
+            ys = rng.binomial(1, np.clip(base + tau * t, 0, 1)).astype(float)
         else:
-            ys = base + planted * t + rng.choice(resid, size=len(y), replace=True)
+            ys = base + tau * t + rng.choice(resid, size=len(y), replace=True)
         e, m0, m1 = core.crossfit_nuisances(X, t, ys, "gbm", 5, seed + k)
         r = core.aipw(ys, t, e, m0, m1, estimand)
         naive = float(ys[t == 1].mean() - ys[t == 0].mean())
@@ -227,7 +243,7 @@ def simulation_check(df, spec, planted=None, reps=3, seed=1729):
             "mean_estimate": float(np.mean(est)), "bias": float(np.mean(est) - target),
             "coverage": float(np.mean([x["covers"] for x in runs])),
             "naive_mean": float(np.mean([x["naive"] for x in runs])),
-            "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect. Tests the method on this data's structure, not hidden factors."}
+            "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect that varies across units. Tests the method on this data's structure, not hidden factors."}
 
 
 # ---------------------------------------------------------------------------- domain checks
@@ -273,8 +289,13 @@ def calibrate_with_negative_control(main, main_base, nc):
         x = math.log(rr_m) - math.log(rr_n)
         se = math.hypot(se_m, se_n)
         to_diff = lambda v: m0 * (math.exp(v) - 1)
+        # A sensitivity band, not a corrected answer: the hidden difference may shift the main outcome by
+        # anywhere from half to one and a half times the share it shifts the check outcome.
+        ln, lm = math.log(rr_n), math.log(rr_m)
+        band = sorted([to_diff(lm - 0.5 * ln), to_diff(lm - 1.5 * ln)])
         return {"estimate": to_diff(x), "ci": [to_diff(x - 1.96 * se), to_diff(x + 1.96 * se)], "negative_control": nc["column"],
-                "assumption": "The unrecorded difference between the groups changes the main outcome and the check outcome by the same share."}
+                "band": band, "band_multipliers": [0.5, 1.5],
+                "assumption": "The unrecorded difference between the groups shifts the main outcome by 0.5 to 1.5 times the share it shifts the check outcome (the middle value assumes exactly the same share)."}
     except Exception:
         return None
 

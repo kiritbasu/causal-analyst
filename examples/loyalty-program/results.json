@@ -235,6 +235,7 @@
     "meaning": "1 = joined the loyalty program",
     "recorded": "during the launch window",
     "confirmed": true,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -257,6 +258,7 @@
     "meaning": "spend in the outcome month ($)",
     "recorded": "the month after the launch window",
     "confirmed": true,
+    "source": "",
     "summary": "numeric",
     "min": 0.0,
     "median": 86.29,
@@ -311,6 +313,7 @@
     "meaning": "household income, $k",
     "recorded": "at account creation",
     "confirmed": true,
+    "source": "",
     "summary": "numeric",
     "min": 14.0,
     "median": 59.5,
@@ -365,6 +368,7 @@
     "meaning": "months as a customer",
     "recorded": "at the start of the period, before anyone joined",
     "confirmed": true,
+    "source": "",
     "summary": "numeric",
     "min": 0.0,
     "median": 17.0,
@@ -419,6 +423,7 @@
     "meaning": "customer age",
     "recorded": "at account creation",
     "confirmed": true,
+    "source": "",
     "summary": "numeric",
     "min": 18.0,
     "median": 40.0,
@@ -473,6 +478,7 @@
     "meaning": "1 = lives in an urban area",
     "recorded": "at account creation",
     "confirmed": true,
+    "source": "",
     "summary": "categories",
     "top": [
      {
@@ -495,6 +501,7 @@
     "meaning": "total spend in the quarter before the launch ($)",
     "recorded": "before the program launched",
     "confirmed": true,
+    "source": "",
     "summary": "numeric",
     "min": 1.22,
     "median": 65.63499999999999,
@@ -550,6 +557,7 @@
     "meaning": "identifier",
     "recorded": "-",
     "confirmed": true,
+    "source": "",
     "summary": "numeric",
     "min": 100001.0,
     "median": 102000.5,
@@ -605,6 +613,7 @@
     "meaning": "loyalty points redeemed",
     "recorded": "during the outcome month",
     "confirmed": true,
+    "source": "",
     "summary": "numeric",
     "min": 0.0,
     "median": 4.0,
@@ -731,11 +740,11 @@
   "explanation": "Comparing like with like on the recorded pre-treatment traits identifies the effect, provided nothing important that drives both treatment and outcome is missing from the data.",
   "dowhy": {
    "backdoor_variables": [
+    "age",
     "income_k",
     "prior_quarter_spend",
-    "urban",
-    "age",
-    "tenure_months"
+    "tenure_months",
+    "urban"
    ],
    "instruments": [],
    "frontdoor": [],
@@ -746,11 +755,11 @@
     "Estimand name: backdoor",
     "Estimand expression:",
     "        d                                                                      \u21aa",
-    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[monthly_spend|income_k,prior_quarter_spend,urban,age,tenur \u21aa",
+    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[monthly_spend|age,income_k,prior_quarter_spend,tenure_mont \u21aa",
     "d[joined_loyalty]                                                              \u21aa",
     "",
     "\u21aa           ",
-    "\u21aa e_months])",
+    "\u21aa hs,urban])",
     "\u21aa           "
    ]
   }
@@ -812,12 +821,12 @@
   },
   "ipw_gbm": {
    "estimate": 7.2591218103965645,
-   "se": 1.8098458540857063,
+   "se": 2.3012311257959945,
    "ci": [
-    3.9507825101965732,
-    10.893011979358054
+    2.748708803836415,
+    11.769534816956714
    ],
-   "n_boot": 200
+   "n_boot": 60
   },
   "regression_gbm": {
    "estimate": 10.052529574718948
@@ -827,7 +836,8 @@
    "ci": [
     6.982014182213021,
     9.15019799028282
-   ]
+   ],
+   "target": "overlap-weighted average effect"
   },
   "causal_forest": {
    "estimate": 8.011878482275126,
@@ -837,32 +847,17 @@
    ]
   },
   "causalpfn": {
-   "estimate": 8.766945756912232,
-   "ci": [
-    8.048670768737793,
-    9.458099365234375
-   ],
-   "note": "Causal foundation model; interval is the model's own and tends to be too narrow."
-  },
-  "aipw_tabpfn": {
-   "estimate": 7.882236917559336,
-   "se": 0.5778518133016651,
-   "ci": [
-    6.749647363488072,
-    9.014826471630599
-   ],
-   "note": "Doubly robust with TabPFN models (hosted by Prior Labs; data was sent to their API)."
+   "error": "Task error: File reconstruction error: CAS Client Error: Request middleware error: error sending request for url (https://cas-server.xethub.hf.co/v2/reconstructions/997ed8687bd20685b8559a98533021069b2214b424d31646029498ffe479d019)"
   }
  },
  "diagnostics": {
   "optional_cross_checks": {
    "causalpfn": {
-    "ran": true,
-    "weights": "causalpfn_v0.pt"
+    "ran": false,
+    "weights": "causalpfn"
    },
    "tabpfn": {
-    "ran": true,
-    "mode": "api"
+    "skipped": "no TABPFN_TOKEN / TABPFN_TOKEN_FILE"
    }
   },
   "overlap": {
@@ -1035,11 +1030,17 @@
     "ci": [
      6.0668903866391934,
      12.808623411072922
-    ]
+    ],
+    "ci_adjusted": [
+     6.066952327102384,
+     12.808561470609732
+    ],
+    "comparisons_tested": 1,
+    "p_value": 4.074064419157253e-08
    }
   ],
   "forest_cate_spread": {
-   "p10": 4.539380429705868,
+   "p10": 4.539380429705869,
    "p50": 7.076005970022962,
    "p90": 12.277377374109788,
    "share_positive": 1.0
@@ -1127,12 +1128,14 @@
    "hidden_factor_strength_needed_vs_strongest_measured": 0.608212512131188,
    "outcome_sd": 30.95245579792376,
    "outcome_mean_treated": 107.65747332959013,
-   "outcome_mean_untreated": 72.89164939161785
+   "outcome_mean_untreated": 72.89164939161785,
+   "effect_relative_to_untreated": 0.12693915752070184
   },
   "codebook": {
    "has_codebook": true,
    "no_meaning": [],
-   "unconfirmed": []
+   "unconfirmed": [],
+   "from_brief": []
   },
   "alternatives": {
    "user": [
@@ -1307,18 +1310,18 @@
    "findings": [
     {
      "column": "tenure_months",
-     "kind": "no link",
-     "text": "No direct link from tenure_months to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."
+     "kind": "no linear link",
+     "text": "No direct straight-line link from tenure_months to the action or the outcome was found once other columns are accounted for. Keep it if the expert thinks it matters: these tests miss curved and weak links, and leaving out a real driver costs more than keeping a spare one."
     },
     {
      "column": "age",
-     "kind": "no link",
-     "text": "No direct link from age to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."
+     "kind": "no linear link",
+     "text": "No direct straight-line link from age to the action or the outcome was found once other columns are accounted for. Keep it if the expert thinks it matters: these tests miss curved and weak links, and leaving out a real driver costs more than keeping a spare one."
     },
     {
      "column": "urban",
-     "kind": "no link",
-     "text": "No direct link from urban to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."
+     "kind": "no linear link",
+     "text": "No direct straight-line link from urban to the action or the outcome was found once other columns are accounted for. Keep it if the expert thinks it matters: these tests miss curved and weak links, and leaving out a real driver costs more than keeping a spare one."
     },
     {
      "column": "points_redeemed",
@@ -1326,45 +1329,45 @@
      "text": "points_redeemed is linked to both the action and the outcome. It was left out on purpose (post-treatment), which fits if it is a consequence of the action; check that reason still holds."
     }
    ],
-   "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."
+   "note": "A second opinion from the data only. Linear tests on numeric columns, conditioning on at most two others: it can miss curved links, cannot see unrecorded factors, and only spots colliders in simple patterns, so no warning is not proof a column is safe. Columns recorded before the action are never treated as consequences. Treat findings as questions for the expert."
   },
   "simulation_check": {
-   "planted": 9.3,
+   "planted": 9.3283260359265,
    "reps": 3,
    "runs": [
     {
-     "estimate": 9.47915124471069,
+     "estimate": 9.406479488854755,
      "ci": [
-      8.102039041543373,
-      10.856263447878009
+      7.984211191756939,
+      10.82874778595257
      ],
      "covers": true,
-     "naive": 32.974169989163855
+     "naive": 35.45760808495258
     },
     {
-     "estimate": 7.504251650563365,
+     "estimate": 7.423197242256392,
      "ci": [
-      5.878358452787207,
-      9.130144848339523
+      5.779746983970112,
+      9.066647500542672
      ],
      "covers": false,
-     "naive": 31.74122281375675
+     "naive": 34.22466090954548
     },
     {
-     "estimate": 9.694652372770786,
+     "estimate": 9.74247154533522,
      "ci": [
-      7.4646685365421135,
-      11.924636208999459
+      7.497550474669299,
+      11.987392616001141
      ],
      "covers": true,
-     "naive": 32.093652853537094
+     "naive": 34.57709094932579
     }
    ],
-   "mean_estimate": 8.89268508934828,
-   "bias": -0.40731491065172065,
+   "mean_estimate": 8.857382758815456,
+   "bias": -0.47094327711104356,
    "coverage": 0.6666666666666666,
-   "naive_mean": 32.2696818854859,
-   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect. Tests the method on this data's structure, not hidden factors."
+   "naive_mean": 34.753119981274615,
+   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect that varies across units. Tests the method on this data's structure, not hidden factors."
   }
  },
  "trust_tier": "C",
@@ -1376,14 +1379,13 @@
  "timings_sec": {
   "naive_difference": 0.0,
   "regression_linear": 0.3,
-  "aipw_gbm": 8.6,
+  "aipw_gbm": 9.3,
   "aipw_spline": 0.2,
-  "ipw_gbm": 0.0,
+  "ipw_gbm": 10.3,
   "regression_gbm": 0.0,
-  "double_ml": 2.7,
-  "causal_forest": 4.5,
-  "causalpfn": 94.7,
-  "aipw_tabpfn": 69.6
+  "double_ml": 3.4,
+  "causal_forest": 4.1,
+  "causalpfn": 128.9
  },
  "manifest": {
   "fingerprint": "ds-6e68072e",
@@ -1398,7 +1400,7 @@
    "econml": "0.17.0",
    "dowhy": "0.14"
   },
-  "run_at_utc": "2026-09-26T09:18:19",
-  "runtime_sec": 212.8
+  "run_at_utc": "2026-09-27T16:38:51+00:00",
+  "runtime_sec": 196.1
  }
 }

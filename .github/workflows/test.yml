@@ -1,13 +1,30 @@
 name: tests
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  smoke:
+  test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - run: pip install -r requirements.txt pytest
-      - run: pytest -q
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            constraints.txt
+            requirements-dev.txt
+      - run: pip install -r requirements.txt -c constraints.txt -r requirements-dev.txt openpyxl
+      - name: Fast tests
+        run: pytest -q -n auto -m "not slow"
+      - name: Slow tests
+        run: pytest -q -n auto -m slow

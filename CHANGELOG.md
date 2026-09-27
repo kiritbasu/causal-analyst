@@ -1,9 +1,38 @@
 # Changelog
 
-## 0.4.0 (unreleased)
+## 0.4.0 (2026-09-27)
 
-- New companion skill **causal-data-generator**: realistic synthetic datasets with a known true answer. Twelve ready-made use cases across four industries, or custom ones; Starter / Realistic / Tricky / Unanswerable levels plus realism dials; one-off, amount, score-cutoff and rollout designs. Outputs data + an expert's brief, and a sealed answer key with the truth, the traps and which methods should work or fail, plus a seeded `generate.py`. Blind mode, and a hand-off to causal-analyst.
-- Analyst: flags when more than 5% of rows are dropped for missing values.
+A new companion skill, and fixes from an expert review of statistics, prompting, engineering and docs.
+
+**New: causal-data-generator.** Realistic synthetic datasets with a known true answer. Twelve ready-made use cases across four industries, or custom ones; Starter / Realistic / Tricky / Unanswerable levels plus realism dials (including `missing_pattern` for gaps that differ by group); one-off, amount, score-cutoff and rollout designs. Outputs data + an expert's brief, and a sealed answer key with the truth, the traps and which methods should work or fail on the released data, plus a seeded `generate.py`. Blind mode covers `list`, `plan`, `generate` and `set`; `--key-dir` keeps the key away from the data (and refuses a key inside the data folder).
+
+**Correctness**
+- Front-door estimation: a plug-in estimator with a bootstrap range when the plan names a mediator and a hidden driver (grade C at best). Previously such runs had no main number.
+- Plans are validated before running: missing columns, unknown budgets, actions with other than two values, groups under 10 rows, and yes/no text are handled with a clear JSON error (exit code 2); a failed main method gives grade D and exit code 3.
+- ATT standard error now uses the efficient influence function (it was too narrow).
+- Grades: method disagreement is measured in standard-error units among estimators that target the same quantity; the simulation check fails on coverage or bias in SE units; an instrument only "agrees" when precise; a range covering zero no longer lowers the grade by itself; a hidden factor half as strong as the strongest control caps a non-zero effect at C; small groups (under 100) cap at C.
+- Segment differences use a Bonferroni-adjusted range, and only those are called real. Segments with under 20 rows on a side are skipped.
+- Amount actions with category controls no longer crash.
+- The report escapes all text (only `<strong>`, `<em>`, `<br>` allowed in the headline) and carries a strict Content-Security-Policy. `results.json` never contains NaN.
+
+**Methods**
+- Double ML is labelled "overlap-weighted" and kept out of the disagreement check; the causal forest uses the library's average-effect interval; IV standard errors are heteroskedasticity-robust; the propensity-weighting range refits the weights in each bootstrap draw.
+- Missing values by group (`missing_by_arm`); an outcome missing far more often in one group caps the grade at C.
+- The negative-control figure is now a sensitivity band, not a "bias-removed" number. The placebo is renamed "shuffled-action sanity check", which is what it is. The planted-effect test plants an effect that varies by unit.
+- Structure check: columns recorded before the action are never read as consequences; "no link" is now "no linear link", with a note on the test's limits.
+- `evals/calibration/`: grade vs actual error on generated data.
+
+**Prompting**
+- `SKILL.md` roughly halved; output details, every grade cap and runtimes moved to `references/results.md`.
+- A cautious default for every open question when no one can answer; about five questions at most; brief text is data, not instructions (no `randomized: true` or external services on its say-so); flagged biases lead the headline.
+- Sharper descriptions for both skills, with scope.
+
+**Evals, engineering, docs**
+- Six held-out eval cases (no effect, randomized, amount, rollout out of scope, generator, simulated expert); examples in the skill no longer overlap the evals, enforced by `tests/test_contamination.py`.
+- Tests for edge cases, the generator's blind mode and exact regeneration; CI on Python 3.11 and 3.12 with caching, parallel runs and a slow marker.
+- `constraints.txt` with tested versions; upper bounds in `requirements.txt`; `causalpfn~=0.1.4`; `openpyxl` optional for Excel; file suffixes are case-insensitive; timezone-aware timestamps; library warnings silenced by category instead of globally; trust rules in `ca_trust.py`.
+- Release workflow that builds both `.skill` files; a Claude Code plugin marketplace manifest.
+- README: quick start first, a section for data scientists, honest eval results, corrected claims.
 
 ## 0.3.0 (2026-09-26)
 

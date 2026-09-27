@@ -38,6 +38,10 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
 import ca_core as core  # noqa: E402
 import ca_checks as checks  # noqa: E402
+from ca_trust import trust_tier  # noqa: E402
+
+BUD = None  # set by cmd_run; run_binary falls back to 'standard' when used as a library
+B_seeds = [3]
 
 BUDGETS = {
     "quick": {"boot": 100, "seeds": 1, "forest": False, "dml": True, "subsets": 3, "sim_reps": 1},
@@ -60,9 +64,96 @@ def log(msg):
     print(f"[ca {time.strftime('%H:%M:%S')}] {msg}", file=sys.stderr, flush=True)
 
 
+def _finite(o):
+    """NaN / inf are not valid JSON: store them as null."""
+    if isinstance(o, dict):
+        return {k: _finite(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_finite(v) for v in o]
+    if isinstance(o, np.ndarray):
+        return _finite(o.tolist())
+    if isinstance(o, (float, np.floating)):
+        return float(o) if math.isfinite(o) else None
+    if isinstance(o, np.integer):
+        return int(o)
+    return o
+
+
 def dump(obj, path):
-    Path(path).write_text(json.dumps(obj, indent=1, default=_json))
+    Path(path).write_text(json.dumps(_finite(obj), indent=1, default=_json, allow_nan=False))
     print(f"wrote {path}")
+
+
+class SpecError(Exception):
+    def __init__(self, msg, hint=""):
+        super().__init__(msg)
+        self.hint = hint
+
+
+def fail(msg, hint="", code=2):
+    print(json.dumps({"error": msg, "hint": hint}, indent=1))
+    sys.exit(code)
+
+
+YES = {"1", "yes", "y", "true", "t", "treated", "on"}
+NO = {"0", "no", "n", "false", "f", "control", "untreated", "off"}
+
+
+def validate_and_prepare(spec, df):
+    """Check the plan against the data before anything runs; recode a yes/no action to 0/1.
+    Returns (df, notes). Raises SpecError with a plain-language hint."""
+    notes = []
+    for k in ("treatment", "outcome", "data"):
+        if not spec.get(k):
+            raise SpecError(f"The plan has no '{k}'.", "Add it to spec.json (see references/spec.md).")
+    if spec.get("budget", "standard") not in BUDGETS:
+        raise SpecError(f"Unknown budget '{spec.get('budget')}'.", f"Use one of: {', '.join(BUDGETS)}.")
+    if spec.get("estimand", "ATE") not in ("ATE", "ATT"):
+        raise SpecError(f"Unknown estimand '{spec.get('estimand')}'.", "Use ATE (everyone) or ATT (those who got the action).")
+    used = [spec["treatment"], spec["outcome"]] + spec.get("confounders", []) + spec.get("instruments", []) + spec.get("mediators", [])
+    missing = [c for c in dict.fromkeys(used) if c not in df.columns]
+    if missing:
+        raise SpecError(f"Column(s) not in the data: {', '.join(missing)}.", "Check spelling and case against the file's header.")
+    T, Y = spec["treatment"], spec["outcome"]
+    if not pd.api.types.is_numeric_dtype(df[Y]):
+        yv = df[Y].dropna().astype(str).str.strip().str.lower()
+        if set(yv.unique()) <= (YES | NO):
+            df[Y] = df[Y].map(lambda v: None if pd.isna(v) else (1 if str(v).strip().lower() in YES else 0))
+            notes.append(f"Outcome '{Y}' recoded: yes/true = 1, no/false = 0.")
+        else:
+            raise SpecError(f"The outcome '{Y}' isn't numeric.", "Use a number or a yes/no column as the outcome.")
+    if spec.get("treatment_type", "binary") == "continuous":
+        if not spec.get("contrast") or not {"x0", "x1"} <= set(spec["contrast"]):
+            raise SpecError("An amount action needs a 'contrast' with x0 and x1 (the two levels to compare).", "E.g. \"contrast\": {\"x0\": 0, \"x1\": 10}.")
+        if not pd.api.types.is_numeric_dtype(df[T]):
+            raise SpecError(f"The amount action '{T}' isn't numeric.", "Use a numeric column, or treat it as yes/no.")
+        return df, notes
+    vals = df[T].dropna().unique()
+    if len(vals) != 2:
+        raise SpecError(f"The action '{T}' has {len(vals)} distinct values ({', '.join(map(str, vals[:6]))}{'...' if len(vals) > 6 else ''}); a yes/no analysis needs exactly 2.",
+                        "Recode it to two groups, or use treatment_type 'continuous' with a contrast for an amount.")
+    tv = spec.get("treated_value")
+    sv = {str(v).strip().lower() for v in vals}
+    if tv is not None:
+        if str(tv) not in {str(v) for v in vals}:
+            raise SpecError(f"treated_value '{tv}' is not one of the action's values {list(vals)}.")
+        treated = lambda v: str(v) == str(tv)
+    elif sv <= {"0", "1", "0.0", "1.0"}:
+        treated = lambda v: float(v) == 1.0
+    elif sv <= (YES | NO) and sv & YES and sv & NO:
+        treated = lambda v: str(v).strip().lower() in YES
+    else:
+        hi = max(vals, key=lambda v: (str(type(v)), v))
+        treated = lambda v: v == hi
+        notes.append(f"Action '{T}' has values {list(vals)}; treating '{hi}' as 'got the action'. Set treated_value in the plan to change this.")
+    df[T] = df[T].map(lambda v: None if pd.isna(v) else int(treated(v)))
+    counts = df[T].value_counts()
+    small = int(counts.min()) if len(counts) == 2 else 0
+    if small < 10:
+        raise SpecError(f"Only {small} rows in the smaller group of '{T}'.", "At least 10 in each group are needed to run anything; 100+ for a trustworthy answer.")
+    if small < 100:
+        notes.append(f"small_group:{small}")
+    return df, notes
 
 
 def label(spec, col):
@@ -166,6 +257,9 @@ def cmd_identify(a):
 
 # ----------------------------------------------------------------------------
 def run_binary(df, spec, B):
+    global BUD
+    if BUD is None:
+        BUD = BUDGETS[spec.get("budget", "standard")]
     T, Y = spec["treatment"], spec["outcome"]
     conf = spec.get("confounders", [])
     estimand = spec.get("estimand", "ATE")
@@ -217,8 +311,12 @@ def run_binary(df, spec, B):
 
     if fits:
         e, m0, m1, a0 = fits[res["aipw_gbm"].get("_k", 0)]
-        timed("ipw_gbm", lambda: {"estimate": core.ipw_hajek(y, t, e, estimand),
-                                  **core.bootstrap(lambda idx: core.ipw_hajek(y[idx], t[idx], e[idx], estimand), n, B, seed)})
+        def _ipw():
+            est = core.ipw_hajek(y, t, e, estimand)
+            bs = core.bootstrap(lambda idx: core.ipw_refit(y[idx], t[idx], X[idx], estimand, seed), n, min(B, 60), seed)
+            # range centred on the estimate, with the spread from refitting the weights each time
+            return {"estimate": est, "se": bs["se"], "ci": [est - 1.96 * bs["se"], est + 1.96 * bs["se"]], "n_boot": bs["n_boot"]}
+        timed("ipw_gbm", _ipw)
         timed("regression_gbm", lambda: {"estimate": float((m1 - m0)[t == 1].mean() if estimand == "ATT" else (m1 - m0).mean())})
     if BUD["dml"] and estimand == "ATE":
         timed("double_ml", lambda: core.dml_linear(y, t, X, seed))
@@ -251,7 +349,7 @@ def run_binary(df, spec, B):
         optional["tabpfn"] = {"skipped": why}
 
     diag = {"optional_cross_checks": optional}
-    log("diagnostics: overlap, balance, placebo, random common cause, subsets")
+    log("diagnostics: overlap, balance, shuffled action, random common cause, subsets")
     if fits:
         e, m0, m1, a0 = fits[res["aipw_gbm"].get("_k", 0)]
         psi = a0["pseudo_outcomes"]
@@ -301,18 +399,25 @@ def run_binary(df, spec, B):
         diag["subset_80pct_estimates"] = subs
         # segments (heterogeneity) from AIPW pseudo-outcomes (ATE scale)
         if spec.get("segments") and estimand == "ATE":
+            from scipy.stats import norm
             segs = []
+            k = max(len(spec["segments"]), 1)
+            z_adj = float(norm.ppf(1 - 0.05 / (2 * k)))  # Bonferroni: simultaneous 95% across the k group comparisons
             for q in spec["segments"]:
                 try:
                     mask = df.eval(q).values.astype(bool)
                 except Exception as ex:
                     segs.append({"segment": q, "error": str(ex)[:200]}); continue
+                if min(mask.sum(), (~mask).sum()) < 20:
+                    segs.append({"segment": q, "error": f"too few rows on one side ({int(mask.sum())} vs {int((~mask).sum())}); needs 20+ each"}); continue
                 for name, mm in ((q, mask), (f"not ({q})", ~mask)):
                     v = psi[mm]
                     segs.append({"segment": name, "n": int(mm.sum()), "estimate": float(v.mean()), "ci": [float(v.mean() - 1.96 * v.std(ddof=1) / math.sqrt(len(v))), float(v.mean() + 1.96 * v.std(ddof=1) / math.sqrt(len(v)))]})
                 d = psi[mask].mean() - psi[~mask].mean()
                 sd = math.sqrt(psi[mask].var(ddof=1) / mask.sum() + psi[~mask].var(ddof=1) / (~mask).sum())
-                segs.append({"segment": f"difference: ({q}) minus rest", "estimate": float(d), "ci": [float(d - 1.96 * sd), float(d + 1.96 * sd)]})
+                segs.append({"segment": f"difference: ({q}) minus rest", "estimate": float(d), "ci": [float(d - 1.96 * sd), float(d + 1.96 * sd)],
+                             "ci_adjusted": [float(d - z_adj * sd), float(d + z_adj * sd)], "comparisons_tested": k,
+                             "p_value": float(2 * (1 - norm.cdf(abs(d) / sd))) if sd > 0 else None})
             diag["segments"] = segs
         if cf is not None:
             diag["forest_cate_spread"] = {"p10": float(np.percentile(cf, 10)), "p50": float(np.percentile(cf, 50)), "p90": float(np.percentile(cf, 90)), "share_positive": float((cf > 0).mean())}
@@ -340,6 +445,9 @@ def run_continuous(df, spec, B):
         except Exception as e:
             res[f"gcomp_{lrn}"] = {"error": str(e)[:200]}
         timings[f"gcomp_{lrn}"] = round(time.time() - s, 1)
+    if not cv:
+        errs = "; ".join(f"{k}: {v['error']}" for k, v in res.items() if "error" in v)
+        raise SystemExit(json.dumps({"error": "Every outcome model failed.", "details": errs[:600]}, indent=1))
     best = min(cv, key=cv.get)
     n = len(df)
     bs = core.bootstrap(lambda idx: core.dose_contrast(df.iloc[idx], T, Y, conf, x0, x1, best, seed)[0], n, B, seed)
@@ -349,102 +457,44 @@ def run_continuous(df, spec, B):
     return res, diag, timings, f"gcomp_{best}"
 
 
-def trust_tier(ident, res, diag, main_key, spec):
-    reasons = []
-    if not ident.get("identifiable"):
-        return "D", ["The question cannot be answered from this data without assumptions it cannot support; see bounds / complier effect."]
-    tier = "A" if spec.get("randomized") else "B"
-    if tier == "B":
-        reasons.append("Observational data: rests on no important unrecorded factor (cannot be checked).")
-    main = res.get(main_key, {})
-    est = main.get("estimate")
-    ov = diag.get("overlap", {})
-    if ov and (ov.get("share_below_0.05", 0) + ov.get("share_above_0.95", 0)) > 0.05:
-        tier = "C" if tier in ("A", "B") else tier
-        reasons.append(f"Weak overlap: {100*(ov['share_below_0.05']+ov['share_above_0.95']):.1f}% of units are almost always or never treated; part of the answer is extrapolated.")
-    if diag.get("max_abs_smd_after", 0) > 0.1:
-        reasons.append(f"Some imbalance remains after weighting (max SMD {diag['max_abs_smd_after']:.2f}); the doubly robust main method compensates, but treat with care.")
-    pl = diag.get("placebo_permuted_treatment")
-    if pl and not pl["passes"]:
-        tier = "C" if tier in ("A", "B") else tier
-        reasons.append("Placebo check failed: a fake treatment showed an effect.")
-    sens = diag.get("sensitivity", {})
-    if sens.get("strongest_measured") and tier != "A":
-        rv = sens["robustness_value"]
-        strongest = sens["strongest_measured"]["strength"]
-        if rv < strongest:
-            reasons.append(f"A hidden factor about as strong as '{sens['strongest_measured']['confounder']}' (already controlled) could erase the effect (robustness value {rv:.2f} vs {strongest:.2f}). This is a caution, not proof of bias.")
-    others = [v["estimate"] for k, v in res.items() if k not in (main_key, "naive_difference") and isinstance(v, dict) and v.get("estimate") is not None and "error" not in v]
-    if est is not None and others:
-        spread = (max(others + [est]) - min(others + [est]))
-        if abs(est) > 0 and spread / abs(est) > 0.5:
-            tier = "C" if tier in ("A", "B") else tier
-            reasons.append(f"Methods disagree substantially (spread {spread:.3g} vs main {est:.3g}); the answer depends on modelling choices.")
-    for fm, fname in (("causalpfn", "CausalPFN"), ("aipw_tabpfn", "TabPFN")):
-        fr = res.get(fm, {})
-        if main.get("ci") and fr.get("estimate") is not None and not (main["ci"][0] <= fr["estimate"] <= main["ci"][1]):
-            reasons.append(f"The {fname} foundation-model cross-check ({fr['estimate']:.3g}) falls outside the main 95% range; treat the size of the effect with extra care, especially where overlap is weak.")
-    cb = diag.get("codebook") or {}
-    if cb.get("no_meaning") or cb.get("unconfirmed"):
-        cols = (cb.get("no_meaning") or []) + (cb.get("unconfirmed") or [])
-        reasons.append(f"The meaning of {len(cols)} column(s) used was assumed, not confirmed by you: {', '.join(cols[:8])}{' and more' if len(cols) > 8 else ''}. A misread column can put the diagram, and the answer, wrong.")
-    if not spec.get("randomized") and not spec.get("outcome_baseline"):
-        reasons.append("No before-the-action measure of the outcome was named, so if past results drove who got the action (reverse causation), the estimate may be off.")
-    alt = diag.get("alternatives") or {}
-    if main.get("ci") and est is not None:
-        lo_, hi_ = main["ci"]
-        movers = [a for a in alt.get("user", []) if a.get("estimate") is not None and not a.get("illustrative") and not (lo_ <= a["estimate"] <= hi_)]
-        if movers:
-            flips = [a for a in movers if a["estimate"] * est < 0]
-            if flips and tier in ("A", "B"):
-                tier = "C"
-            reasons.append("Under an alternative diagram the answer moves outside the main range: " + "; ".join(f"{a['name']} gives {a['estimate']:.3g}" for a in movers[:3]) + ". The result depends on which diagram is right.")
-    sc = diag.get("structure_check") or {}
-    dismissed = spec.get("dismissed_findings", {})
-    cons = [f_["column"] for f_ in sc.get("findings", []) if f_["kind"] == "possible consequence" and f_["column"] not in dismissed]
-    if cons:
-        reasons.append(f"The data pattern suggests {', '.join(cons)} may be influenced by the action or the outcome (collider-like). Confirm timing; if so, it should not be a control.")
-    sim = diag.get("simulation_check") or {}
-    if sim.get("reps"):
-        rel = abs(sim["bias"]) / abs(sim["planted"]) if sim["planted"] else 0
-        if (sim["reps"] >= 3 and sim["coverage"] < 0.5) or rel > 0.25:
-            tier = "C" if tier in ("A", "B") else tier
-            reasons.append(f"On your data with a planted effect of {sim['planted']:.3g}, the main method recovered {sim['mean_estimate']:.3g} ({sim['coverage']:.0%} of ranges contained it). It struggles with this data's structure.")
-    ncs = [x for x in (diag.get("negative_controls") or []) if "estimate" in x and not x.get("passes")]
-    if ncs:
-        tier = "C" if tier in ("A", "B") else tier
-        reasons.append("The action shows an 'effect' on something it cannot plausibly change: " + "; ".join(f"{x['column']} {x['estimate']:+.3g}" for x in ncs)
-                       + ". That points to an unrecorded difference between the groups, which likely also inflates the main answer.")
-    iv = ((diag.get("instrument") or {}).get("complier_effect_2sls") or {})
-    iv_agrees = bool(iv.get("ci") and main.get("ci") and not (iv["ci"][1] < main["ci"][0] or iv["ci"][0] > main["ci"][1]))
-    if iv_agrees and spec.get("suspected_hidden"):
-        reasons.append(f"The random nudge gives an independent estimate ({iv['estimate']:.3g}) that agrees with the main one, which argues against a strong hidden driver.")
-    for sh in spec.get("suspected_hidden", []) if not spec.get("randomized") else []:
-        lbl = sh.get("label") if isinstance(sh, dict) else str(sh)
-        if not iv_agrees:
-            tier = "C" if tier in ("A", "B") else tier
-        reasons.append(f"Domain knowledge suggests an unrecorded driver: {lbl}. It is not in the data; see how strong it would need to be.")
-    pz = diag.get("plausibility")
-    if pz and not pz["inside"]:
-        if pz["far_outside"]:
-            tier = "C" if tier in ("A", "B") else tier
-        reasons.append(f"The estimate ({pz['estimate']:.3g}) is {'far ' if pz['far_outside'] else ''}outside the range expected before the run ({pz['low']:.3g} to {pz['high']:.3g}; {pz['basis'] or pz['source']}). Either this setting differs or something is missing from the diagram.")
-    if main.get("ci") and est is not None and main["ci"][0] <= 0 <= main["ci"][1]:
-        reasons.append("The 95% range includes zero: the data are consistent with no effect.")
-    return tier, reasons
+def missing_by_arm(df, spec, cols):
+    """Share of missing values in each used column, with and without the action (binary actions only)."""
+    T = spec["treatment"]
+    if spec.get("treatment_type", "binary") == "continuous" or df[T].isna().any():
+        return None
+    tt = df[T] == 1
+    out = []
+    for c in cols:
+        if c == T or not df[c].isna().any():
+            continue
+        a1, a0 = float(df.loc[tt, c].isna().mean()), float(df.loc[~tt, c].isna().mean())
+        out.append({"column": c, "share_with_action": a1, "share_without": a0, "gap_points": round(100 * abs(a1 - a0), 1)})
+    return sorted(out, key=lambda r: -r["gap_points"])
 
 
 def cmd_run(a):
     spec = json.loads(Path(a.spec).read_text())
     global BUD, B_seeds
+    t0 = time.time()
+    try:
+        df = core.load_data(spec["data"])
+        df, prep_notes = validate_and_prepare(spec, df)
+    except SpecError as ex:
+        fail(str(ex), ex.hint)
+    except FileNotFoundError:
+        fail(f"Data file not found: {spec['data']}", "Check the 'data' path in the plan (relative to where you run the command).")
+    except KeyError as ex:
+        fail(f"The plan is missing {ex}.", "Required: data, treatment, outcome.")
     BUD = BUDGETS[spec.get("budget", "standard")]
     B_seeds = [BUD["seeds"]]
-    t0 = time.time()
     log(f"budget {spec.get('budget', 'standard')}; progress lines follow. Typical: quick <1 min, standard 1-2 min on ~5k rows")
-    df = core.load_data(spec["data"])
+    for nt in prep_notes:
+        if not nt.startswith("small_group:"):
+            log(nt)
     overview = core.data_overview(df, spec, int(spec.get("report_sample_rows", 5)))
     cols = [spec["treatment"], spec["outcome"]] + spec.get("confounders", []) + spec.get("instruments", [])
     before = len(df)
+    miss = missing_by_arm(df, spec, cols)
     df = df.dropna(subset=cols).reset_index(drop=True)
     ident = identify(spec)
     import ca_dag
@@ -455,6 +505,20 @@ def cmd_run(a):
     else:
         res, diag, timings = run_binary(df, spec, BUD["boot"])
         main_key = spec.get("main_method", "aipw_gbm")
+        if ident.get("strategy") == "front-door":
+            M = spec["mediators"][0]
+            log("estimating: front-door (effect through the middle step)")
+            s0 = time.time()
+            try:
+                seed = int(spec.get("seed", 1729))
+                est = core.front_door(df, spec["treatment"], M, spec["outcome"], spec.get("confounders", []), seed)
+                Bfd = {"quick": 20, "standard": 40, "thorough": 100}[spec.get("budget", "standard")]
+                bs = core.bootstrap(lambda idx: core.front_door(df.iloc[idx].reset_index(drop=True), spec["treatment"], M, spec["outcome"], spec.get("confounders", []), seed, draws=8), len(df), Bfd, seed)
+                res["front_door"] = {"estimate": est, **bs}
+            except Exception as ex:
+                res["front_door"] = {"error": str(ex)[:300]}
+            timings["front_door"] = round(time.time() - s0, 1)
+            main_key = "front_door"
     if spec.get("instruments"):
         z = spec["instruments"][0]
         try:
@@ -532,11 +596,28 @@ def cmd_run(a):
         diag["plausibility"] = checks.plausibility(res.get(main_key), spec["expected_effect"])
     if spec.get("domain_notes"):
         diag["domain_notes"] = spec["domain_notes"]
+    if miss:
+        diag["missing_by_arm"] = miss
+    small = [nt for nt in prep_notes if nt.startswith("small_group:")]
+    if small:
+        spec["_small_group"] = int(small[0].split(":")[1])
     tier, reasons = trust_tier(ident, res, diag, main_key, spec)
+    spec.pop("_small_group", None)
+    main_failed = bool(reasons) and reasons[0].startswith("The main method (")
     dropped = out["rows_dropped_missing"]
+    uneven = [m_ for m_ in (miss or []) if m_["gap_points"] >= 5]
+    if uneven:
+        w = uneven[0]
+        reasons.append(f"'{w['column']}' is missing for {w['share_with_action']:.0%} of rows with the action and {w['share_without']:.0%} without. "
+                       "Gaps that differ by group can bias the answer; ask why they are missing.")
+        if w["column"] == spec["outcome"] and w["gap_points"] >= 10 and tier in ("A", "B"):
+            tier = "C"
+            reasons.append("The outcome is missing much more often in one group, so the rows kept are not comparable: grade capped at C.")
     if dropped and dropped / (dropped + out["rows_used"]) > 0.05:
         reasons.append(f"{dropped:,} rows ({100 * dropped / (dropped + out['rows_used']):.0f}%) were left out because a column used had a missing value. If values are missing for a reason linked to the action or the outcome, the answer can shift.")
     main_result = res.get(main_key)
+    if main_failed:
+        main_key, main_result = None, None
     if not ident.get("identifiable"):
         # Never present a single number for a question the data cannot answer.
         main_key, main_result = None, None
@@ -546,7 +627,7 @@ def cmd_run(a):
     out.update(main_method=main_key, main_result=main_result, estimates=res, diagnostics=diag,
                trust_tier=tier, trust_reasons=reasons, timings_sec=timings,
                manifest={"fingerprint": core.file_fingerprint(spec["data"]), "seed": spec.get("seed", 1729), "budget": spec.get("budget", "standard"),
-                         "versions": core.versions(), "run_at_utc": dt.datetime.utcnow().isoformat(timespec="seconds"), "runtime_sec": round(time.time() - t0, 1)})
+                         "versions": core.versions(), "run_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "runtime_sec": round(time.time() - t0, 1)})
     for v in res.values():
         if isinstance(v, dict):
             v.pop("pseudo_outcomes", None)
@@ -559,7 +640,9 @@ def cmd_run(a):
                "diagnostics_available": sorted(diag.keys())}
     if main_key is None:
         summary["look_here_instead"] = [k for k in ("bounds_no_instrument", "instrument", "sensitivity") if k in diag]
-    print(json.dumps(summary, indent=1, default=_json))
+    print(json.dumps(_finite(summary), indent=1, default=_json))
+    if main_failed:
+        sys.exit(3)
 
 
 # ----------------------------------------------------------------------------
@@ -575,7 +658,7 @@ def cmd_figures(a):
     rows.sort(key=lambda kv: (kv[0] != main, kv[0] == "naive_difference"))
     no_answer = main is None
     names = {"aipw_gbm": "Doubly robust ML", "aipw_spline": "Doubly robust, spline", "regression_linear": "Linear regression", "regression_gbm": "ML regression",
-             "ipw_gbm": "Propensity weighting", "double_ml": "Double ML", "causal_forest": "Causal forest", "naive_difference": "Raw gap (not adjusted)",
+             "ipw_gbm": "Propensity weighting", "double_ml": "Double ML (overlap-weighted)", "causal_forest": "Causal forest", "naive_difference": "Raw gap (not adjusted)",
              "causalpfn": "CausalPFN (foundation model)", "aipw_tabpfn": "Doubly robust, TabPFN"}
     fig, ax = plt.subplots(figsize=(7, 0.45 * len(rows) + 1.2))
     for i, (k, v) in enumerate(rows):

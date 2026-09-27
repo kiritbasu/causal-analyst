@@ -26,13 +26,13 @@ LEVELS = ["starter", "realistic", "tricky", "unanswerable"]
 
 LEVEL_DIALS = {
     "starter": {"nonlinear": 0.0, "heavy_tails": False, "overlap": "good", "missing": 0.0,
-                "measurement_error": 0.0, "irrelevant": 0, "misleading_names": False, "zero_effect": False},
+                "measurement_error": 0.0, "irrelevant": 0, "misleading_names": False, "zero_effect": False, "missing_pattern": "random"},
     "realistic": {"nonlinear": 0.3, "heavy_tails": False, "overlap": "good", "missing": 0.03,
-                  "measurement_error": 0.0, "irrelevant": 2, "misleading_names": False, "zero_effect": False},
+                  "measurement_error": 0.0, "irrelevant": 2, "misleading_names": False, "zero_effect": False, "missing_pattern": "random"},
     "tricky": {"nonlinear": 0.6, "heavy_tails": True, "overlap": "weak", "missing": 0.08,
-               "measurement_error": 0.15, "irrelevant": 3, "misleading_names": True, "zero_effect": False},
+               "measurement_error": 0.15, "irrelevant": 3, "misleading_names": True, "zero_effect": False, "missing_pattern": "random"},
     "unanswerable": {"nonlinear": 0.3, "heavy_tails": False, "overlap": "good", "missing": 0.03,
-                     "measurement_error": 0.0, "irrelevant": 2, "misleading_names": False, "zero_effect": False},
+                     "measurement_error": 0.0, "irrelevant": 2, "misleading_names": False, "zero_effect": False, "missing_pattern": "random"},
 }
 
 GENERIC_EXTRA = [("newsletter_opens", "newsletter emails opened last quarter", "poisson", {"mean": 3}),
@@ -397,8 +397,13 @@ def _apply_realism(s, df, rng, protect):
                 df[v["name"]] = _finish(x + rng.standard_normal(len(x)) * x.std() * d["measurement_error"] * 3, v)
     if d["missing"]:
         cand = [c for c in df.columns if c not in protect]
+        rate = np.full(len(df), float(d["missing"]))
+        T = s["treatment"]["name"]
+        if d.get("missing_pattern", "random") == "depends_on_action" and T in df and s["treatment"].get("type", "binary") == "binary":
+            # gaps depend on the group: e.g. members' details are filled in at sign-up, others' aren't
+            rate = np.where(df[T].values == 1, 0.4, 1.6) * d["missing"]
         for c in cand:
-            m = rng.random(len(df)) < d["missing"]
+            m = rng.random(len(df)) < rate
             if df[c].dtype == object:
                 df[c] = df[c].astype(object).where(~m, None)
             elif pd.api.types.is_integer_dtype(df[c]):
@@ -425,8 +430,8 @@ def _names(s):
 
 def _quick_ols(df, y, t, controls):
     import statsmodels.api as sm
-    X = pd.get_dummies(df[[t] + controls], drop_first=True).astype(float)
-    X = sm.add_constant(X.fillna(X.median()))
+    X = pd.get_dummies(df[[t] + controls], drop_first=True).astype("float64")
+    X = sm.add_constant(X.fillna(X.median()))  # simple median fill for gaps
     m = sm.OLS(df[y].astype(float), X).fit(cov_type="HC1")
     lo, hi = m.conf_int().loc[t]
     return float(m.params[t]), [float(lo), float(hi)]
@@ -473,7 +478,7 @@ def _boot(fn, df, B=150, seed=7, cluster=None):
 def _aipw(df, y, t, controls, seed=1):
     """Quick cross-fitted doubly robust estimate (gradient boosting), the 'should work' reference."""
     from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
-    X = pd.get_dummies(df[controls], drop_first=True).astype(float).values
+    X = pd.get_dummies(df[controls], drop_first=True).astype("float64").to_numpy(dtype=float, na_value=np.nan)  # boosting handles gaps
     T = df[t].astype(int).values
     Y = df[y].astype(float).values
     n = len(Y)
@@ -513,10 +518,10 @@ def generate_cross_section(s, seed):
     data.update(extra)
     data[y["name"]] = _finish(out["Y"], y)
     df = pd.DataFrame(data)
-    truth_df = df.copy()
     protect = {tr["name"], y["name"]} | ({s["id_col"]["name"]} if s.get("id_col") else set())
     df = _apply_realism(s, df, rng, protect)
-    key = _key_cross_section(s, truth_df, out, trt, X)
+    # Quick estimates use the released data (noise and gaps included), so they show what an analyst can get.
+    key = _key_cross_section(s, df, out, trt, X)
     ren = _names(s)
     df = df.rename(columns=ren)
     key["column_names"] = {k: v for k, v in ren.items()}
@@ -599,8 +604,13 @@ def _key_cross_section(s, df, out, trt, X):
         m.append(_row("Plain comparison (no adjustment)", _quick_ols(df, Yn, T, []), truth, "should fail" if confounded else "should work"))
         if rec:
             exp = "should fail" if unproxied else ("best available" if proxied else "should work")
-            m.append(_row("Flexible adjustment for all recorded drivers (doubly robust ML)", _aipw(df.dropna(subset=rec) if df[rec].isna().any().any() else df, Yn, T, rec),
-                          truth, exp, "an unrecorded driver remains" if unproxied else ("a recorded column only partly stands in for an unrecorded driver" if proxied else "")))
+            why = "an unrecorded driver remains" if unproxied else ("a recorded column only partly stands in for an unrecorded driver" if proxied else "")
+            gaps = bool(df[rec].isna().any().any())
+            noisy = d["measurement_error"] and any(v.get("noisy") and v["name"] in rec for v in s["variables"])
+            if exp == "should work" and (gaps or noisy):
+                exp = "best available"
+                why = "the released columns have " + " and ".join(w for w, on in (("gaps", gaps), ("measurement noise", noisy)) if on) + ", so some bias remains"
+            m.append(_row("Flexible adjustment for all recorded drivers (doubly robust ML)", _aipw(df, Yn, T, rec), truth, exp, why))
             m.append(_row("Linear adjustment for all recorded drivers", _quick_ols(df, Yn, T, rec), truth,
                           exp if (clean and y.get("type", "continuous") == "continuous") or exp != "should work" else "approximate", "" if clean else "straight lines on curved relationships"))
             if len(rec) > 1:
@@ -632,7 +642,7 @@ def _gcomp_dose(df, y, t, controls, grid, seed=1):
     """Double ML with the dose as categories: cross-fitted ML residualizes the outcome and each dose
     indicator on the recorded drivers, then a regression of residual on residuals gives the curve."""
     from sklearn.ensemble import HistGradientBoostingRegressor
-    X = pd.get_dummies(df[controls], drop_first=True).astype(float).values
+    X = pd.get_dummies(df[controls], drop_first=True).astype("float64").to_numpy(dtype=float, na_value=np.nan)
     Y = df[y].astype(float).values
     lv = [float(g) for g in grid]
     D = np.column_stack([(df[t].astype(float).values == g).astype(float) for g in lv[1:]])

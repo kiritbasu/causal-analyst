@@ -1,0 +1,106 @@
+{
+ "targets": [
+  {
+   "name": "att",
+   "label": "Average effect on adopters over their treated periods",
+   "value": 23.620253,
+   "primary": true
+  },
+  {
+   "name": "effect_by_periods_since_adoption",
+   "label": "Effect by periods since adoption",
+   "values": {
+    "1": 7.5,
+    "2": 15.0,
+    "3": 22.5,
+    "4": 30.0,
+    "5": 30.0,
+    "6": 30.0
+   }
+  }
+ ],
+ "methods": [
+  {
+   "method": "Treated vs untreated periods (plain comparison)",
+   "estimate": 115.948047,
+   "range95": [
+    89.474172,
+    142.421921
+   ],
+   "off_by_pct": 390.9,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": ""
+  },
+  {
+   "method": "Adopters, after vs before",
+   "estimate": 77.899341,
+   "range95": [
+    59.719334,
+    96.079348
+   ],
+   "off_by_pct": 229.8,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": "picks up time trends and seasonality"
+  },
+  {
+   "method": "Two-way fixed effects regression",
+   "estimate": 18.386687,
+   "range95": [
+    13.413826,
+    23.359547
+   ],
+   "off_by_pct": -22.2,
+   "expected": "can mislead",
+   "verdict": "within noise",
+   "note": "biased when adoption is staggered and effects grow over time"
+  },
+  {
+   "method": "Cohort-by-cohort difference-in-differences vs never-adopters",
+   "estimate": 21.356821,
+   "range95": [
+    14.875809,
+    27.837834
+   ],
+   "off_by_pct": -9.6,
+   "expected": "should work",
+   "verdict": "close",
+   "note": "baseline averaged over the last few periods before switching"
+  }
+ ],
+ "true_value_primary": 23.620253,
+ "correct_design": "Difference-in-differences comparing each adoption cohort with units that never adopted, before vs after; check pre-adoption trends.",
+ "column_names": {},
+ "scenario": "saas-pricing-rollout",
+ "title": "New pricing page rollout \u2192 trial signups",
+ "level": "realistic",
+ "seed": 14,
+ "rows": 1440,
+ "dials": {
+  "nonlinear": 0.3,
+  "heavy_tails": false,
+  "overlap": "good",
+  "missing": 0.03,
+  "measurement_error": 0.0,
+  "irrelevant": 0,
+  "misleading_names": false,
+  "zero_effect": false,
+  "missing_pattern": "random"
+ },
+ "fingerprint": "gt-bca7a2",
+ "design": "rollout",
+ "traps": [
+  {
+   "name": "Time trends",
+   "text": "Before/after on adopters picks up growth and seasonality."
+  },
+  {
+   "name": "Staggered waves with growing effects",
+   "text": "Two-way fixed effects can mislead when effects build up.",
+   "min_level": "realistic"
+  }
+ ],
+ "hidden_drivers": [],
+ "note": "Truth computed from each row's potential outcomes (common random numbers). 'methods' are quick linear or textbook estimates on this file, for orientation."
+}

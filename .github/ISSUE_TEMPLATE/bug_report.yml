@@ -1,0 +1,21 @@
+name: Bug report
+description: Something in the toolkit or the report is wrong
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, what you got.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: A minimal spec.json plus data (synthetic is fine, e.g. from causal-data-generator), or the command and error. Please don't attach real personal data.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Skill version (CHANGELOG), Python version, and `manifest.versions` from results.json if you have it.

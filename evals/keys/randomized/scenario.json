@@ -1,0 +1,182 @@
+{
+ "id": "marketing-email-coupon",
+ "industry": "Retail & marketing",
+ "title": "Coupon email \u2192 purchase",
+ "teaser": "Starts as a clean A/B test; higher levels add CRM cherry-picking and opens.",
+ "question": "Did our 20%-off coupon email actually make people buy?",
+ "ask": "We want the extra purchases per 100 customers emailed.",
+ "sme": "an e-commerce CRM manager",
+ "unit": "customer",
+ "units": "customers",
+ "design": "cross_section",
+ "n": 8000,
+ "default_level": "starter",
+ "id_col": {
+  "name": "customer_id",
+  "start": 500001,
+  "meaning": "customer identifier"
+ },
+ "treatment": {
+  "name": "got_coupon_email",
+  "type": "binary",
+  "share": 0.5,
+  "meaning": "1 = was sent the coupon email",
+  "recorded": "on send day"
+ },
+ "outcome": {
+  "name": "purchased_30d",
+  "type": "binary",
+  "base_rate": 0.12,
+  "meaning": "1 = made a purchase within 30 days of send day",
+  "recorded": "30 days after send day"
+ },
+ "effect": {
+  "ate": 0.03,
+  "unit_label": "purchase probability (3 per 100)"
+ },
+ "variables": [
+  {
+   "name": "orders_last_year",
+   "meaning": "orders in the 12 months before send day",
+   "recorded": "before send day",
+   "dist": {
+    "type": "poisson",
+    "mean": 3
+   },
+   "to_treat": 0.6,
+   "to_treat_from": "realistic",
+   "to_outcome": 0.5
+  },
+  {
+   "name": "days_since_last_order",
+   "meaning": "days since the last order",
+   "recorded": "on send day",
+   "dist": {
+    "type": "lognormal",
+    "median": 60,
+    "spread": 0.8
+   },
+   "clip": [
+    0,
+    900
+   ],
+   "decimals": 0,
+   "to_treat": -0.3,
+   "to_treat_from": "realistic",
+   "to_outcome": -0.35
+  },
+  {
+   "name": "email_subscriber_years",
+   "meaning": "years subscribed to the newsletter",
+   "recorded": "on send day",
+   "dist": {
+    "type": "uniform",
+    "low": 0,
+    "high": 8
+   },
+   "decimals": 1,
+   "to_outcome": 0.1
+  },
+  {
+   "name": "country",
+   "meaning": "shipping country",
+   "recorded": "at signup",
+   "dist": {
+    "type": "category",
+    "levels": [
+     "UK",
+     "DE",
+     "FR",
+     "ES",
+     "PT"
+    ],
+    "probs": [
+     0.35,
+     0.25,
+     0.2,
+     0.12,
+     0.08
+    ]
+   }
+  }
+ ],
+ "hidden": [
+  {
+   "name": "U_intent",
+   "label": "shopping intent that week",
+   "to_treat": 0.9,
+   "to_outcome": 0.7,
+   "min_level": "unanswerable"
+  }
+ ],
+ "post_treatment": [
+  {
+   "name": "opened_email",
+   "kind": "consequence",
+   "treated_only": true,
+   "base": 0,
+   "from_treat": 0,
+   "from_outcome": 0.9,
+   "noise_sd": 1,
+   "clip": [
+    0,
+    1
+   ],
+   "decimals": 0,
+   "meaning": "1 = opened the coupon email",
+   "recorded": "within 7 days of send",
+   "cryptic": "op_flag"
+  },
+  {
+   "name": "site_visits_30d",
+   "kind": "consequence",
+   "min_level": "tricky",
+   "base": 4,
+   "from_treat": 0.8,
+   "from_outcome": 1.6,
+   "noise_sd": 1.2,
+   "clip": [
+    0,
+    60
+   ],
+   "decimals": 0,
+   "meaning": "site visits in the 30 days after send",
+   "recorded": "30 days after send day",
+   "cryptic": "sv30"
+  }
+ ],
+ "notes": [
+  {
+   "text": "The email went to a random half of the list.",
+   "max_level": "starter"
+  },
+  {
+   "text": "It was meant to be a random half, but the CRM team also added customers they thought were likely to respond.",
+   "min_level": "realistic",
+   "max_level": "tricky"
+  },
+  {
+   "text": "The CRM team hand-picked who got it based on what customers had been browsing that week; that browsing data wasn't kept.",
+   "min_level": "unanswerable"
+  },
+  {
+   "text": "Only people who were sent the email can open it."
+  }
+ ],
+ "traps": [
+  {
+   "name": "Consequence column",
+   "text": "opened_email only exists for recipients and tracks buyers; controlling for it distorts the answer."
+  },
+  {
+   "name": "Cherry-picking on past behaviour",
+   "text": "The CRM team added likely responders; plain comparison overstates.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Unrecorded intent",
+   "text": "Selection on unrecorded browsing intent; not answerable from this file.",
+   "min_level": "unanswerable"
+  }
+ ]
+}

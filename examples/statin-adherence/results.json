@@ -753,13 +753,13 @@
   "explanation": "Comparing like with like on the recorded pre-treatment traits identifies the effect, provided nothing important that drives both treatment and outcome is missing from the data.",
   "dowhy": {
    "backdoor_variables": [
-    "diabetes",
     "flu_shot_prior_yr",
-    "smoker",
     "admits_prior_yr",
+    "diabetes",
+    "smoker",
+    "age",
     "ldl_baseline",
-    "female",
-    "age"
+    "female"
    ],
    "instruments": [],
    "frontdoor": [],
@@ -770,11 +770,11 @@
     "Estimand name: backdoor",
     "Estimand expression:",
     "     d                                                                         \u21aa",
-    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[cardiac_adm_12m|diabetes,flu_shot_prior_yr,smoker,admits_prior_y \u21aa",
+    "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500(E[cardiac_adm_12m|flu_shot_prior_yr,admits_prior_yr,diabetes,smoke \u21aa",
     "d[adherent]                                                                    \u21aa",
     "",
     "\u21aa                            ",
-    "\u21aa r,ldl_baseline,female,age])",
+    "\u21aa r,age,ldl_baseline,female])",
     "\u21aa                            "
    ]
   }
@@ -836,12 +836,12 @@
   },
   "ipw_gbm": {
    "estimate": -0.04638695048013658,
-   "se": 0.00903956948115998,
+   "se": 0.008769008999657626,
    "ci": [
-    -0.06343207092891873,
-    -0.029805146862881816
+    -0.06357420811946553,
+    -0.029199692840807635
    ],
-   "n_boot": 200
+   "n_boot": 60
   },
   "regression_gbm": {
    "estimate": -0.04785357592176511
@@ -851,7 +851,8 @@
    "ci": [
     -0.06762082177378438,
     -0.03605610171233152
-   ]
+   ],
+   "target": "overlap-weighted average effect"
   },
   "causal_forest": {
    "estimate": -0.05315040860511283,
@@ -1041,7 +1042,13 @@
     "ci": [
      -0.09058134823610198,
      -0.002330339223902675
-    ]
+    ],
+    "ci_adjusted": [
+     -0.10035154089551418,
+     0.0074398534355095275
+    ],
+    "comparisons_tested": 3,
+    "p_value": 0.03906412576295781
    },
    {
     "segment": "age>=70",
@@ -1067,7 +1074,13 @@
     "ci": [
      -0.07166785613804322,
      0.007228465859971674
-    ]
+    ],
+    "ci_adjusted": [
+     -0.08040239951230731,
+     0.01596300923423577
+    ],
+    "comparisons_tested": 3,
+    "p_value": 0.1094100678979284
    },
    {
     "segment": "admits_prior_yr>=1",
@@ -1093,12 +1106,18 @@
     "ci": [
      -0.053529504195727586,
      0.030754837187760724
-    ]
+    ],
+    "ci_adjusted": [
+     -0.06286055052262586,
+     0.040085883514659
+    ],
+    "comparisons_tested": 3,
+    "p_value": 0.5963781033317137
    }
   ],
   "forest_cate_spread": {
    "p10": -0.09907019137970537,
-   "p50": -0.04863204273045817,
+   "p50": -0.04863204273045818,
    "p90": -0.015135925612280178,
    "share_positive": 0.021833333333333333
   },
@@ -1490,59 +1509,59 @@
    "findings": [
     {
      "column": "female",
-     "kind": "no link",
-     "text": "No direct link from female to the action or the outcome once other columns are accounted for. Harmless to keep, but it isn't doing much."
+     "kind": "no linear link",
+     "text": "No direct straight-line link from female to the action or the outcome was found once other columns are accounted for. Keep it if the expert thinks it matters: these tests miss curved and weak links, and leaving out a real driver costs more than keeping a spare one."
     },
     {
      "column": "diabetes",
-     "kind": "possible consequence",
-     "text": "The data pattern suggests diabetes may be affected by other variables rather than only affecting them (a collider-like pattern). Confirm it was recorded before the action and isn't influenced by the outcome."
+     "kind": "timing conflict",
+     "text": "The linear pattern would make diabetes a consequence, but it was recorded before the action (before prescription), so it can't be one. More likely a curved or hidden link; keep it as a control."
     },
     {
      "column": "flu_shot_prior_yr",
-     "kind": "possible consequence",
-     "text": "The data pattern suggests flu_shot_prior_yr may be affected by other variables rather than only affecting them (a collider-like pattern). Confirm it was recorded before the action and isn't influenced by the outcome."
+     "kind": "timing conflict",
+     "text": "The linear pattern would make flu_shot_prior_yr a consequence, but it was recorded before the action (before prescription), so it can't be one. More likely a curved or hidden link; keep it as a control."
     }
    ],
-   "note": "A second opinion from the data only. Linear tests on numeric columns; it can miss nonlinear links and cannot see unrecorded factors. Treat findings as questions for the expert."
+   "note": "A second opinion from the data only. Linear tests on numeric columns, conditioning on at most two others: it can miss curved links, cannot see unrecorded factors, and only spots colliders in simple patterns, so no warning is not proof a column is safe. Columns recorded before the action are never treated as consequences. Treat findings as questions for the expert."
   },
   "simulation_check": {
-   "planted": -0.041190144194202104,
+   "planted": -0.04256837156341367,
    "reps": 3,
    "runs": [
     {
-     "estimate": -0.03729219473100195,
+     "estimate": -0.051002055652486444,
      "ci": [
-      -0.05412183392568719,
-      -0.020462555536316703
+      -0.06810664069006475,
+      -0.03389747061490814
      ],
      "covers": true,
-     "naive": -0.04933444942710319
+     "naive": -0.06143737442691656
     },
     {
-     "estimate": -0.05546103062832969,
+     "estimate": -0.053511755527167575,
      "ci": [
-      -0.07237768161033081,
-      -0.038544379646328564
+      -0.07103235592172177,
+      -0.035991155132613376
      ],
      "covers": true,
-     "naive": -0.0643581515642118
+     "naive": -0.061612297948013414
     },
     {
-     "estimate": -0.04207729130778202,
+     "estimate": -0.04974178513696821,
      "ci": [
-      -0.05927751442856473,
-      -0.02487706818699931
+      -0.06689503978558098,
+      -0.03258853048835544
      ],
      "covers": true,
-     "naive": -0.052956814725128865
+     "naive": -0.056443029358963226
     }
    ],
-   "mean_estimate": -0.04494350555570455,
-   "bias": -0.0037533613615024497,
+   "mean_estimate": -0.05141853210554074,
+   "bias": -0.008850160542127068,
    "coverage": 1.0,
-   "naive_mean": -0.05554980523881462,
-   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect. Tests the method on this data's structure, not hidden factors."
+   "naive_mean": -0.0598309005779644,
+   "note": "Real controls and real assignment; outcome simulated from the data's own patterns with a known effect that varies across units. Tests the method on this data's structure, not hidden factors."
   },
   "negative_controls": [
    {
@@ -1565,7 +1584,15 @@
     0.018900643693492737
    ],
    "negative_control": "injury_adm_12m",
-   "assumption": "The unrecorded difference between the groups changes the main outcome and the check outcome by the same share."
+   "band": [
+    -0.03426923331979169,
+    -0.008627310401881007
+   ],
+   "band_multipliers": [
+    0.5,
+    1.5
+   ],
+   "assumption": "The unrecorded difference between the groups shifts the main outcome by 0.5 to 1.5 times the share it shifts the check outcome (the middle value assumes exactly the same share)."
   },
   "plausibility": {
    "low": -0.035,
@@ -1619,13 +1646,13 @@
  ],
  "timings_sec": {
   "naive_difference": 0.0,
-  "regression_linear": 0.5,
-  "aipw_gbm": 9.8,
-  "aipw_spline": 0.3,
-  "ipw_gbm": 0.0,
+  "regression_linear": 0.4,
+  "aipw_gbm": 9.4,
+  "aipw_spline": 0.4,
+  "ipw_gbm": 11.1,
   "regression_gbm": 0.0,
-  "double_ml": 3.6,
-  "causal_forest": 5.0
+  "double_ml": 3.4,
+  "causal_forest": 5.1
  },
  "manifest": {
   "fingerprint": "ds-90e743f0",
@@ -1640,7 +1667,7 @@
    "econml": "0.17.0",
    "dowhy": "0.14"
   },
-  "run_at_utc": "2026-09-26T16:42:11",
-  "runtime_sec": 59.6
+  "run_at_utc": "2026-09-27T16:52:59+00:00",
+  "runtime_sec": 71.9
  }
 }

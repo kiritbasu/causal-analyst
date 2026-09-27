@@ -1,0 +1,200 @@
+{
+ "id": "saas-onboarding-churn",
+ "industry": "SaaS & product",
+ "title": "Onboarding checklist \u2192 90-day churn",
+ "teaser": "CSMs chose accounts; progress on the checklist is a result, not a cause.",
+ "question": "Did the new onboarding checklist reduce churn in the first 90 days?",
+ "ask": "We need churned accounts per 100 to size the rollout.",
+ "sme": "a head of customer success",
+ "unit": "account",
+ "units": "accounts",
+ "design": "cross_section",
+ "n": 6000,
+ "default_level": "realistic",
+ "id_col": {
+  "name": "account_id",
+  "start": 20001,
+  "meaning": "account identifier"
+ },
+ "treatment": {
+  "name": "got_checklist",
+  "type": "binary",
+  "share": 0.45,
+  "meaning": "1 = account was given the onboarding checklist",
+  "recorded": "in week 1"
+ },
+ "outcome": {
+  "name": "churned_90d",
+  "type": "binary",
+  "base_rate": 0.18,
+  "meaning": "1 = cancelled within 90 days",
+  "recorded": "day 90"
+ },
+ "effect": {
+  "ate": -0.04,
+  "unit_label": "churn probability (4 fewer per 100)"
+ },
+ "variables": [
+  {
+   "name": "plan_tier",
+   "meaning": "plan at signup (starter / pro / business)",
+   "recorded": "at signup",
+   "dist": {
+    "type": "category",
+    "levels": [
+     "starter",
+     "pro",
+     "business"
+    ],
+    "probs": [
+     0.5,
+     0.35,
+     0.15
+    ]
+   },
+   "to_treat": 0.5,
+   "to_outcome": -0.4
+  },
+  {
+   "name": "seats",
+   "meaning": "paid seats at signup",
+   "recorded": "at signup",
+   "dist": {
+    "type": "lognormal",
+    "median": 6,
+    "spread": 0.8
+   },
+   "clip": [
+    1,
+    500
+   ],
+   "decimals": 0,
+   "depends_on": {
+    "plan_tier": 0.5
+   },
+   "to_treat": 0.4,
+   "to_outcome": -0.3
+  },
+  {
+   "name": "week1_active_users",
+   "role": "prior_outcome",
+   "meaning": "users active in the first week",
+   "recorded": "end of week 1, before the checklist decision",
+   "dist": {
+    "type": "poisson",
+    "mean": 3
+   },
+   "depends_on": {
+    "seats": 0.6
+   },
+   "from_hidden": {
+    "U_health": 1.0
+   },
+   "to_treat": 0.5,
+   "to_outcome": -0.5,
+   "min_level": "realistic"
+  },
+  {
+   "name": "came_from_trial",
+   "meaning": "1 = converted from a free trial",
+   "recorded": "at signup",
+   "dist": {
+    "type": "binary",
+    "p": 0.6
+   },
+   "to_outcome": -0.2
+  }
+ ],
+ "hidden": [
+  {
+   "name": "U_health",
+   "label": "how committed the customer's team is",
+   "to_treat": 0.3,
+   "to_outcome": -0.3,
+   "min_level": "realistic"
+  },
+  {
+   "name": "U_atrisk",
+   "label": "CSMs' private read of which customers were about to leave",
+   "to_treat": 1.4,
+   "to_outcome": 1.0,
+   "min_level": "unanswerable"
+  }
+ ],
+ "heterogeneity": {
+  "variable": "plan_tier",
+  "equals": "starter",
+  "extra_ratio": 2.0,
+  "label": "starter-plan accounts",
+  "min_level": "realistic"
+ },
+ "post_treatment": [
+  {
+   "name": "checklist_items_done",
+   "kind": "consequence",
+   "treated_only": true,
+   "base": 4,
+   "from_treat": 0,
+   "from_outcome": -1.5,
+   "noise_sd": 1.2,
+   "clip": [
+    0,
+    10
+   ],
+   "decimals": 0,
+   "meaning": "checklist items completed",
+   "recorded": "by day 30",
+   "cryptic": "ck_done"
+  },
+  {
+   "name": "nps_day60",
+   "kind": "collider",
+   "base": 7,
+   "from_treat": 0.6,
+   "from_outcome": -1.2,
+   "noise_sd": 1.2,
+   "clip": [
+    0,
+    10
+   ],
+   "decimals": 0,
+   "meaning": "NPS answer at day 60 (0-10)",
+   "recorded": "day 60",
+   "min_level": "tricky",
+   "cryptic": "n60"
+  }
+ ],
+ "notes": [
+  {
+   "text": "Customer success managers decided which accounts got the checklist, usually bigger or more active ones."
+  },
+  {
+   "text": "Only accounts that got the checklist can complete items."
+  },
+  {
+   "text": "CSMs mostly gave the checklist to accounts they felt were at risk of leaving, based on calls and emails we don't log.",
+   "min_level": "unanswerable"
+  }
+ ],
+ "traps": [
+  {
+   "name": "Consequence column",
+   "text": "checklist_items_done exists only for checklist accounts and tracks engagement."
+  },
+  {
+   "name": "Selection on early activity",
+   "text": "CSMs picked more active accounts; week-1 activity must be adjusted for.",
+   "min_level": "realistic"
+  },
+  {
+   "name": "Collider",
+   "text": "NPS at day 60 is shaped by both the checklist and churn risk.",
+   "min_level": "tricky"
+  },
+  {
+   "name": "Unrecorded at-risk judgement",
+   "text": "CSMs targeted accounts they privately judged at risk; nothing recorded captures it.",
+   "min_level": "unanswerable"
+  }
+ ]
+}

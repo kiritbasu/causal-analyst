@@ -19,7 +19,7 @@ jargon without a translation. Keep the whole page readable in two minutes.
 
 | Field | What it is |
 |---|---|
-| `eyebrow` | Short topic, e.g. "Loyalty program" |
+| `eyebrow` | Short topic, e.g. "Delivery pass" |
 | `title` | The question in the SME's words |
 | `answer` / `answer_html` | One or two sentences, tier-worded. `answer_html` may use `<strong>` only |
 | `value_prefix`, `value_suffix`, `decimals`, `value_scale` | Number format: `"$"`, `" per 100"`, decimals for detail numbers (hero numbers round to 2 significant figures unless `hero_decimals` is set). `value_scale` multiplies every displayed number: `100` turns a 0.25 difference in a yes/no outcome into "25 per 100" |
@@ -53,7 +53,7 @@ jargon without a translation. Keep the whole page readable in two minutes.
 |---|---|
 | propensity near 0 or 1 | "almost always / never got {treatment}, so we have few look-alikes to compare" |
 | SMD after weighting < 0.1 | "after reweighting, the groups look alike on {traits}" |
-| placebo passes | "a fake, randomly shuffled {treatment} showed no effect, as it should" |
+| shuffled-action check passes | "giving {treatment} to random rows showed no effect, as it should (a sanity check on the software, not evidence about hidden bias)" |
 | robustness value > strongest benchmark | "a hidden factor would need to be stronger than {X}, our strongest measured driver, to erase this" |
 | robustness value > strongest benchmark, but the SME named a hidden driver | not reassurance: "a hidden factor would need to be {x} times stronger than {X}; the driver you named could well be that strong" |
 | robustness value < strongest benchmark | "a hidden factor as strong as {X} could erase this; that is a caution, not evidence of bias" |
@@ -64,30 +64,30 @@ jargon without a translation. Keep the whole page readable in two minutes.
 
 ## When a profile flag contradicts the brief
 If profile says a column is non-zero for some untreated units but the SME or brief says that
-can't happen (e.g. "only members earn points"), report it under `data_issues`, keep the SME's
+can't happen (e.g. "only pass holders get free deliveries"), report it under `data_issues`, keep the SME's
 timing judgement for the analysis, and say which way it could matter.
 
-## Example (loyalty program, tier C)
+## Example (delivery pass, tier C)
 
 ```json
 {
- "eyebrow": "Loyalty program",
- "title": "Does joining the loyalty program raise monthly spend?",
- "answer_html": "Yes, most likely by about <strong>$9 per customer a month</strong>, and newer customers gain the most. Treat the exact size with some caution: it assumes nothing important about who joined is missing from the data.",
- "value_prefix": "$", "decimals": 2,
- "effect_label": "Effect of joining", "unit": "per customer per month", "units": "customers",
- "group_names": {"treated": "members", "untreated": "non-members"},
- "labels": {"tenure_months<12": "Under 12 months", "not (tenure_months<12)": "12 months or more", "prior_quarter_spend": "Spend last quarter"},
- "caution_bullets": ["1 in 10 customers had few look-alikes to compare with.", "A hidden factor 60% as strong as last quarter's spend could erase it."],
- "segment_card_note": "Your hunch was right: the gap between the two groups is about $9 (range $6 to $13).",
- "gap_title": "Most of the $35 gap isn't the program",
- "gap_text": "Members spend $34.77 more a month than non-members. About 73% of that comes from who joined.",
- "selection_label": "Who joined", "action_label": "The program",
+ "eyebrow": "Delivery pass",
+ "title": "Does the delivery pass make customers order more often?",
+ "answer_html": "Yes, most likely by about <strong>0.6 orders per customer a month</strong>, and customers who live further away gain the most. Treat the exact size with some caution: it assumes nothing important about who bought the pass is missing from the data.",
+ "value_prefix": "", "decimals": 2,
+ "effect_label": "Effect of the pass", "unit": "orders per customer per month", "units": "customers",
+ "group_names": {"treated": "pass holders", "untreated": "everyone else"},
+ "labels": {"distance_km>10": "Over 10 km away", "not (distance_km>10)": "10 km or closer", "orders_prior_quarter": "Orders last quarter"},
+ "caution_bullets": ["1 in 12 customers had few look-alikes to compare with.", "A hidden factor 60% as strong as last quarter's orders could erase it."],
+ "segment_card_note": "Your hunch was right: the gap between the two groups is about 0.5 orders (range 0.2 to 0.8).",
+ "gap_title": "Most of the 2.1-order gap isn't the pass",
+ "gap_text": "Pass holders order 2.1 more times a month than everyone else. About 70% of that comes from who bought the pass.",
+ "selection_label": "Who bought it", "action_label": "The pass",
  "trust_title": "Why the grade is C, not B",
  "dag_note": "Confirmed by you before the run.",
- "trap_text": "Points redeemed are a result of joining. Treating them as a control flips the answer to a nonsense result.",
- "data_issues": [{"title": "Data issue to check", "text": "966 non-members show redeemed points, but only members should have any."}],
- "next_steps": [{"title": "Confirm with a small randomized test.", "text": "About 600 customers per group would detect a $5 lift."}],
- "questions": [{"title": "How did customers end up joining?", "text": "You weren't sure, so we treated it as self-selected."}]
+ "trap_text": "Free deliveries used are a result of having the pass. Treating them as a control flips the answer to a nonsense result.",
+ "data_issues": [{"title": "Data issue to check", "text": "412 customers without a pass show free deliveries, but only pass holders should have any."}],
+ "next_steps": [{"title": "Confirm with a small randomized test.", "text": "About 900 customers per group would detect a lift of 0.3 orders."}],
+ "questions": [{"title": "How did customers end up buying the pass?", "text": "You weren't sure, so we treated it as self-selected."}]
 }
 ```

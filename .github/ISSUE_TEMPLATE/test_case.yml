@@ -1,0 +1,21 @@
+name: New test case or scenario
+description: Propose a dataset with a known answer, or a generator scenario for a new domain
+labels: ["test-case"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: The story
+      description: The action, the outcome, the unit, and how the action was decided.
+    validations:
+      required: true
+  - type: textarea
+    id: trap
+    attributes:
+      label: The trap
+      description: What makes the naive answer wrong, and what a good analysis should do.
+  - type: textarea
+    id: file
+    attributes:
+      label: Scenario file
+      description: If you wrote one (see skills/causal-data-generator/references/scenario-schema.md), paste it or link it. `cg.py check` output helps.

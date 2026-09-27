@@ -13,7 +13,7 @@
 
 Levels: starter | realistic | tricky | unanswerable. Dials override the level's realism settings:
 nonlinear (0-1), heavy_tails, overlap ("good"|"weak"), missing (0-0.3), measurement_error (0-0.3),
-irrelevant (extra columns), misleading_names, zero_effect.
+irrelevant (extra columns), misleading_names, zero_effect, missing_pattern ("random"|"depends_on_action").
 """
 from __future__ import annotations
 
@@ -48,14 +48,16 @@ def cmd_list(a):
         s = json.loads(f.read_text())
         rows.append((s.get("industry", ""), s["id"], s.get("title", ""), s.get("design", ""), s.get("teaser", ""), s.get("default_level", "realistic")))
     if a.json:
-        print(json.dumps([dict(zip(["industry", "id", "title", "design", "teaser", "default_level"], r)) for r in rows], indent=1))
+        keys = ["industry", "id", "title", "design", "default_level"] if a.blind else ["industry", "id", "title", "design", "teaser", "default_level"]
+        print(json.dumps([{k: v for k, v in zip(["industry", "id", "title", "design", "teaser", "default_level"], r) if k in keys} for r in rows], indent=1))
         return
     cur = None
     for ind, i, t, d, teaser, lvl in sorted(rows):
         if ind != cur:
             print(f"\n{ind}")
             cur = ind
-        print(f"  {i:<28} {t}  [{d}]  {teaser}")
+        # Teasers name the trap, so blind mode shows titles only.
+        print(f"  {i:<28} {t}  [{d}]" + ("" if a.blind else f"  {teaser}"))
 
 
 DESIGN_WORDS = {"cross_section": "one row per {unit}; a one-off action", "cutoff": "one row per {unit}; the action depends on a score passing a cutoff",
@@ -121,7 +123,7 @@ def plan_text(s0: dict, level: str, dials: dict, n: int | None, blind: bool = Fa
     if d["overlap"] == "weak" and not ro and s["design"] != "cutoff":
         real.append("weak overlap (some units almost always / never get the action)")
     if d["missing"]:
-        real.append(f"{int(round(100 * d['missing']))}% missing values")
+        real.append(f"{int(round(100 * d['missing']))}% missing values" + (", more often for rows without the action" if d.get("missing_pattern") == "depends_on_action" else ""))
     if d["measurement_error"] and any(v.get("noisy") for v in s["variables"]):
         real.append("noisy measurement of a key driver")
     if d["irrelevant"]:
@@ -139,6 +141,8 @@ def write_bundle(scn, level, dials, seed, n, out: Path, kdir: Path | None = None
     df, brief, key = E.generate(scn, level, dials, seed, n)
     out.mkdir(parents=True, exist_ok=True)
     kdir = kdir or out.parent / (out.name + "-key")
+    if kdir.resolve() == out.resolve() or out.resolve() in kdir.resolve().parents:
+        sys.exit("The answer key can't go inside the data folder: anyone given the data would see it. Choose another --key-dir.")
     kdir.mkdir(parents=True, exist_ok=True)
     df.to_csv(out / "data.csv", index=False)
     (out / "brief.md").write_text(brief)
@@ -155,7 +159,7 @@ def export_script(scn, level, dials, seed, n):
             f'Edit SCENARIO / LEVEL / DIALS / SEED below to make variants."""\n'
             + src.split('"""', 2)[2] +
             "\n\n# ---------------------------------------------------------------------------- this dataset\n"
-            f"SCENARIO = json.loads(r'''{json.dumps(scn, indent=1)}''')\nLEVEL = {level!r}\nDIALS = json.loads(r'''{json.dumps(dials or {})}''')\nSEED = {seed}\nN = {n!r}\n\n"
+            f"SCENARIO = json.loads({json.dumps(scn, indent=1)!r})\nLEVEL = {level!r}\nDIALS = json.loads({json.dumps(dials or {})!r})\nSEED = {int(seed)}\nN = {n!r}\n\n"
             "if __name__ == '__main__':\n"
             "    import argparse, pathlib\n"
             "    ap = argparse.ArgumentParser(); ap.add_argument('--out', default='.'); a = ap.parse_args()\n"
@@ -192,7 +196,7 @@ def cmd_plan(a):
 def cmd_generate(a):
     scn = load(a.scenario)
     level = a.level or scn.get("default_level", "realistic")
-    df, key, kdir = write_bundle(scn, level, json.loads(a.dials or "{}"), a.seed, a.n, Path(a.out))
+    df, key, kdir = write_bundle(scn, level, json.loads(a.dials or "{}"), a.seed, a.n, Path(a.out), Path(a.key_dir) if a.key_dir else None)
     s = summary(df, key, a.blind)
     s.update(shared=str(Path(a.out)), sealed=str(kdir))
     print(json.dumps(s, indent=1, default=str))
@@ -202,17 +206,22 @@ def cmd_set(a):
     scn = load(a.scenario)
     level = a.level or scn.get("default_level", "realistic")
     base = Path(a.out)
+    kbase = Path(a.key_dir) if a.key_dir else base.parent / (base.name + "-key")
     rows = []
     for i in range(a.seeds):
         seed = a.seed + i
         df, key, kdir = write_bundle(scn, level, json.loads(a.dials or "{}"), seed, a.n, base / f"seed-{seed}",
-                                     base.parent / (base.name + "-key") / f"seed-{seed}")
+                                     kbase / f"seed-{seed}")
         prim = next((t for t in key["targets"] if t.get("primary")), key["targets"][0])
         rows.append({"seed": seed, "fingerprint": key["fingerprint"], "true_value": prim.get("value", key.get("true_value_primary")),
                      "plain_comparison": key["methods"][0]["estimate"]})
-    (base.parent / (base.name + "-key")).mkdir(parents=True, exist_ok=True)
-    (base.parent / (base.name + "-key") / "set_summary.json").write_text(json.dumps(rows, indent=1))
-    print(json.dumps(rows, indent=1))
+    kbase.mkdir(parents=True, exist_ok=True)
+    (kbase / "set_summary.json").write_text(json.dumps(rows, indent=1))
+    if a.blind:
+        print(json.dumps({"datasets": [str(base / f"seed-{r['seed']}") for r in rows], "fingerprints": [r["fingerprint"] for r in rows],
+                          "sealed": str(kbase), "note": "Blind mode: truth and quick estimates are in the sealed folder only."}, indent=1))
+    else:
+        print(json.dumps(rows, indent=1))
 
 
 def cmd_check(a):
@@ -239,13 +248,16 @@ def cmd_check(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("list"); p.add_argument("--json", action="store_true"); p.set_defaults(f=cmd_list)
+    p = sub.add_parser("list"); p.add_argument("--json", action="store_true")
+    p.add_argument("--blind", action="store_true", help="titles only: the teasers hint at the traps"); p.set_defaults(f=cmd_list)
     for name, fn in (("plan", cmd_plan), ("generate", cmd_generate), ("set", cmd_set)):
         p = sub.add_parser(name); p.add_argument("scenario"); p.add_argument("--level", choices=E.LEVELS); p.add_argument("--dials")
         p.add_argument("--n", type=int); p.add_argument("--seed", type=int, default=42)
         p.add_argument("--blind", action="store_true", help="don't print the truth, traps or quick estimates (for blind tests)")
         if name != "plan":
             p.add_argument("--out", required=True)
+            p.add_argument("--key-dir", help="where to put the sealed answer key (default: <out>-key next to the data); "
+                                              "put it outside any folder an analyst will read")
         if name == "set":
             p.add_argument("--seeds", type=int, default=5)
         p.set_defaults(f=fn)

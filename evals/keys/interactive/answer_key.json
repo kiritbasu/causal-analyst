@@ -1,0 +1,143 @@
+{
+ "targets": [
+  {
+   "name": "ate",
+   "label": "Average effect for everyone",
+   "value": -0.04,
+   "primary": true
+  },
+  {
+   "name": "att",
+   "label": "Average effect for those who got the action",
+   "value": -0.027986,
+   "primary": false
+  },
+  {
+   "name": "segment_effects",
+   "label": "Effect by group (starter-plan accounts)",
+   "values": {
+    "starter-plan accounts": -0.061341,
+    "everyone else": -0.018659
+   }
+  }
+ ],
+ "methods": [
+  {
+   "method": "Plain comparison (no adjustment)",
+   "estimate": -0.129773,
+   "range95": [
+    -0.147688,
+    -0.111858
+   ],
+   "off_by_pct": -224.4,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": ""
+  },
+  {
+   "method": "Flexible adjustment for all recorded drivers (doubly robust ML)",
+   "estimate": -0.044864,
+   "range95": [
+    -0.071545,
+    -0.018183
+   ],
+   "off_by_pct": -12.2,
+   "expected": "best available",
+   "verdict": "within noise",
+   "note": "a recorded column only partly stands in for an unrecorded driver"
+  },
+  {
+   "method": "Linear adjustment for all recorded drivers",
+   "estimate": -0.060894,
+   "range95": [
+    -0.080246,
+    -0.041543
+   ],
+   "off_by_pct": -52.2,
+   "expected": "best available",
+   "verdict": "within noise",
+   "note": "straight lines on curved relationships"
+  },
+  {
+   "method": "Adjust for plan_tier only",
+   "estimate": -0.10595,
+   "range95": [
+    -0.124472,
+    -0.087428
+   ],
+   "off_by_pct": -164.9,
+   "expected": "can mislead",
+   "verdict": "misses",
+   "note": "leaves other drivers out"
+  },
+  {
+   "method": "Leave out week1_active_users (the before-the-action outcome)",
+   "estimate": -0.097089,
+   "range95": [
+    -0.11586,
+    -0.078319
+   ],
+   "off_by_pct": -142.7,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": "misses targeting on past results"
+  },
+  {
+   "method": "Also adjust for checklist_items_done (consequence)",
+   "estimate": 0.321171,
+   "range95": [
+    0.278032,
+    0.364309
+   ],
+   "off_by_pct": 902.9,
+   "expected": "should fail",
+   "verdict": "misses",
+   "note": "controls for a result of the action"
+  }
+ ],
+ "correct_adjustment": [
+  "plan_tier",
+  "seats",
+  "week1_active_users",
+  "came_from_trial"
+ ],
+ "true_value_primary": -0.04,
+ "column_names": {},
+ "scenario": "saas-onboarding-churn",
+ "title": "Onboarding checklist \u2192 90-day churn",
+ "level": "realistic",
+ "seed": 15,
+ "rows": 6000,
+ "dials": {
+  "nonlinear": 0.3,
+  "heavy_tails": false,
+  "overlap": "good",
+  "missing": 0.03,
+  "measurement_error": 0.0,
+  "irrelevant": 2,
+  "misleading_names": false,
+  "zero_effect": false,
+  "missing_pattern": "random"
+ },
+ "fingerprint": "gt-7cf5f4",
+ "design": "cross_section",
+ "traps": [
+  {
+   "name": "Consequence column",
+   "text": "checklist_items_done exists only for checklist accounts and tracks engagement."
+  },
+  {
+   "name": "Selection on early activity",
+   "text": "CSMs picked more active accounts; week-1 activity must be adjusted for.",
+   "min_level": "realistic"
+  }
+ ],
+ "hidden_drivers": [
+  {
+   "name": "U_health",
+   "label": "how committed the customer's team is",
+   "why": ""
+  }
+ ],
+ "note": "Truth computed from each row's potential outcomes (common random numbers). 'methods' are quick linear or textbook estimates on this file, for orientation."
+}
