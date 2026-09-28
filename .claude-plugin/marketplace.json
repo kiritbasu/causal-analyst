@@ -1,18 +1,29 @@
 {
   "name": "causal-analyst",
-  "owner": {"name": "Kirit Basu"},
-  "metadata": {"description": "Cause-and-effect analysis for people without a data scientist, plus synthetic datasets with known answers to test it."},
+  "owner": {
+    "name": "Kirit Basu"
+  },
+  "metadata": {
+    "description": "Causal analysis without the guesswork: a step-by-step way to answer 'did X cause Y?' from your data, plus synthetic datasets with known answers to test it."
+  },
   "plugins": [
     {
       "name": "causal-analyst",
       "source": "./",
-      "description": "Two skills: causal-analyst (estimates whether an action caused an outcome, with an A-D trust grade and a plain-English report) and causal-data-generator (realistic practice and test datasets with a sealed answer key).",
+      "description": "Two skills: causal-analyst (asks the questions a good analyst would ask, builds the model, and grades the answer from A to D) and causal-data-generator (realistic practice and test datasets with a sealed answer key).",
       "version": "0.4.0",
-      "author": {"name": "Kirit Basu"},
+      "author": {
+        "name": "Kirit Basu"
+      },
       "homepage": "https://github.com/kiritbasu/causal-analyst",
       "repository": "https://github.com/kiritbasu/causal-analyst",
       "license": "Apache-2.0",
-      "keywords": ["causal-inference", "data-analysis", "statistics", "synthetic-data"],
+      "keywords": [
+        "causal-inference",
+        "data-analysis",
+        "statistics",
+        "synthetic-data"
+      ],
       "category": "data"
     }
   ]
