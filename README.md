@@ -2,13 +2,19 @@
 
 [![tests](https://github.com/kiritbasu/causal-analyst/actions/workflows/test.yml/badge.svg)](https://github.com/kiritbasu/causal-analyst/actions/workflows/test.yml) [![release](https://img.shields.io/github/v/release/kiritbasu/causal-analyst)](https://github.com/kiritbasu/causal-analyst/releases) [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**Causal analysis for people who aren't data scientists.** An [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) that lets Claude answer "did X actually cause Y?" from your data. You bring the question and what you know about your business. Claude does the modelling, checks how far to trust the answer, and hands back a one-page report. When the data can't answer the question, it says so.
+**Causal analysis without the guesswork.** A step-by-step way to answer "did X cause Y?" from your data, packaged as an [Agent Skill](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) for Claude. It asks the questions a good analyst would ask, builds the model, and grades the answer from A to D so you know how far to rely on it.
 
 ![Report headline: effect, trust grade and who gains most](docs/images/loyalty-headline.png)
 
 <p align="center"><sub>The loyalty example is synthetic data with a known true effect (+$9.17 a month), so you can check the answer yourself.</sub></p>
 
 <p align="center"><b>Live example reports:</b> <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/loyalty-program/report.html">Loyalty program</a> (grade C) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/sales-calls/report.html">Sales calls</a> (grade D, "can't tell") · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/ai-training/report.html">AI training</a> (grade B, three traps) · <a href="https://htmlpreview.github.io/?https://github.com/kiritbasu/causal-analyst/blob/main/examples/statin-adherence/report.html">Statin adherence</a> (grade C, a bias the brief never mentions) · <a href="#quick-start">Quick start</a></p>
+
+If you're a data scientist, it gives you a workflow you can follow every time. You settle the question, the assumptions and the method before you see any results, and it prompts you about the things that are easy to skip under deadline: what was recorded when, how people ended up getting the treatment, and what isn't in the data at all.
+
+If you're not a data scientist, it takes you through the process one step at a time. It asks what it needs to know about your business in plain language, then builds the model and runs the checks for you.
+
+You get the effect, a grade from A to D that tells you how much weight it can bear, and the next step to confirm it. If the data can't answer the question, it tells you that instead of giving you a number.
 
 **Contents:** [Why this exists](#why-this-exists) · [Quick start](#quick-start) · [What it's like to use](#what-its-like-to-use) · [The report](#the-report) · [Practice data: the generator](#practice-data-the-causal-data-generator) · [How it works](#how-it-works) · [For data scientists](#for-data-scientists) · [Does it work?](#does-it-work) · [Which model to use](#which-model-to-use) · [Data and privacy](#data-and-privacy) · [Limitations and roadmap](#limitations-and-roadmap)
 
