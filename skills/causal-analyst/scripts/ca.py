@@ -517,11 +517,12 @@ def analyse(df, spec):
 
     This is the library entry point: no files are read or written, and nothing is printed to
     stdout (progress lines go to stderr, as in the CLI). `spec` is the same plan the CLI
-    reads; its "data" key is ignored. Raises SpecError when the plan does not fit the data.
+    reads; its "data" key is optional and ignored. The caller's dict is not changed. Raises SpecError when the plan does not fit the data.
     The result matches what `ca.py run` writes to results.json, except that the manifest
     carries no file fingerprint.
     """
     t0 = time.time()
+    spec = {**spec, "data": spec.get("data") or "<in-memory dataframe>"}
     df, prep_notes = validate_and_prepare(spec, df)
     out, _ = _analyse(df, prep_notes, spec, None, t0)
     return out

@@ -27,7 +27,9 @@ def test_analyse_matches_cli(tmp_path):
         import ca
     finally:
         sys.path.remove(str(SCRIPTS))
-    lib = json.loads(json.dumps(ca.analyse(pd.read_csv(EX / "data.csv"), dict(spec)), default=ca._json))
+    no_path = {k: v for k, v in spec.items() if k != "data"}
+    lib = json.loads(json.dumps(ca.analyse(pd.read_csv(EX / "data.csv"), no_path), default=ca._json))
+    assert "data" not in no_path, "analyse must not change the caller's spec"
 
     assert lib["main_method"] == cli["main_method"]
     assert lib["main_result"]["estimate"] == pytest.approx(cli["main_result"]["estimate"], rel=1e-9)
