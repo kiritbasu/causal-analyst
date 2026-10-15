@@ -486,7 +486,6 @@ def missing_by_arm(df, spec, cols):
 
 def cmd_run(a):
     spec = json.loads(Path(a.spec).read_text())
-    global BUD, B_seeds
     t0 = time.time()
     try:
         df = core.load_data(spec["data"])
@@ -497,6 +496,39 @@ def cmd_run(a):
         fail(f"Data file not found: {spec['data']}", "Check the 'data' path in the plan (relative to where you run the command).")
     except KeyError as ex:
         fail(f"The plan is missing {ex}.", "Required: data, treatment, outcome.")
+    out, main_failed = _analyse(df, prep_notes, spec, core.file_fingerprint(spec["data"]), t0)
+    dump(out, a.out)
+    ident, diag, tier, main_key = out["identification"], out["diagnostics"], out["trust_tier"], out["main_method"]
+    mr = out["main_result"] or {}
+    if mr.get("pseudo_outcomes") is not None:
+        mr.pop("pseudo_outcomes")
+    summary = {"identifiable": ident["identifiable"], "strategy": ident["strategy"], "main_method": main_key,
+               "estimate": mr.get("estimate"), "ci": mr.get("ci"), "trust_tier": tier,
+               "diagnostics_available": sorted(diag.keys())}
+    if main_key is None:
+        summary["look_here_instead"] = [k for k in ("bounds_no_instrument", "instrument", "sensitivity") if k in diag]
+    print(json.dumps(_finite(summary), indent=1, default=_json))
+    if main_failed:
+        sys.exit(3)
+
+
+def analyse(df, spec):
+    """Run the full analysis on a dataframe already in memory and return the results dict.
+
+    This is the library entry point: no files are read or written, and nothing is printed to
+    stdout (progress lines go to stderr, as in the CLI). `spec` is the same plan the CLI
+    reads; its "data" key is ignored. Raises SpecError when the plan does not fit the data.
+    The result matches what `ca.py run` writes to results.json, except that the manifest
+    carries no file fingerprint.
+    """
+    t0 = time.time()
+    df, prep_notes = validate_and_prepare(spec, df)
+    out, _ = _analyse(df, prep_notes, spec, None, t0)
+    return out
+
+
+def _analyse(df, prep_notes, spec, fingerprint, t0):
+    global BUD, B_seeds
     BUD = BUDGETS[spec.get("budget", "standard")]
     B_seeds = [BUD["seeds"]]
     log(f"budget {spec.get('budget', 'standard')}; progress lines follow. Typical: quick <1 min, standard 1-2 min on ~5k rows")
@@ -638,23 +670,12 @@ def cmd_run(a):
             diag["segments_note"] = "Tier D: segment effects share the same hidden bias; reference only."
     out.update(main_method=main_key, main_result=main_result, estimates=res, diagnostics=diag,
                trust_tier=tier, trust_reasons=reasons, timings_sec=timings,
-               manifest={"fingerprint": core.file_fingerprint(spec["data"]), "seed": spec.get("seed", 1729), "budget": spec.get("budget", "standard"),
+               manifest={"fingerprint": fingerprint, "seed": spec.get("seed", 1729), "budget": spec.get("budget", "standard"),
                          "versions": core.versions(), "run_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "runtime_sec": round(time.time() - t0, 1)})
     for v in res.values():
         if isinstance(v, dict):
             v.pop("pseudo_outcomes", None)
-    dump(out, a.out)
-    mr = out["main_result"] or {}
-    if mr.get("pseudo_outcomes") is not None:
-        mr.pop("pseudo_outcomes")
-    summary = {"identifiable": ident["identifiable"], "strategy": ident["strategy"], "main_method": main_key,
-               "estimate": mr.get("estimate"), "ci": mr.get("ci"), "trust_tier": tier,
-               "diagnostics_available": sorted(diag.keys())}
-    if main_key is None:
-        summary["look_here_instead"] = [k for k in ("bounds_no_instrument", "instrument", "sensitivity") if k in diag]
-    print(json.dumps(_finite(summary), indent=1, default=_json))
-    if main_failed:
-        sys.exit(3)
+    return out, main_failed
 
 
 # ----------------------------------------------------------------------------
