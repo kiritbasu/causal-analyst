@@ -18,7 +18,10 @@ import math
 import numpy as np
 import pandas as pd
 
-import ca_core as core
+if __package__:  # imported as the causal_analyst package
+    from . import ca_core as core
+else:  # run as a script from the skill folder
+    import ca_core as core
 
 
 # ---------------------------------------------------------------------------- codebook
