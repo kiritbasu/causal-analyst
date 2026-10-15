@@ -380,7 +380,32 @@ def ols_sensitivity(df, treatment, outcome, confounders):
         bench.append({"confounder": c, "partial_r2_outcome": float(pr2_y), "partial_r2_treatment": float(pr2_t), "strength": float(math.sqrt(max(pr2_y, 0) * max(pr2_t, 0)))})
     bench.sort(key=lambda b: -b["strength"])
     strongest = bench[0] if bench else None
-    return {"linear_estimate": float(fit.params[treatment]), "robustness_value": float(rv), "robustness_value_significance": float(rv_sig), "benchmarks": bench, "strongest_measured": strongest}
+    se = float(fit.bse[treatment])
+    bound = None
+    if strongest is not None:
+        bias = ovb_bias_bound(se, dof, strongest["partial_r2_treatment"], strongest["partial_r2_outcome"], k=1.0)
+        bound = {"k": 1.0, "benchmark": strongest["confounder"], "bias": bias}
+    return {"linear_estimate": float(fit.params[treatment]), "robustness_value": float(rv), "robustness_value_significance": float(rv_sig), "benchmarks": bench, "strongest_measured": strongest,
+            "linear_se": se, "dof": float(dof), "bias_bound": bound}
+
+
+def ovb_bias_bound(se, dof, r2_treat, r2_outcome, k=1.0):
+    """Cinelli & Hazlett (2020), section 6: the most bias in the linear estimate from a hidden
+    driver k times as strong as a measured covariate, given that covariate's partial R2 with the
+    treatment (given the other covariates) and with the outcome (given the treatment and the other
+    covariates). Returns None when no finite bound exists (the benchmark explains too much)."""
+    if not (0 <= r2_treat < 1 and 0 <= r2_outcome < 1) or k <= 0 or k * r2_treat >= 1 or dof <= 0:
+        return None
+    r2dz = k * r2_treat / (1 - r2_treat)
+    if r2dz >= 1:
+        return None
+    r2zx = k * r2_treat ** 2 / ((1 - k * r2_treat) * (1 - r2_treat))
+    if r2zx >= 1:
+        return None
+    r2yz = ((math.sqrt(k) + math.sqrt(r2zx)) / math.sqrt(1 - r2zx)) ** 2 * (r2_outcome / (1 - r2_outcome))
+    r2yz = min(r2yz, 1.0)
+    bias = se * math.sqrt(r2yz * r2dz / (1 - r2dz)) * math.sqrt(dof)
+    return float(bias) if math.isfinite(bias) else None
 
 
 def iv_2sls(df, treatment, outcome, instrument, controls=()):
