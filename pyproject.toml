@@ -1,0 +1,38 @@
+[project]
+name = "causal-analyst"
+version = "0.4.0"
+description = "Causal analysis for people who aren't data scientists: the engine behind the causal-analyst Agent Skill."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "Kirit Basu" }]
+dependencies = [
+    "numpy>=2.0,<3",
+    "pandas>=2.2,<3",
+    "scipy>=1.13,<2",
+    "scikit-learn>=1.5,<2",
+    "statsmodels>=0.14,<0.16",
+    "econml>=0.15,<0.18",
+    "dowhy>=0.12,<0.15",
+    "networkx>=3.2,<4",
+    "matplotlib>=3.8,<4",
+    "pyarrow>=15",
+]
+
+[project.urls]
+Repository = "https://github.com/kiritbasu/causal-analyst"
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+# The skill keeps its scripts where Claude expects them. The wheel installs that
+# folder as the `causal_analyst` package.
+[tool.hatch.build.targets.wheel]
+packages = ["skills/causal-analyst/scripts"]
+
+[tool.hatch.build.targets.wheel.sources]
+"skills/causal-analyst/scripts" = "causal_analyst"
+
+[tool.hatch.build.targets.sdist]
+include = ["skills/causal-analyst/scripts", "README.md", "LICENSE", "NOTICE", "pyproject.toml"]

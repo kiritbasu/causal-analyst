@@ -35,10 +35,22 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).parent))
-import ca_core as core  # noqa: E402
-import ca_checks as checks  # noqa: E402
-from ca_trust import trust_tier  # noqa: E402
+if __package__:  # imported as the causal_analyst package
+    from . import ca_checks as checks
+    from . import ca_core as core
+    from .ca_trust import trust_tier
+else:  # run as a script from the skill folder
+    sys.path.insert(0, str(Path(__file__).parent))
+    import ca_checks as checks  # noqa: E402
+    import ca_core as core  # noqa: E402
+    from ca_trust import trust_tier  # noqa: E402
+
+
+def _sibling(name):
+    """Import a sibling module lazily, as a script or as part of the package."""
+    import importlib
+
+    return importlib.import_module(f"{__package__}.{name}" if __package__ else name)
 
 BUD = None  # set by cmd_run; run_binary falls back to 'standard' when used as a library
 B_seeds = [3]
@@ -220,7 +232,7 @@ def _dowhy_check(spec, out):
         import networkx as nx
         from dowhy import CausalModel
 
-        import ca_dag
+        ca_dag = _sibling("ca_dag")
         T, Y = spec["treatment"], spec["outcome"]
         dag = ca_dag.build(spec)
         g = ca_dag.analysis_graph(dag)
@@ -242,7 +254,7 @@ def _dowhy_check(spec, out):
 
 
 def cmd_dag(a):
-    import ca_dag
+    ca_dag = _sibling("ca_dag")
     spec = json.loads(Path(a.spec).read_text())
     dag = ca_dag.write_all(spec, a.outdir)
     print(json.dumps({"wrote": [str(Path(a.outdir) / f) for f in ("dag.png", "dag.mmd", "dag.json")], "warnings": dag["warnings"]}, indent=1))
@@ -497,7 +509,7 @@ def cmd_run(a):
     miss = missing_by_arm(df, spec, cols)
     df = df.dropna(subset=cols).reset_index(drop=True)
     ident = identify(spec)
-    import ca_dag
+    ca_dag = _sibling("ca_dag")
     _dag = ca_dag.build(spec); _dag["warnings"] = ca_dag.checks(_dag)
     out = {"spec": spec, "dag": _dag, "data_overview": overview, "identification": ident, "rows_used": len(df), "rows_dropped_missing": before - len(df)}
     if spec.get("treatment_type", "binary") == "continuous":
@@ -685,7 +697,7 @@ def cmd_figures(a):
     fig.subplots_adjust(left=0.38)
     p = outdir / "methods.png"; fig.savefig(p, dpi=150, bbox_inches="tight"); print(f"wrote {p}")
     if r.get("dag"):
-        import ca_dag
+        ca_dag = _sibling("ca_dag")
         ca_dag.draw(r["dag"], outdir / "dag.png"); (outdir / "dag.mmd").write_text(ca_dag.mermaid(r["dag"]))
         print(f"wrote {outdir / 'dag.png'}")
 
@@ -696,7 +708,7 @@ def cmd_codebook(a):
 
 
 def cmd_report(a):
-    import ca_report
+    ca_report = _sibling("ca_report")
     ca_report.main(a.results, a.narrative, a.out)
 
 
