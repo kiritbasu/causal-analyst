@@ -72,6 +72,16 @@ def resolve(scn: dict, level: str, dials: dict | None = None) -> dict:
     for key in ("instrument", "mediator", "negative_control", "heterogeneity"):
         if s.get(key) and not level_ok(s[key], level):
             s[key] = None
+    if d.get("assignment", "observational") == "random":
+        # A randomised experiment: a coin decides who gets the action, so nothing recorded or
+        # hidden drives it (and no instrument nudges it). Drivers of the outcome stay.
+        if s["design"] in ("rollout", "cutoff") or s["treatment"].get("type", "binary") != "binary":
+            raise ValueError(f"{s['id']}: random assignment is only for a yes/no action across units")
+        for v in s["variables"] + s["hidden"]:
+            v["to_treat"] = 0
+        s["instrument"] = None
+    elif d.get("assignment", "observational") != "observational":
+        raise ValueError(f"assignment must be 'observational' or 'random', not {d.get('assignment')!r}")
     if d.get("zero_effect"):
         s.setdefault("effect", {})["ate"] = 0.0
         if s.get("heterogeneity"):
@@ -839,6 +849,8 @@ def brief_md(s, df, ren):
     lines += ["", "## Notes"]
     for nt in s["notes"]:
         lines.append(f"- {nt['text']}")
+    if s["dials"].get("assignment") == "random":
+        lines.append(f"- Who got the action was decided at random, like a coin toss for each {unit}.")
     lines.append(f"- {s.get('interference_note', 'One ' + unit + ' getting the action does not affect the others.')}")
     lines.append(f"- {s.get('sme_note', 'The person who wrote this is not a data scientist.')}")
     return "\n".join(lines) + "\n"
@@ -857,6 +869,7 @@ def generate(scn: dict, level: str = "realistic", dials: dict | None = None, see
     traps = [t for t in s.get("traps", [])]
     key.update({"scenario": s["id"], "title": s.get("title"), "level": level, "seed": seed, "rows": int(len(df)),
                 "dials": s["dials"], "fingerprint": fingerprint(df), "design": s["design"],
+                "assignment": s["dials"].get("assignment", "observational"),
                 "traps": traps,
                 "hidden_drivers": [{"name": h["name"], "label": h.get("label", h["name"]), "why": h.get("why", "")} for h in s["hidden"] if h.get("to_treat") and h.get("to_outcome")],
                 "note": "Truth computed from each row's potential outcomes (common random numbers). 'methods' are quick linear or textbook estimates on this file, for orientation."})

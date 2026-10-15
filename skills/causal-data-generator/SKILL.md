@@ -62,8 +62,10 @@ ward, stores in one region), set `interference_note` to say so honestly.
 
 Then offer, as one optional question, the dials: size (`--n`), `missing` (0–0.3), `overlap`
 (good/weak), `missing_pattern` (`random`, or `depends_on_action` so gaps differ by group), `nonlinear` (0–1), `heavy_tails`, `measurement_error`, `irrelevant` (number of
-extra columns), `misleading_names`, and `zero_effect` (true effect set to 0, the best test
-for false positives). For benchmarking, also offer a **set**: several seeds of the same
+extra columns), `misleading_names`, `zero_effect` (true effect set to 0, the best test
+for false positives), and `assignment` (`observational`, the default, or `random`: a coin decides
+who gets a yes/no action, so nothing recorded or hidden drives it; the ground truth for a
+randomised experiment). For benchmarking, also offer a **set**: several seeds of the same
 scenario.
 
 ### 3. ✋ Confirm the plan

@@ -92,3 +92,30 @@ def test_key_uses_released_data():
     _, _, key = E.generate(scn, "starter", {"missing": 0.2}, 3, 3000)
     dr = next(m for m in key["methods"] if m["method"].startswith("Flexible adjustment"))
     assert dr["expected"] != "should work" and "gaps" in dr["note"]
+
+
+def test_random_assignment_removes_every_driver_of_the_action():
+    scn = json.loads((G / "scenarios" / "health-statin-adherence.json").read_text())
+    df, brief, key = E.generate(scn, "realistic", {"assignment": "random", "missing": 0.0}, 11, 4000)
+    s = E.resolve(scn, "realistic", {"assignment": "random"})
+    assert all(not v.get("to_treat") for v in s["variables"] + s["hidden"])
+    assert key["hidden_drivers"] == [] and key["assignment"] == "random"
+    assert "decided at random" in brief
+    # A plain comparison is unbiased: it lands near the truth.
+    naive = key["methods"][0]
+    assert naive["expected"] == "should work"
+    assert naive["verdict"] != "misses"
+    # Observational data from the same seed is not the same file.
+    obs, _, obs_key = E.generate(scn, "realistic", {"missing": 0.0}, 11, 4000)
+    assert obs_key["assignment"] == "observational"
+    assert not obs.equals(df)
+
+
+def test_random_assignment_refuses_designs_it_cannot_randomise():
+    for name in ("saas-pricing-rollout", "health-care-management-cutoff"):
+        scn = json.loads((G / "scenarios" / f"{name}.json").read_text())
+        with pytest.raises(ValueError, match="random assignment"):
+            E.resolve(scn, scn.get("default_level", "realistic"), {"assignment": "random"})
+    scn = json.loads((G / "scenarios" / "retail-loyalty.json").read_text())
+    with pytest.raises(ValueError, match="assignment must be"):
+        E.resolve(scn, "starter", {"assignment": "coin"})
