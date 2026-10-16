@@ -72,11 +72,48 @@ def resolve(scn: dict, level: str, dials: dict | None = None) -> dict:
     for key in ("instrument", "mediator", "negative_control", "heterogeneity"):
         if s.get(key) and not level_ok(s[key], level):
             s[key] = None
+    if d.get("assignment", "observational") == "random":
+        # A randomised experiment: a coin decides who gets the action, so nothing recorded or
+        # hidden drives it (and no instrument nudges it). Drivers of the outcome stay.
+        if s["design"] in ("rollout", "cutoff") or s["treatment"].get("type", "binary") != "binary":
+            raise ValueError(f"{s['id']}: random assignment is only for a yes/no action across units")
+        if level == "unanswerable":
+            # A coin removes the unrecorded driver's link to the action, so the file would be
+            # answerable while labelled unanswerable.
+            raise ValueError("random assignment makes the unanswerable level answerable; use another level")
+        for v in s["variables"] + s["hidden"]:
+            v["to_treat"] = 0
+        s["instrument"] = None
+        # The scenario's notes and traps describe how people chose who got the action. Under a coin
+        # they are false, so keep only those about columns recorded after the action or the middle
+        # step, which still mislead when adjusted for.
+        keep = _after_action_names(s)
+        s["notes"] = [n for n in s["notes"] if _mentions(n.get("text", ""), keep)]
+        s["traps"] = [t for t in s["traps"] if _mentions(t.get("name", "") + " " + t.get("text", ""), keep)]
+    elif d.get("assignment", "observational") != "observational":
+        raise ValueError(f"assignment must be 'observational' or 'random', not {d.get('assignment')!r}")
     if d.get("zero_effect"):
         s.setdefault("effect", {})["ate"] = 0.0
         if s.get("heterogeneity"):
             s["heterogeneity"] = None
     return s
+
+
+def _after_action_names(s):
+    """Names and labels of the post-treatment columns and the middle step, lower case."""
+    items = list(s.get("post_treatment", [])) + ([s["mediator"]] if s.get("mediator") else [])
+    out = set()
+    for v in items:
+        for key in ("name", "label"):
+            if v.get(key):
+                out.add(str(v[key]).lower())
+                out.add(str(v[key]).lower().replace("_", " "))
+    return out
+
+
+def _mentions(text, names):
+    low = text.lower()
+    return any(n and n in low for n in names)
 
 
 def _deep_merge(a, b):
@@ -839,6 +876,8 @@ def brief_md(s, df, ren):
     lines += ["", "## Notes"]
     for nt in s["notes"]:
         lines.append(f"- {nt['text']}")
+    if s["dials"].get("assignment") == "random":
+        lines.append(f"- Who got the action was decided at random, like a coin toss for each {unit}.")
     lines.append(f"- {s.get('interference_note', 'One ' + unit + ' getting the action does not affect the others.')}")
     lines.append(f"- {s.get('sme_note', 'The person who wrote this is not a data scientist.')}")
     return "\n".join(lines) + "\n"
@@ -857,6 +896,7 @@ def generate(scn: dict, level: str = "realistic", dials: dict | None = None, see
     traps = [t for t in s.get("traps", [])]
     key.update({"scenario": s["id"], "title": s.get("title"), "level": level, "seed": seed, "rows": int(len(df)),
                 "dials": s["dials"], "fingerprint": fingerprint(df), "design": s["design"],
+                "assignment": s["dials"].get("assignment", "observational"),
                 "traps": traps,
                 "hidden_drivers": [{"name": h["name"], "label": h.get("label", h["name"]), "why": h.get("why", "")} for h in s["hidden"] if h.get("to_treat") and h.get("to_outcome")],
                 "note": "Truth computed from each row's potential outcomes (common random numbers). 'methods' are quick linear or textbook estimates on this file, for orientation."})
