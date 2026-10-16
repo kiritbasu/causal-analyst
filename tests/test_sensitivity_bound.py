@@ -12,11 +12,11 @@ import ca_core as core  # noqa: E402
 
 
 def test_matches_the_darfur_example():
-    # Cinelli & Hazlett (2020), table 2 and sensemakr: the treatment estimate 0.0973 (se 0.0232,
-    # 783 degrees of freedom); a hidden driver as strong as `female` (partial R2 0.0092 with the
-    # treatment, 0.109 with the outcome) moves it to 0.0752, a bias of about 0.0221.
-    bias = core.ovb_bias_bound(0.0232, 783, 0.00916, 0.109, k=1.0)
-    assert bias == pytest.approx(0.0221, rel=0.03)
+    # Cinelli & Hazlett (2020), table 2, checked against sensemakr 0.0.8 on the Darfur data: se
+    # 0.02325654 with 783 degrees of freedom; `female` has partial R2 0.009081 with the treatment
+    # and 0.1090 with the outcome. A hidden driver as strong as female gives a bias of 0.0220955.
+    bias = core.ovb_bias_bound(0.02325654, 783, 0.009081, 0.1090, k=1.0)
+    assert bias == pytest.approx(0.0220955, rel=1e-3)
 
 
 def test_grows_with_k_and_has_no_finite_bound_past_the_limit():
@@ -45,3 +45,33 @@ def test_ols_sensitivity_reports_the_bound_and_keeps_its_other_fields():
     s = out["strongest_measured"]
     expected = core.ovb_bias_bound(out["linear_se"], out["dof"], s["partial_r2_treatment"], s["partial_r2_outcome"])
     assert b["bias"] == expected > 0
+
+
+
+def test_a_saturated_bound_is_flagged_capped():
+    # Darfur's `village` (partial R2 0.417 with the treatment, 0.424 with the outcome) implies a
+    # partial R2 above 1 with the outcome; the bias is then the cap's ceiling, not a real bound.
+    one = core.ovb_bound(0.02325654, 783, 0.417, 0.424)
+    assert one is not None and one["capped"] is True
+    assert core.ovb_bound(0.02325654, 783, 0.009081, 0.1090)["capped"] is False
+    assert core.ovb_bias_bound(0.02325654, 783, 0.417, 0.424) == one["bias"]
+
+
+def test_rounding_below_zero_counts_as_zero():
+    assert core.ovb_bias_bound(0.1, 1000, -1e-17, 0.1) == 0.0
+    assert core.ovb_bias_bound(0.1, 1000, -1e-6, 0.1) is None
+
+
+def test_every_benchmark_reports_its_own_bound():
+    rng = np.random.default_rng(4)
+    n = 2000
+    x1, x2 = rng.normal(size=n), rng.normal(size=n)
+    t = (rng.random(n) < 1 / (1 + np.exp(-(x1 + 0.3 * x2)))).astype(int)
+    y = 1.5 * t + 2 * x1 + 0.5 * x2 + rng.normal(size=n)
+    out = core.ols_sensitivity(pd.DataFrame({"t": t, "y": y, "x1": x1, "x2": x2}), "t", "y", ["x1", "x2"])
+    for b in out["benchmarks"]:
+        assert b["bias_k1"] == core.ovb_bias_bound(out["linear_se"], out["dof"], b["partial_r2_treatment"], b["partial_r2_outcome"])
+        one = core.ovb_bound(out["linear_se"], out["dof"], b["partial_r2_treatment"], b["partial_r2_outcome"])
+        assert b["bias_k1_capped"] is one["capped"]
+    strongest = next(b for b in out["benchmarks"] if b["confounder"] == out["bias_bound"]["benchmark"])
+    assert out["bias_bound"]["capped"] is strongest["bias_k1_capped"]

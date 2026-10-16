@@ -377,14 +377,22 @@ def ols_sensitivity(df, treatment, outcome, confounders):
         r_full_t = sm.OLS(tt, Xt).fit().rsquared
         r_red_t = sm.OLS(tt, Xt[[k for k in Xt.columns if k not in cols]]).fit().rsquared
         pr2_t = (r_full_t - r_red_t) / (1 - r_red_t) if r_red_t < 1 else 0
-        bench.append({"confounder": c, "partial_r2_outcome": float(pr2_y), "partial_r2_treatment": float(pr2_t), "strength": float(math.sqrt(max(pr2_y, 0) * max(pr2_t, 0)))})
+        b = {"confounder": c, "partial_r2_outcome": float(pr2_y), "partial_r2_treatment": float(pr2_t), "strength": float(math.sqrt(max(pr2_y, 0) * max(pr2_t, 0)))}
+        bench.append(b)
     bench.sort(key=lambda b: -b["strength"])
     strongest = bench[0] if bench else None
     se = float(fit.bse[treatment])
+    # Each covariate's own bound at k = 1, so a caller can choose its benchmark (the strongest by
+    # strength is often a many-level categorical whose bound saturates).
+    for b in bench:
+        one = ovb_bound(se, dof, b["partial_r2_treatment"], b["partial_r2_outcome"], k=1.0)
+        b["bias_k1"] = one["bias"] if one else None
+        b["bias_k1_capped"] = bool(one and one["capped"])
     bound = None
     if strongest is not None:
-        bias = ovb_bias_bound(se, dof, strongest["partial_r2_treatment"], strongest["partial_r2_outcome"], k=1.0)
-        bound = {"k": 1.0, "benchmark": strongest["confounder"], "bias": bias}
+        one = ovb_bound(se, dof, strongest["partial_r2_treatment"], strongest["partial_r2_outcome"], k=1.0)
+        bound = {"k": 1.0, "benchmark": strongest["confounder"], "bias": one["bias"] if one else None,
+                 "capped": bool(one and one["capped"])}
     return {"linear_estimate": float(fit.params[treatment]), "robustness_value": float(rv), "robustness_value_significance": float(rv_sig), "benchmarks": bench, "strongest_measured": strongest,
             "linear_se": se, "dof": float(dof), "bias_bound": bound}
 
@@ -393,7 +401,18 @@ def ovb_bias_bound(se, dof, r2_treat, r2_outcome, k=1.0):
     """Cinelli & Hazlett (2020), section 6: the most bias in the linear estimate from a hidden
     driver k times as strong as a measured covariate, given that covariate's partial R2 with the
     treatment (given the other covariates) and with the outcome (given the treatment and the other
-    covariates). Returns None when no finite bound exists (the benchmark explains too much)."""
+    covariates). Returns None when no finite bound exists (the benchmark explains too much). When
+    the implied partial R2 with the outcome exceeds 1 it is capped at 1, as sensemakr does, and the
+    result is the cap's ceiling rather than a real bound: ``ovb_bound`` reports that as ``capped``."""
+    one = ovb_bound(se, dof, r2_treat, r2_outcome, k)
+    return one["bias"] if one else None
+
+
+def ovb_bound(se, dof, r2_treat, r2_outcome, k=1.0):
+    """``{"bias": float, "capped": bool}`` for ``ovb_bias_bound``, or None. A partial R2 a hair
+    below zero from rounding (above -1e-12) counts as 0."""
+    r2_treat = 0.0 if -1e-12 < r2_treat < 0 else r2_treat
+    r2_outcome = 0.0 if -1e-12 < r2_outcome < 0 else r2_outcome
     if not (0 <= r2_treat < 1 and 0 <= r2_outcome < 1) or k <= 0 or k * r2_treat >= 1 or dof <= 0:
         return None
     r2dz = k * r2_treat / (1 - r2_treat)
@@ -403,9 +422,10 @@ def ovb_bias_bound(se, dof, r2_treat, r2_outcome, k=1.0):
     if r2zx >= 1:
         return None
     r2yz = ((math.sqrt(k) + math.sqrt(r2zx)) / math.sqrt(1 - r2zx)) ** 2 * (r2_outcome / (1 - r2_outcome))
+    capped = r2yz > 1.0
     r2yz = min(r2yz, 1.0)
     bias = se * math.sqrt(r2yz * r2dz / (1 - r2dz)) * math.sqrt(dof)
-    return float(bias) if math.isfinite(bias) else None
+    return {"bias": float(bias), "capped": capped} if math.isfinite(bias) else None
 
 
 def iv_2sls(df, treatment, outcome, instrument, controls=()):
