@@ -119,3 +119,41 @@ def test_random_assignment_refuses_designs_it_cannot_randomise():
     scn = json.loads((G / "scenarios" / "retail-loyalty.json").read_text())
     with pytest.raises(ValueError, match="assignment must be"):
         E.resolve(scn, "starter", {"assignment": "coin"})
+
+
+
+def test_random_assignment_drops_notes_and_traps_about_who_chose():
+    scn = json.loads((G / "scenarios" / "sales-calls.json").read_text())
+    _df, brief, key = E.generate(scn, "realistic", {"assignment": "random", "missing": 0.0}, 3, 2000)
+    assert "no random element" not in brief and "Reps decide who to call" not in brief
+    assert not any(t["name"] == "Selection on recorded traits" for t in key["traps"])
+    loyal = json.loads((G / "scenarios" / "retail-loyalty.json").read_text())
+    _df, _brief, key = E.generate(loyal, "realistic", {"assignment": "random", "missing": 0.0}, 3, 2000)
+    post = {p["name"] for p in E.resolve(loyal, "realistic", {})["post_treatment"]}
+    for t in key["traps"]:  # every kept trap is about a column recorded after the action
+        text = (t["name"] + " " + t["text"]).lower()
+        assert any(p in text or p.replace("_", " ") in text for p in post), t
+
+
+def test_random_assignment_leaves_nothing_that_predicts_the_action():
+    """Regress the action on every recorded driver (before the action): nothing predicts it."""
+    import numpy as np
+
+    for name in ("sales-calls", "health-statin-adherence", "retail-loyalty"):
+        scn = json.loads((G / "scenarios" / f"{name}.json").read_text())
+        dials = {"assignment": "random", "missing": 0.0}
+        df, _b, key = E.generate(scn, "realistic", dials, 9, 20000)
+        ren = key["column_names"]
+        t = df[ren.get(scn["treatment"]["name"], scn["treatment"]["name"])].to_numpy(float)
+        drivers = [ren.get(v["name"], v["name"]) for v in E.resolve(scn, "realistic", dials)["variables"]]
+        num = [c for c in drivers if c in df and df[c].dtype.kind in "biuf"]
+        x = np.column_stack([np.ones(len(df))] + [df[c].to_numpy(float) for c in num])
+        beta, *_ = np.linalg.lstsq(x, t, rcond=None)
+        r2 = 1 - ((t - x @ beta) ** 2).sum() / ((t - t.mean()) ** 2).sum()
+        assert num and r2 < 0.01, (name, r2)
+
+
+def test_random_assignment_refuses_the_unanswerable_level():
+    scn = json.loads((G / "scenarios" / "sales-calls.json").read_text())
+    with pytest.raises(ValueError, match="unanswerable"):
+        E.resolve(scn, "unanswerable", {"assignment": "random"})

@@ -77,9 +77,19 @@ def resolve(scn: dict, level: str, dials: dict | None = None) -> dict:
         # hidden drives it (and no instrument nudges it). Drivers of the outcome stay.
         if s["design"] in ("rollout", "cutoff") or s["treatment"].get("type", "binary") != "binary":
             raise ValueError(f"{s['id']}: random assignment is only for a yes/no action across units")
+        if level == "unanswerable":
+            # A coin removes the unrecorded driver's link to the action, so the file would be
+            # answerable while labelled unanswerable.
+            raise ValueError("random assignment makes the unanswerable level answerable; use another level")
         for v in s["variables"] + s["hidden"]:
             v["to_treat"] = 0
         s["instrument"] = None
+        # The scenario's notes and traps describe how people chose who got the action. Under a coin
+        # they are false, so keep only those about columns recorded after the action or the middle
+        # step, which still mislead when adjusted for.
+        keep = _after_action_names(s)
+        s["notes"] = [n for n in s["notes"] if _mentions(n.get("text", ""), keep)]
+        s["traps"] = [t for t in s["traps"] if _mentions(t.get("name", "") + " " + t.get("text", ""), keep)]
     elif d.get("assignment", "observational") != "observational":
         raise ValueError(f"assignment must be 'observational' or 'random', not {d.get('assignment')!r}")
     if d.get("zero_effect"):
@@ -87,6 +97,23 @@ def resolve(scn: dict, level: str, dials: dict | None = None) -> dict:
         if s.get("heterogeneity"):
             s["heterogeneity"] = None
     return s
+
+
+def _after_action_names(s):
+    """Names and labels of the post-treatment columns and the middle step, lower case."""
+    items = list(s.get("post_treatment", [])) + ([s["mediator"]] if s.get("mediator") else [])
+    out = set()
+    for v in items:
+        for key in ("name", "label"):
+            if v.get(key):
+                out.add(str(v[key]).lower())
+                out.add(str(v[key]).lower().replace("_", " "))
+    return out
+
+
+def _mentions(text, names):
+    low = text.lower()
+    return any(n and n in low for n in names)
 
 
 def _deep_merge(a, b):
