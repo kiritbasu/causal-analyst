@@ -1,0 +1,34 @@
+[project]
+name = "causal-data-generator"
+version = "0.4.0"
+description = "Synthetic datasets with a known causal answer: the companion to causal-analyst."
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "Kirit Basu" }]
+dependencies = [
+    "numpy>=2.0,<3",
+    "pandas>=2.2,<3",
+    "scipy>=1.13,<2",
+    "scikit-learn>=1.5,<2",
+    "statsmodels>=0.14,<0.16",
+]
+
+[project.urls]
+Repository = "https://github.com/kiritbasu/causal-analyst"
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+# The skill keeps its scripts where Claude expects them. The wheel installs that folder as the
+# `causal_data_generator` package, with the ready-made scenarios inside it. Install from git with
+# `subdirectory=skills/causal-data-generator`. Separate from causal-analyst on purpose: test
+# harnesses need the generator, production installs of the analyst do not.
+[tool.hatch.build.targets.wheel]
+packages = ["scripts"]
+
+[tool.hatch.build.targets.wheel.sources]
+"scripts" = "causal_data_generator"
+
+[tool.hatch.build.targets.wheel.force-include]
+"scenarios" = "causal_data_generator/scenarios"
