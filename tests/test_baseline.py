@@ -124,3 +124,28 @@ def test_pipeline_reports_baseline_on_aipw_entry():
     assert out["main_method"] == "aipw_gbm" and out["main_result"]["baseline"] == a["baseline"]
     assert abs(a["baseline"] - 5.0) < 0.5
     assert isinstance(out["estimates"]["aipw_spline"]["baseline"], float)
+
+
+@pytest.mark.slow
+def test_standard_budget_baseline_and_headline_come_from_one_fit():
+    """With 3 seeds, main_result.baseline + estimate must equal the median-seed fit's E[Y(1)]."""
+    import ca
+    rng = np.random.default_rng(22)
+    n = 600
+    x = rng.normal(size=n)
+    t = (rng.random(n) < 1 / (1 + np.exp(-x))).astype(int)
+    y = 5 + 2.0 * t + x + rng.normal(size=n)
+    df = pd.DataFrame({"t": t, "y": y, "x": x})
+    spec = dict(treatment="t", outcome="y", confounders=["x"], budget="standard",
+                causalpfn_max_rows=0, seed=1)
+    out = ca.analyse(df, spec)
+    mr = out["main_result"]
+    assert out["main_method"] == "aipw_gbm" and len(mr["per_seed"]) == 3
+    # rebuild the median-seed fit exactly as the pipeline does
+    k = int(np.argsort(mr["per_seed"])[1])
+    X = core.design_matrix(df, ["x"])
+    e, m0, m1 = core.crossfit_nuisances(X, t, y.astype(float), "gbm", 5, 1 + k)
+    fit = core.aipw(y.astype(float), t, e, m0, m1, "ATE")
+    assert fit["estimate"] == mr["estimate"]
+    assert mr["baseline"] == fit["baseline"]
+    assert mr["baseline"] + mr["estimate"] == pytest.approx(fit["estimate"] + fit["baseline"], abs=1e-12)

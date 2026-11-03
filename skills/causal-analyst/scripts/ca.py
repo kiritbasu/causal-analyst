@@ -313,7 +313,11 @@ def run_binary(df, spec, B):
         se = float(math.sqrt(np.median(ses ** 2 + (ests - med) ** 2)))
         # The baseline (mean outcome without the action, for the same target units) comes from the
         # median-seed fit k. The seed count is odd in every budget, so med == ests[k] and
-        # baseline + estimate is that fit's mean outcome with the action.
+        # baseline + estimate is that fit's mean outcome with the action. Enforced, not assumed:
+        # with an even count the median would be a mean of two fits and match neither baseline.
+        if med != ests[k]:
+            raise RuntimeError(f"aipw_gbm needs an odd number of seeds so the headline and the baseline come from "
+                               f"the same fit; got {len(ests)}")
         return {"estimate": med, "se": se, "ci": [med - 1.96 * se, med + 1.96 * se], "per_seed": ests.tolist(), "_k": k,
                 "baseline": fits[k][3]["baseline"]}
     timed("aipw_gbm", _aipw)
