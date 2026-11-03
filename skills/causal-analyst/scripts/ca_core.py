@@ -190,11 +190,23 @@ def aipw(y, t, e, mu0, mu1, estimand="ATE", eps=0.01):
         est = psi.mean()
         phi = psi - t * est / p  # efficient influence function for the ATT (the -t*theta/p term matters for the SE)
         se = phi.std(ddof=1) / math.sqrt(n)
+        # Baseline: E[Y(0) | T=1], the treated units' mean outcome had they not been treated.
+        # est = (1/n) sum[t(y - mu0) - (1-t) w (y - mu0)] / p with w = e/(1-e), and the treated
+        # observed mean is E[Y | T=1] = mean(t y) / p, so
+        #   E[Y | T=1] - est = mean(t mu0 + (1-t) w (y - mu0)) / p,
+        # the AIPW estimate of E[Y(0) | T=1]: mu0 averaged over the treated, corrected by the
+        # weighted control residuals. Hence baseline + estimate = treated observed mean exactly.
+        baseline = (t * mu0 + (1 - t) * e / (1 - e) * (y - mu0)).mean() / p
     else:
         psi = mu1 - mu0 + t * (y - mu1) / e - (1 - t) * (y - mu0) / (1 - e)
         est = psi.mean()
         se = psi.std(ddof=1) / math.sqrt(n)
-    return {"estimate": float(est), "se": float(se), "ci": [float(est - 1.96 * se), float(est + 1.96 * se)], "pseudo_outcomes": psi}
+        # Baseline: E[Y(0)], the AIPW potential-outcome mean under no action, from the same clipped e
+        # and cross-fitted mu0. The matching E[Y(1)] = mean(mu1 + t (y - mu1) / e), and their
+        # difference is psi.mean(), so baseline + estimate = E[Y(1)].
+        baseline = (mu0 + (1 - t) * (y - mu0) / (1 - e)).mean()
+    return {"estimate": float(est), "se": float(se), "ci": [float(est - 1.96 * se), float(est + 1.96 * se)], "pseudo_outcomes": psi,
+            "baseline": float(baseline)}
 
 
 def ipw_hajek(y, t, e, estimand="ATE", eps=0.01):
