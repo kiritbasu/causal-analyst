@@ -311,7 +311,11 @@ def run_binary(df, spec, B):
         k = int(np.argsort(ests)[len(ests) // 2])
         med = float(np.median(ests))
         se = float(math.sqrt(np.median(ses ** 2 + (ests - med) ** 2)))
-        return {"estimate": med, "se": se, "ci": [med - 1.96 * se, med + 1.96 * se], "per_seed": ests.tolist(), "_k": k}
+        # The baseline (mean outcome without the action, for the same target units) comes from the
+        # median-seed fit k. The seed count is odd in every budget, so med == ests[k] and
+        # baseline + estimate is that fit's mean outcome with the action.
+        return {"estimate": med, "se": se, "ci": [med - 1.96 * se, med + 1.96 * se], "per_seed": ests.tolist(), "_k": k,
+                "baseline": fits[k][3]["baseline"]}
     timed("aipw_gbm", _aipw)
 
     def _aipw_spline():

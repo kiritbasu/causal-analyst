@@ -10,6 +10,11 @@ Read this when writing the narrative or when a trust reason needs explaining.
 - `estimates`: every method, shown next to the main one, never averaged into it.
   `double_ml` targets an overlap-weighted average (it leans towards units that could have gone
   either way), so it can differ from the main result when effects vary.
+  The doubly robust entries (`aipw_gbm`, `aipw_spline`, `aipw_tabpfn`) also carry `baseline`: the
+  estimated mean outcome of the target units without the action (everyone for ATE, the units that
+  got it for ATT). `baseline + estimate` is the mean with the action, so a report can say "from
+  about X without the action to about Y with it". When `main_method` is `aipw_gbm`,
+  `main_result.baseline` is the same number.
 - `trust_tier`, `trust_reasons`: see the caps below.
 - `rows_used`, `rows_dropped_missing`, `data_overview`, `dag`, `manifest` (data fingerprint, seed,
   versions, runtime).
